@@ -1,0 +1,12 @@
+node_modules/
+data/
+*.log
+.env
+README.old.md
+logs/
+research/
+seed/
+setup.ps1
+*.code-workspace
+test/
+.next/

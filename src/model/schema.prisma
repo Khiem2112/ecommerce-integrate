@@ -1,0 +1,449 @@
+// VIP Customer Routing — Prisma Schema
+// Database: MySQL
+// Conventions:
+//   - Catalog tables (suffix _catalog) for reference/lookup data
+//   - Dedicated status tables with ID references
+//   - Sender types in separate table
+//   - Message types as validated enum
+//   - JSON type for list/array fields in MySQL
+//   - All transactional & catalog tables have `createdAt`, `updatedAt`, and `isActive`
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// CATALOG TABLES — Reference/lookup data
+// ============================================================
+
+/// Supported e-commerce platforms
+model PlatformCatalog {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique        // "lazada" | "shopify" | "tiktok_shop" | "synthetic"
+  name      String                  // "Lazada" | "Shopify" | "TikTok Shop" | "Synthetic"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  customers    Customer[]
+  orders       Order[]
+  conversations Conversation[]
+
+  @@map("platform_catalog")
+}
+
+/// VIP tier classifications
+model VipTierCatalog {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique        // "platinum" | "gold" | "silver" | "standard"
+  name        String                  // "Platinum" | "Gold" | "Silver" | "Standard"
+  minScore    Float    @default(0)    // Minimum VIP score for this tier
+  maxScore    Float    @default(100)  // Maximum VIP score for this tier
+  priority    Int      @default(0)    // Higher = more important (for routing)
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  customers Customer[]
+
+  @@map("vip_tier_catalog")
+}
+
+/// Product categories
+model CategoryCatalog {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  name      String
+  parentId  Int?
+  parent    CategoryCatalog?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  CategoryCatalog[] @relation("CategoryHierarchy")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  orderItems OrderItem[]
+
+  @@map("category_catalog")
+}
+
+/// Conversation intent types (what the customer wants)
+model IntentCatalog {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique        // "delivery_status" | "refund_request" | "product_info" | ...
+  name        String                  // "Delivery Status" | "Refund Request" | ...
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  conversations Conversation[]
+
+  @@map("intent_catalog")
+}
+
+/// Agent types (which specialized agent handles this)
+model AgentCatalog {
+  id            Int      @id @default(autoincrement())
+  code          String   @unique     // "logistics_agent" | "refund_agent" | "product_agent" | "escalation_agent"
+  name          String               // "Logistics Agent" | "Refund Agent" | ...
+  description   String?  @db.Text
+  promptTemplate String? @db.Text    // Base prompt template for this agent
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  conversations Conversation[]
+
+  @@map("agent_catalog")
+}
+
+/// Experiment arm types (three-arm design)
+model ExperimentArmCatalog {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique        // "arm_a" | "arm_b" | "arm_c"
+  name        String                  // "Human Only" | "Co-Pilot" | "Autonomous"
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  conversations Conversation[]
+
+  @@map("experiment_arm_catalog")
+}
+
+/// Retention approaches available to the multi-draft customer-care copilot.
+model RetentionStrategyCatalog {
+  id                Int      @id @default(autoincrement())
+  code              String   @unique
+  name              String
+  strategyType      String
+  tone              String
+  retentionFocus    String   @db.Text
+  selectionGuidance String   @db.Text
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+
+  @@map("retention_strategy_catalog")
+}
+
+// ============================================================
+// STATUS TABLES — Dedicated status tracking
+// ============================================================
+
+/// Order lifecycle statuses
+model OrderStatus {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique        // "unpaid" | "paid" | "shipped" | "delivered" | "cancelled" | "returned" | "refunded"
+  name      String                  // "Unpaid" | "Paid" | "Shipped" | ...
+  isFinal   Boolean  @default(false) // true for terminal states (delivered, cancelled, refunded)
+  sortOrder Int      @default(0)     // For ordering in UI
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  orders          Order[]          // Orders currently in this status
+  statusHistory   OrderStatusHistory[]
+
+  @@map("order_status")
+}
+
+/// Conversation resolution statuses
+model ConversationStatus {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique        // "open" | "awaiting_reply" | "in_progress" | "resolved" | "escalated" | "closed"
+  name      String
+  isFinal   Boolean  @default(false)
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  conversations Conversation[]
+
+  @@map("conversation_status")
+}
+
+/// Escalation statuses
+model EscalationStatus {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique        // "none" | "pending" | "escalated" | "resolved_by_human"
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  conversations Conversation[]
+
+  @@map("escalation_status")
+}
+
+// ============================================================
+// SENDER TYPE TABLE
+// ============================================================
+
+/// Who sent a message
+model SenderType {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique        // "buyer" | "seller" | "agent_logistics" | "agent_refund" | "agent_product" | "agent_escalation" | "system"
+  name      String                  // "Buyer" | "Seller" | "Logistics Agent" | ...
+  isHuman   Boolean  @default(true) // false for AI agents and system
+  isAgent   Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  messages Message[]
+
+  @@map("sender_type")
+}
+
+// ============================================================
+// MESSAGE TYPE ENUM (validated, not a table)
+// ============================================================
+
+enum MessageType {
+  TEXT
+  IMAGE
+  ITEM       // Product link
+  ORDER      // Order reference
+  VOUCHER    // Promotion/voucher
+  VIDEO
+  EMOJI
+  SYSTEM     // System notification
+}
+
+// ============================================================
+// CORE DOMAIN / TRANSACTIONAL TABLES
+// ============================================================
+
+model Customer {
+  id                 Int      @id @default(autoincrement())
+  platformId         Int
+  platform           PlatformCatalog @relation(fields: [platformId], references: [id])
+  platformBuyerId    String          // Lazada buyer_id, Shopee buyer_user_id, etc.
+  vipTierId          Int
+  vipTier            VipTierCatalog  @relation(fields: [vipTierId], references: [id])
+  vipScore           Float    @default(0)   // Computed RFM/LTV score (0–100)
+
+  // Aggregated metrics (recomputed periodically)
+  totalSpend         Float    @default(0)
+  orderCount         Int      @default(0)
+  avgOrderValue      Float    @default(0)
+  daysSinceLastOrder Int?
+  cancellationRate   Float    @default(0)
+  refundRate         Float    @default(0)
+  repeatPurchaseInterval Float? // Avg days between purchases
+
+  // Preferences (derived from behavior)
+  preferredLanguage  String?
+  frequentCategories Json?    // JSON array of category codes in MySQL
+  voucherSensitivity Float    @default(0) // % orders with discount
+
+  consentStatus      String   @default("granted")
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @default(now()) @updatedAt
+
+  orders        Order[]
+  conversations Conversation[]
+  evidences     CustomerEvidence[]
+
+  @@unique([platformId, platformBuyerId])
+  @@map("customer")
+}
+
+/// Evidence-backed facts about a customer (Layer 3 memory)
+model CustomerEvidence {
+  id           Int      @id @default(autoincrement())
+  customerId   Int
+  customer     Customer @relation(fields: [customerId], references: [id])
+  fact         String   @db.Text       // "Customer frequently purchases electronics"
+  evidence     String   @db.Text       // "4 of 6 orders contain category electronics"
+  confidence   Float                   // 0.0–1.0
+  lastObserved DateTime
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  @@map("customer_evidence")
+}
+
+model Order {
+  id               Int      @id @default(autoincrement())
+  platformId       Int
+  platform         PlatformCatalog @relation(fields: [platformId], references: [id])
+  platformOrderId  String          // Lazada order_id, etc.
+  customerId       Int
+  customer         Customer @relation(fields: [customerId], references: [id])
+
+  // Status — references the status table
+  currentStatusId  Int
+  currentStatus    OrderStatus @relation(fields: [currentStatusId], references: [id])
+
+  // Timestamps
+  paidAt           DateTime?
+  fulfilledAt      DateTime?
+  cancelledAt      DateTime?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now()) @updatedAt
+
+  // Financials
+  totalValue       Float
+  discountAmount   Float    @default(0)
+  shippingFee      Float    @default(0)
+  currency         String   @default("VND")
+
+  // Cancellation/return metadata
+  cancelReturnInitiator String?     // "buyer" | "seller" | "system"
+  cancellationReason    String?  @db.Text
+
+  items          OrderItem[]
+  statusHistory  OrderStatusHistory[]
+  conversations  Conversation[]
+
+  @@unique([platformId, platformOrderId])
+  @@map("order")
+}
+
+/// Tracks order status transitions over time
+model OrderStatusHistory {
+  id        Int         @id @default(autoincrement())
+  orderId   Int
+  order     Order       @relation(fields: [orderId], references: [id])
+  statusId  Int
+  status    OrderStatus @relation(fields: [statusId], references: [id])
+  changedAt DateTime    @default(now())
+  changedBy String?     // "system" | "seller" | "buyer" | "platform"
+  note      String?     @db.Text
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @default(now()) @updatedAt
+
+  @@map("order_status_history")
+}
+
+model OrderItem {
+  id          Int      @id @default(autoincrement())
+  orderId     Int
+  order       Order    @relation(fields: [orderId], references: [id])
+  productId   String              // Platform product ID
+  sku         String?             // Seller SKU
+  productName String
+  categoryId  Int?
+  category    CategoryCatalog? @relation(fields: [categoryId], references: [id])
+  quantity    Int
+  unitPrice   Float
+  discount    Float    @default(0)
+  refundAmount Float   @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@map("order_item")
+}
+
+model Conversation {
+  id                  Int      @id @default(autoincrement())
+  platformId          Int
+  platform            PlatformCatalog @relation(fields: [platformId], references: [id])
+  platformSessionId   String?         // Lazada session_id
+  customerId          Int
+  customer            Customer @relation(fields: [customerId], references: [id])
+  orderId             Int?            // Nullable — not all conversations are order-linked
+  order               Order?   @relation(fields: [orderId], references: [id])
+
+  // Classification
+  intentId            Int?
+  intent              IntentCatalog? @relation(fields: [intentId], references: [id])
+  priority            String   @default("normal") // "low" | "normal" | "high" | "urgent"
+
+  // Routing
+  assignedAgentId     Int?
+  assignedAgent       AgentCatalog? @relation(fields: [assignedAgentId], references: [id])
+  humanApprovalRequired Boolean @default(false)
+
+  // Status
+  statusId            Int
+  status              ConversationStatus @relation(fields: [statusId], references: [id])
+  escalationStatusId  Int?
+  escalationStatus    EscalationStatus?  @relation(fields: [escalationStatusId], references: [id])
+
+  // Experiment
+  experimentArmId     Int?
+  experimentArm       ExperimentArmCatalog? @relation(fields: [experimentArmId], references: [id])
+
+  // Timestamps
+  startedAt           DateTime @default(now())
+  resolvedAt          DateTime?
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @default(now()) @updatedAt
+
+  messages           Message[]
+  routingDecisions   RoutingDecision[]
+
+  @@map("conversation")
+}
+
+model Message {
+  id               Int      @id @default(autoincrement())
+  conversationId   Int
+  conversation     Conversation @relation(fields: [conversationId], references: [id])
+  platformMessageId String?     // Lazada message_id
+
+  // Sender — references the sender_type table
+  senderTypeId     Int
+  senderType       SenderType @relation(fields: [senderTypeId], references: [id])
+
+  // Content
+  messageType      MessageType @default(TEXT)  // Enum validated
+  text             String?     @db.Text
+  mediaUrl         String?     // For IMAGE, VIDEO types
+  referenceId      String?     // For ITEM (product_id), ORDER (order_id), VOUCHER (promo_id)
+
+  // AI metadata (populated when sender is an agent)
+  groundedFacts    Json?       // JSON array of evidence IDs used
+  ungroundedClaims Json?       // JSON array of claims that couldn't be grounded
+  confidence       Float?
+  suggestedAction  String?     // "auto_reply" | "await_approval" | "escalate_to_human"
+
+  // Timing
+  timestamp        DateTime   @default(now())
+  responseLatencyMs Int?      // Time from previous message to this response
+  isActive         Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @default(now()) @updatedAt
+
+  @@map("message")
+}
+
+/// Records routing decisions for audit
+model RoutingDecision {
+  id              Int      @id @default(autoincrement())
+  conversationId  Int
+  conversation    Conversation @relation(fields: [conversationId], references: [id])
+  detectedIntent  String
+  assignedAgent   String
+  priority        String
+  customerValue   String          // VIP tier at time of routing
+  humanApproval   Boolean
+  reasons         Json?           // JSON array of routing explanation strings
+  wasOverridden   Boolean  @default(false)
+  overrideReason  String?  @db.Text
+  decidedAt       DateTime @default(now())
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  @@map("routing_decision")
+}
