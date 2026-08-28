@@ -12,7 +12,7 @@ export const PROVIDER_CONFIGS: readonly {
   readonly model: string;
   readonly baseUrl?: string;
 }[] = [
-    { name: 'opencode', envKey: 'OPENCODE_API_KEY', model: 'deepseek-v4-pro', baseUrl: 'https://opencode.ai/zen/go/v1' },
+    { name: 'opencode', envKey: 'OPENCODE_API_KEY', model: 'deepseek-v4-flash', baseUrl: 'https://opencode.ai/zen/go/v1' },
     { name: 'gemini', envKey: 'GEMINI_API_KEY', model: 'gemini-2.0-flash' },
     { name: 'deepseek', envKey: 'DEEPSEEK_API_KEY', model: 'deepseek-v4-flash', baseUrl: 'https://api.deepseek.com' },
     { name: 'openai', envKey: 'OPENAI_API_KEY', model: 'gpt-4o-mini' },
@@ -20,9 +20,9 @@ export const PROVIDER_CONFIGS: readonly {
   ];
 
 export const DEFAULT_TEMPERATURE = 0.3;
-export const MAX_RETRIES_PER_PROVIDER = 1;
+export const MAX_RETRIES_PER_PROVIDER = 2;
 export const RETRY_BASE_DELAY_MS = 1000;
-export const CLIENT_TIMEOUT_MS = 8_000;
+export const CLIENT_TIMEOUT_MS = Number(process.env.LLM_TIMEOUT_MS) || 60_000;
 
 /**
  * Filter and assemble configured LLM providers based on existing environment API keys.
@@ -41,6 +41,29 @@ export function getAvailableProviders(): LlmProviderConfig[] {
       temperature: DEFAULT_TEMPERATURE,
       maxRetries: MAX_RETRIES_PER_PROVIDER,
     }));
+}
+
+/**
+ * Filter and order LLM providers optimized for the query tier.
+ * For Simple & Standard tiers, prioritize ultra-low latency providers (Gemini Flash, DeepSeek Flash, GPT-4o-mini).
+ * For Complex tiers, preserve full provider sequence with deep reasoning capabilities.
+ */
+export function getAvailableProvidersForTier(tier: 'simple' | 'standard' | 'complex'): LlmProviderConfig[] {
+  const available = getAvailableProviders();
+  if (tier === 'complex' || available.length <= 1) {
+    return available;
+  }
+
+  // Priority order for low-latency tiers: gemini -> deepseek -> openai -> grok -> opencode
+  const speedRank: Record<LlmProviderName, number> = {
+    gemini: 1,
+    deepseek: 2,
+    openai: 3,
+    grok: 4,
+    opencode: 5,
+  };
+
+  return [...available].sort((a, b) => (speedRank[a.name] ?? 99) - (speedRank[b.name] ?? 99));
 }
 
 /**
@@ -85,15 +108,21 @@ export async function callOpenAICompatible(
     ...(config.baseUrl ? { baseURL: config.baseUrl } : {}),
   });
 
-  const response = await client.chat.completions.create({
-    model: config.model,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
-    temperature: config.temperature,
-    response_format: { type: 'json_object' },
-  });
+  const response = await client.chat.completions.create(
+    {
+      model: config.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: config.temperature,
+      response_format: { type: 'json_object' },
+    },
+    {
+      signal: AbortSignal.timeout(CLIENT_TIMEOUT_MS),
+      maxRetries: 0,
+    },
+  );
 
   const text = response.choices[0]?.message?.content;
   if (!text) throw new Error(`${config.name} returned empty response`);

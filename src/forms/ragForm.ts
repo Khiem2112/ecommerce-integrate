@@ -66,7 +66,7 @@ export const rawMultiDraftResponseSchema = z
     recommendedStrategyId: retentionStrategyCodeSchema,
     recommendationReason: z.string().trim().min(1).max(500),
     recommendationGroundedFactsUsed: factReferencesSchema,
-    strategies: z.array(rawStrategyDraftSchema).min(2).max(3),
+    strategies: z.array(rawStrategyDraftSchema).min(1).max(3),
   })
   .superRefine((response, context) => {
     const strategyIds = response.strategies.map((strategy) => strategy.id);

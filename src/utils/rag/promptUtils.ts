@@ -162,6 +162,115 @@ export function getVipInstructions(tierCode: string): string {
 }
 
 /**
+/**
+ * Build a lightweight system prompt for simple inquiries (greetings, general FAQs, product info).
+ * Strips heavy dossier metrics and evidence layers, generating exactly 1 fast, polite response draft.
+ */
+export function buildLiteSystemPrompt(
+  context: FullCustomerContext,
+  strategies: readonly RetentionStrategy[],
+): string {
+  const primaryStrategy = strategies[0] ?? {
+    code: 'strat_goodwill',
+    name: 'Goodwill Assurance',
+    tone: 'Empathetic and warm',
+    retentionFocus: 'Relationship building and courtesy',
+  };
+
+  const intentCode = context.turn.detectedIntent?.code ?? 'general';
+  const policies = getPoliciesByIntent(intentCode);
+  const factCatalog = buildGroundingFactCatalog(context, policies);
+  const formattedFacts = formatGroundingFactsForPrompt(factCatalog);
+
+  return `You are a helpful and polite e-commerce customer support co-pilot for a Lazada seller store in Vietnam.
+Generate a concise, professional, and friendly response to assist the customer.
+
+## SELECTED STRATEGY
+- **Code:** ${primaryStrategy.code}
+- **Name:** ${primaryStrategy.name}
+- **Tone:** ${primaryStrategy.tone}
+
+## CRITICAL INSTRUCTIONS
+1. Generate exactly 1 response draft under "strategies" array with rank 1.
+2. "recommendedStrategyId" MUST be "${primaryStrategy.code}".
+3. Use natural, polite Vietnamese (e.g. "Dạ shop chào bạn", "Cảm ơn bạn đã nhắn tin cho shop").
+4. Never invent fake order data or tracking status.
+5. STRICT PROHIBITION ON INTERNAL JARGON: Never mention internal tier names (Platinum, Gold, Silver), VIP scores, strategy codes, or citation tags in customer-facing text.
+6. "proposedCompensation" must be {"kind": "none"}.
+
+${formatLinkedOrder(context)}
+
+${formatConversationContext(context)}
+
+${formattedFacts}
+
+## OUTPUT RESPONSE FORMAT
+Return ONLY valid JSON matching this schema:
+{
+  "recommendedStrategyId": "${primaryStrategy.code}",
+  "recommendationReason": "Direct and helpful assistance for general customer inquiry.",
+  "recommendationGroundedFactsUsed": [],
+  "strategies": [
+    {
+      "id": "${primaryStrategy.code}",
+      "rank": 1,
+      "draftText": "Dạ shop chào bạn! Shop có thể hỗ trợ gì cho mình về sản phẩm/đơn hàng ạ?",
+      "groundedFactsUsed": [],
+      "ungroundedClaims": [],
+      "confidence": 0.95,
+      "suggestedAction": "auto_reply",
+      "proposedCompensation": { "kind": "none" }
+    }
+  ]
+}`;
+}
+
+/**
+ * Build a standard system prompt for operational inquiries (shipping status, vouchers, order edits).
+ * Injects order context and relevant store policies, producing 1 to 2 focused drafts.
+ */
+export function buildStandardSystemPrompt(
+  context: FullCustomerContext,
+  strategies: readonly RetentionStrategy[],
+): string {
+  const { customer } = context.dossier;
+  const intentCode = context.turn.detectedIntent?.code ?? null;
+  const policies = getPoliciesByIntent(intentCode);
+
+  const factCatalog = buildGroundingFactCatalog(context, policies);
+  const formattedFacts = formatGroundingFactsForPrompt(factCatalog);
+  const formattedStrategies = formatRetentionStrategyCatalogForPrompt(strategies);
+
+  return `You are a professional e-commerce customer care co-pilot for a Lazada seller store in Vietnam.
+Your role is to formulate 1 to 2 clear, operational response drafts for customer support agents.
+
+## RETENTION STRATEGY CATALOG
+${formattedStrategies}
+
+## CRITICAL INSTRUCTIONS
+1. Formulate 1 to 2 distinct drafts in "strategies" array with ranks starting at 1.
+2. "recommendedStrategyId" MUST match the rank 1 strategy.
+3. Every factual claim about orders or shipping MUST cite valid keys from ALLOWED FACT CITATIONS.
+4. Voucher amounts must never exceed tier limits:
+   * Platinum: max 50,000 VND | Gold: max 25,000 VND | Silver: max 10,000 VND | Standard: 0 VND.
+5. STRICT PROHIBITION ON INTERNAL JARGON: No tier names (VIP, Silver...), scores, or citation tags in draftText.
+6. Write in natural, polite Vietnamese.
+
+${formatLinkedOrder(context)}
+
+${formatConversationContext(context)}
+
+${formattedFacts}
+
+## VIP TIER COMPENSATION & HANDLING RULES
+${getVipInstructions(customer.vipTier.code)}
+
+## OUTPUT RESPONSE FORMAT
+Return ONLY valid JSON matching this schema:
+${MULTI_DRAFT_RESPONSE_JSON_FORMAT}`;
+}
+
+/**
  * Build the complete multi-draft system prompt with 3-layer context, strategy catalog,
  * allowed fact citations, and safety guardrails.
  */
@@ -258,5 +367,6 @@ ${MULTI_DRAFT_RESPONSE_JSON_FORMAT}`;
 export function buildUserPrompt(latestMessageText: string): string {
   return `Customer message: "${latestMessageText}"
 
-Generate 2 to 3 distinct, grounded response drafts following the RETENTION STRATEGY CATALOG and ALLOWED FACT CITATIONS. Return ONLY valid JSON matching the schema.`;
+Generate grounded response draft(s) following the RETENTION STRATEGY CATALOG and ALLOWED FACT CITATIONS. Return ONLY valid JSON matching the schema.`;
 }
+

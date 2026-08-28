@@ -21,8 +21,9 @@ export async function generateResponse(
   systemPrompt: string,
   userPrompt: string,
   allowedStrategyCodes?: readonly string[],
+  customProviders?: readonly import('@/types').LlmProviderConfig[],
 ): Promise<RawMultiDraftResponse> {
-  const providers = getAvailableProviders();
+  const providers = customProviders ?? getAvailableProviders();
 
   if (providers.length === 0) {
     throw new Error(
