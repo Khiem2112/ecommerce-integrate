@@ -12,12 +12,14 @@ Before declaring any feature or task complete, verify the technical implementati
 
 ## 1. Architectural Layering
 - [ ] Do React components live in `src/components/` and use named Function Components?
-- [ ] Do Server Actions (`src/actions/`) use `'use server'` and delegate database calls to Services?
-- [ ] Do Services (`src/services/`) handle all Prisma queries and business workflows?
-- [ ] Are utils extracted to `src/utils/<domain>/` only for services with numerous/complex helpers (otherwise kept inside the service file)?
+- [ ] Do Server Actions (`src/actions/`) orchestrate services, validate input schemas (Zod), and manage atomic transactions via `prisma.$transaction` passing `tx` down to Services?
+- [ ] Do Services (`src/services/`) handle all business logic, DB queries (accepting optional `tx`), external API calls, and file I/O with single-responsibility functions?
+- [ ] Are Utils (`src/utils/`) strictly pure and stateless functions (formatting, regex, math, prompts) with NO database access, NO external API calls, and NO file I/O (with small, single-service helpers kept directly inside the service file to avoid over-fragmentation)?
+
 - [ ] Are dedicated API Routes (`src/app/api/`) used for streaming, RAG generation, or webhooks?
 - [ ] Are form schemas and validation placed in `src/forms/` using Zod?
 - [ ] Are domain types modularized in `src/types/`?
+
 
 ---
 

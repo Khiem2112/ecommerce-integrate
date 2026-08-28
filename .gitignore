@@ -10,3 +10,4 @@ setup.ps1
 *.code-workspace
 test/
 .next/
+refactor/

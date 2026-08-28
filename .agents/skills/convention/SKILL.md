@@ -34,13 +34,24 @@ When writing, refactoring, or reviewing code, consult the dedicated technical sk
 [ Custom Hooks & TanStack Query (src/hooks/) ]   +   [ Jotai Atoms (src/atoms/) ]
                     ↓
 [ Server Actions (src/actions/) ]     /   [ Dedicated API Routes (src/app/api/) ]
-                    ↓
-[ Services & Business Logic (src/services/) ]   ↔   [ Complex Domain Utils (src/utils/) ]
+                    ↓ (orchestrates & passes `tx` context if in a transaction)
+[ Services & Business Logic (src/services/) ]
+  ├── DB operations (via `prisma` or injected `tx`)
+  ├── External APIs (Payment, AI, Logistics)
+  ├── File I/O (Logs, Reports, PDFs)
+  └── Orchestrates Sub-Services
+                    ↑ (can be called anywhere)
+[ Pure Utils (src/utils/) ] (Pure, stateless functions — NO DB, NO API, NO File I/O)
                     ↓
 [ Prisma Client Singleton (src/lib/prisma.ts) ]
                     ↓
 [ Database ]
 ```
+
+### Core Layer Responsibilities
+- **Server Actions (`src/actions/`)**: Orchestrates Services, validates input payloads (Zod), manages atomic transactions via `prisma.$transaction` passing `tx` to Services, handles cache revalidation, and returns standardized `{ success, data, error }`.
+- **Services (`src/services/`)**: Execution hub for ALL business logic. Single-responsibility functions. Performs DB queries (accepting optional `tx`), calls external APIs, reads/writes files, and orchestrates sub-services.
+- **Utils (`src/utils/`)**: Pure and stateless functions ONLY. Used strictly for formatting (currency/dates), regex validations, string parsing, and prompt building. **MUST NOT** touch DB, call APIs, or perform File I/O.
 
 ---
 
@@ -51,14 +62,19 @@ When writing, refactoring, or reviewing code, consult the dedicated technical sk
 | `any` type | Use `unknown` + type narrowing | `typescript` |
 | `interface` for props/shapes | Use `type Props = { ... }` | `typescript` |
 | Direct `prisma.*` in Action | Move query to a Service in `src/services/` | `nextjs` |
+| Multiple DB operations in Action without transaction | Wrap in `prisma.$transaction` in Action and pass `tx` to Services | `nextjs` |
 | Service calling Action | Services are self-contained; Actions call Services | `nextjs` |
-| Over-fragmenting simple helpers into `utils/` | Only extract `src/utils/<domain>/` for services with many/complex helpers; keep simple 1–2 helpers inside the service file | `nextjs` |
+| Monolithic multi-task Service | Break into single-responsibility service functions | `nextjs` |
+| Over-fragmenting simple helpers into `utils/` | Keep small 1–2 line private helpers directly inside the service file; only extract to `src/utils/` when complex/reused | `nextjs` |
+| DB / API / File I/O inside `src/utils/` | Utils must be pure & stateless; move all I/O to `src/services/` | `nextjs` |
+
 | Inline styles `style={{ ... }}` | Use Tailwind CSS utility classes | `styling` |
 | String interpolation for classes | Use `cn('base-class', condition && 'active')` | `styling` |
 | Redux / Formik | Use Jotai for atoms and React Hook Form + Zod for forms | `react` / `nextjs` |
 | SWR for data fetching | Use TanStack Query (`@tanstack/react-query`) | `nextjs` |
 | Array index as React `key` | Use unique, stable IDs | `react` |
 | Missing error handling in Action | Catch exceptions and return `{ success: false, error }` | `nextjs` |
-| Positional / Step marker comments (`// 1. ...`, `// Step X`) | Use descriptive intent comments on code blocks without positional numbering | `typescript` / `ponytail` |
+| Positional / Step marker comments (`// 1. ...`, `// Step X`) | Use descriptive intent comments on code blocks without positional numbering | `typescript` |
+
 
 

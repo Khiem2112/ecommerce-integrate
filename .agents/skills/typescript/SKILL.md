@@ -139,59 +139,24 @@ var total = 0;
 
 ---
 
-## 12. Commenting Guidelines: Descriptive Block Comments Recommended, Positional Numbering Prohibited
-Adding comments to code blocks to clarify domain intent, business rationale, safety rules, and complex algorithms is **highly recommended**. However, assigning positional numbers, step sequences, or section indices is **prohibited**.
+## 12. Commenting Guidelines: Descriptive Block Comments Recommended, Positional Numbering & Trivial Comments Prohibited
+Adding comments to code blocks to clarify domain intent, business rationale, safety rules, and complex algorithms is **highly recommended**. However, assigning positional numbers, step sequences, section indices, or trivial syntax restatements is **prohibited**.
 
 - **Recommended — Purpose & Intent Comments**: Write concise comments above logical code blocks explaining **what domain goal** it accomplishes or **why** specific logic exists.
-- **Prohibited — Positional & Sequence Markers**: Do **NOT** prefix comments with step numbers or positional indicators (e.g., `// 1. PII Checks`, `// 2. Policy Checks`, `// Step 1: ...`, `// Part 2: ...`, `// Section A`).
-- **Self-Documenting Structure**: Combine meaningful block comments with clear naming and modular helpers so the code reads naturally without artificial index counters.
+- **Prohibited — Positional & Sequence Markers**: Do **NOT** prefix comments with step numbers or positional indicators (e.g., no `// 1. ...`, `// Step X`, `// Part A`).
+- **Prohibited — Trivial Syntax Comments**: Do **NOT** write redundant comments that merely restate what code syntax does (e.g., `// Check regex`, `// Call API`).
 
 ```typescript
-// ❌ INCORRECT: Using positional numbers / step counters as comments
-export function validateGrounding(response: RagResponse, context: FullCustomerContext): GroundingResult {
-  const violations: GroundingViolation[] = [];
-  const responseText = response.responseText;
+// ❌ INCORRECT: Trivial syntax restatement without domain intent
+// Check phone regex
+if (PHONE_REGEX.test(text)) { ... }
 
-  // 1. PII Checks
-  if (PHONE_REGEX.test(responseText)) {
-    violations.push({ type: 'pii_exposure', description: '...', severity: 'high' });
-  }
-
-  // 2. Policy Checks (Voucher compensation limit)
-  let match: RegExpExecArray | null;
-  // ...
-
-  // 3. Fact Grounding & Verification
-  // ...
-
-  // 4. Calculate Precision & Decide Suggested Action
-  // ...
-}
-
-// ✅ CORRECT: Descriptive block comments explaining purpose and intent without positional numbering
-export function validateGrounding(response: RagResponse, context: FullCustomerContext): GroundingResult {
-  // Validate text against sensitive PII exposure patterns (phone, email, payment cards)
-  const piiViolations = detectPiiViolations(response.responseText);
-
-  // Enforce marketplace voucher limits to prevent unauthorized compensation commitments
-  const policyViolations = checkVoucherPolicyViolations(response.responseText);
-
-  // Cross-reference referenced claim IDs against Layer 1-3 ground-truth evidence facts
-  const ungroundedFacts = verifyFactGrounding(response.groundedFactsUsed, context.evidence.facts);
-
-  const allViolations = [...piiViolations, ...policyViolations];
-
-  // Evaluate precision score and downgrade action if grounding confidence is below threshold
-  const precision = calculateGroundingPrecision(response, ungroundedFacts, allViolations);
-  const isGroundingValid = isSafeAndGrounded(allViolations, ungroundedFacts);
-
-  return {
-    isValid: isGroundingValid,
-    groundingPrecision: precision,
-    violations: allViolations,
-    sanitizedResponse: sanitizeResponseByGrounding(response, ungroundedFacts, isGroundingValid, precision),
-  };
-}
+// ✅ CORRECT: Descriptive block comments explaining purpose without positional numbering
+// Validate text against sensitive PII exposure patterns (phone, email, payment cards)
+if (PHONE_REGEX.test(text)) { ... }
 ```
+
+> 📖 **Full Example**: See [`examples/commenting_guidelines.md`](file:///c:/University/Study/Programming/Web_React/ecommerce_integrate/.agents/skills/typescript/examples/commenting_guidelines.md).
+
 
 

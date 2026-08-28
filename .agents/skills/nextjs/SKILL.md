@@ -20,46 +20,77 @@ Always maintain strict separation across architectural boundaries:
 [ Custom Hooks & TanStack Query (src/hooks/) ]   +   [ Jotai Atoms (src/atoms/) ]
                     ↓
 [ Server Actions (src/actions/) ]     /   [ Dedicated API Routes (src/app/api/) ]
-                    ↓
-[ Services (src/services/) ]
+                    ↓ (orchestrates & passes transaction `tx`)
+[ Services & Business Logic (src/services/) ]
+  ├── Database Calls (Prisma `prisma` / `tx`)
+  ├── External APIs (Payment, AI, Logistics)
+  ├── File I/O (Logs, Reports, PDFs)
+  └── Orchestrates Sub-Services
+                    ↑ (can be called anywhere)
+[ Pure Utils (src/utils/) ] (Pure, stateless, format/regex/prompt only - NO DB, NO API, NO File I/O)
                     ↓
 [ Prisma Client Singleton (src/lib/prisma.ts) ]
                     ↓
 [ Database ]
 ```
 
+### Layer Responsibilities Overview
+
+| Layer | Path | Core Responsibility | Can Call DB / API / File I/O? |
+| :--- | :--- | :--- | :--- |
+| **Actions** | `src/actions/` | Manage/orchestrate calls to Services, validate input schemas, manage transactions across services, revalidate caches, return standardized action responses. | **No direct DB/API/File logic** (Only initiates `prisma.$transaction` to pass `tx` to Services). |
+| **Services** | `src/services/` | Execute all domain & business logic. Single-responsibility functions. Performs DB queries (using default Prisma or injected `tx`), calls external APIs, reads/writes files, calls other services. | **YES** (The single execution hub for all I/O & business logic). |
+| **Utils** | `src/utils/` | Pure, stateless functions. Data formatting, regex validation, string manipulation, prompt generation, math calculations. | **STRICTLY NO** (No DB, No API, No File I/O, No Side Effects). |
+
 **Hard Boundaries:**
-- Server Actions **MUST NOT** call `prisma.*` directly (except transactions `prisma.$transaction`).
+- Server Actions **MUST NOT** execute direct business logic or direct `prisma.*` queries (except initiating `prisma.$transaction` to pass `tx` context to services).
 - Services **MUST NOT** call Server Actions.
+- Utils **MUST NOT** call Prisma, external APIs, or file system APIs.
 - Hooks & Components **MUST NOT** call Services or Prisma directly.
+
+> 📖 **Full Good vs. Bad Practice Code Examples**: See [`examples/layer_practices.md`](file:///c:/University/Study/Programming/Web_React/ecommerce_integrate/.agents/skills/nextjs/examples/layer_practices.md).
 
 ---
 
-## 2. Server Actions (`'use server'`) for Mutations
-- Use Server Actions for standard user mutations, state transitions, and form submissions.
-- Always validate inputs (via Zod or schema guards).
-- Always return a standardized response object `{ success: boolean, data?: T, error?: string }`.
-- Call underlying **Services** for database operations and business logic.
+## 2. Server Actions (`src/actions/`): Orchestration & Transactions
+
+### Core Rules
+1. **Orchestration Hub**: Server Actions receive requests from client forms or mutation hooks, validate inputs (via Zod), and orchestrate one or more Services.
+2. **Transaction Management**: When multiple database operations/services must execute atomically in a single transaction, the Action initiates `prisma.$transaction` and passes the transaction client `tx` into each service function.
+3. **Standard Response**: Always return `{ success: boolean, data?: T, error?: string }`.
+4. **Cache Invalidation**: Call `revalidatePath` or `revalidateTag` inside Actions after successful mutations.
 
 ```typescript
-// src/actions/itemActions.ts
+// src/actions/orderActions.ts
 'use server';
 
-import { updateItemStatusService } from '@/services/itemService';
+import { prisma } from '@/lib/prisma';
+import { checkoutSchema } from '@/forms/checkoutForm';
+import { validateCartService } from '@/services/cartService';
+import { createOrderService } from '@/services/orderService';
+import { deductProductStockService } from '@/services/inventoryService';
 import { revalidatePath } from 'next/cache';
 
-export async function updateItemStatusAction(input: { id: number; status: string }) {
+export async function checkoutAction(payload: unknown) {
   try {
-    if (!input.id || !input.status) {
-      return { success: false, error: 'Invalid payload' };
-    }
+    const parsed = checkoutSchema.safeParse(payload);
+    if (!parsed.success) return { success: false, error: parsed.error.issues[0].message };
 
-    const updated = await updateItemStatusService(input.id, input.status);
-    revalidatePath('/');
-    return { success: true, data: updated };
+    const { cartId, paymentMethod } = parsed.data;
+    const cart = await validateCartService(cartId);
+
+    // Atomically execute multiple service queries inside a Prisma transaction
+    const order = await prisma.$transaction(async (tx) => {
+      const newOrder = await createOrderService({ cartId, total: cart.total, paymentMethod }, tx);
+      await deductProductStockService(cart.items, tx);
+      return newOrder;
+    });
+
+    revalidatePath('/orders');
+    return { success: true, data: order };
   } catch (error) {
-    console.error('Error in updateItemStatusAction:', error);
-    return { success: false, error: 'Failed to update item status' };
+    console.error('Error in checkoutAction:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Checkout failed' };
   }
 }
 ```
@@ -111,22 +142,65 @@ export function useConversationsQuery(filter: { tier?: string; status?: string }
 }
 ```
 
-## 6. Services & Utils Layer (`src/services/` & `src/utils/`)
-- **Services (`src/services/`)**: All database mutations, Prisma queries, and data workflows live inside Services.
-- **Utils (`src/utils/`)**: Pure helper functions, string formatters, prompt builders, regex validators, and external API client callers.
-- **Utils Separation Rule**:
-  - **Large / Complex Services (Extract to `src/utils/<domain>/`)**: Only extract helpers into `src/utils/` when a service contains numerous helper functions, prompt templates, multi-step safety validators, or SDK invocation wrappers (e.g., `src/services/rag/` → `src/utils/rag/`).
-  - **Simple Services (Keep inside Service)**: If a service only has 1–2 small internal helpers, keep them directly inside the service file itself to avoid over-engineering and premature file fragmentation.
+---
+
+## 5. Services Layer (`src/services/`): Business Logic Execution
+
+### Core Rules
+1. **Domain Logic Execution Hub**: All business algorithms, database queries, file reading/writing, external API calls, and sub-service coordination reside here.
+2. **Single Responsibility Principle (SRP)**: Each service function must perform one well-defined task (e.g., `createOrderService`, `deductProductStockService`, `logOrderAuditService`).
+3. **Transaction-Aware Database Operations**: Service functions that query/mutate DB should accept an optional `tx?: Prisma.TransactionClient | typeof prisma` parameter. Default to the singleton `prisma` instance if `tx` is not passed.
+4. **I/O Capabilities**: Services are authorized to call Prisma / Database, external APIs, and file I/O.
 
 ```typescript
-// src/services/itemService.ts
+// src/services/orderService.ts
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
-export async function updateItemStatusService(id: number, status: string) {
-  return await prisma.item.update({
-    where: { id },
-    data: { status },
+type DbClient = Prisma.TransactionClient | typeof prisma;
+
+// Single Responsibility: Create order record in DB
+export async function createOrderService(
+  data: { cartId: number; total: number; paymentMethod: string },
+  tx: DbClient = prisma
+) {
+  return await tx.order.create({
+    data: {
+      cartId: data.cartId,
+      totalAmount: data.total,
+      paymentMethod: data.paymentMethod,
+      status: 'PROCESSING',
+    },
   });
+}
+```
+
+---
+
+## 6. Utils Layer (`src/utils/`): Pure & Stateless Functions
+
+### Core Rules
+1. **Pure & Stateless**: Given identical inputs, a util function MUST ALWAYS return the identical output. No side effects.
+2. **Strict Prohibitions**:
+   - ❌ **NO Database Access**: Never import or call Prisma or raw SQL queries.
+   - ❌ **NO External API Calls**: Never use `fetch`, `axios`, or external network clients.
+   - ❌ **NO File I/O**: Never use `fs`, `path` file writing/reading.
+   - ❌ **NO Mutable Global State**: No in-memory caches or mutable module variables.
+3. **Allowed Responsibilities**: Formatting (currency/date), regex validations, string parsing, mathematical formulas, prompt builders.
+4. **Universal Invocation**: Can be safely called from anywhere (Components, Hooks, Actions, Services, API Routes).
+5. **Local Service Helpers (Avoid Premature Extraction)**: If the helper logic is small (1–2 lines, simple string concatenation, private calculation) and only used locally inside that service, it can be kept directly within the service file instead of creating a separate file in `src/utils/` to avoid over-engineering and premature file fragmentation. Extract to `src/utils/<domain>/` only when helpers are complex, reusable across multiple files, or large.
+
+
+```typescript
+// src/utils/formatters.ts
+export function formatVND(amount: number): string {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+}
+
+// src/utils/validators.ts
+const VN_PHONE_REGEX = /^(0|84)(3|5|7|8|9)[0-9]{8}$/;
+export function isValidVietnamesePhoneNumber(phone: string): boolean {
+  return VN_PHONE_REGEX.test(phone?.trim() ?? '');
 }
 ```
 
@@ -152,3 +226,4 @@ export function useConversationManager() {
   return { activeId, conversations, isLoading, selectConversation };
 }
 ```
+
