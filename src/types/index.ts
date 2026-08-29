@@ -27,6 +27,12 @@ export type {
   MessageType,
 } from '@prisma/client';
 
+// Common cross-layer utility types
+export type {
+  ActionResponse,
+  DbClient,
+} from './common';
+
 // Prisma-derived relation types
 export type {
   CustomerWithRelations,

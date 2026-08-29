@@ -1,14 +1,17 @@
 /**
- * Customer Service — data access layer for customer domain.
- * Returns Prisma-derived types directly. No manual field mapping needed.
+ * Customer Service — data access layer for customer profile and evidence records.
+ * Supports transaction client injection for atomic multi-service operations.
  */
 
 import { prisma } from '@/lib/prisma';
-import type { CustomerWithRelations, CustomerEvidenceRecord } from '@/types';
+import type { DbClient, CustomerWithRelations, CustomerEvidenceRecord } from '@/types';
 
 /** Fetch full customer with VIP tier and platform */
-export async function getCustomerById(id: number): Promise<CustomerWithRelations | null> {
-  return prisma.customer.findUnique({
+export async function getCustomerById(
+  id: number,
+  tx: DbClient = prisma,
+): Promise<CustomerWithRelations | null> {
+  return tx.customer.findUnique({
     where: { id },
     include: {
       vipTier: true,
@@ -21,8 +24,9 @@ export async function getCustomerById(id: number): Promise<CustomerWithRelations
 export async function getCustomerEvidences(
   customerId: number,
   minConfidence: number = 0.5,
+  tx: DbClient = prisma,
 ): Promise<CustomerEvidenceRecord[]> {
-  return prisma.customerEvidence.findMany({
+  return tx.customerEvidence.findMany({
     where: {
       customerId,
       isActive: true,

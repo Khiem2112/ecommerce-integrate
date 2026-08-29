@@ -1,18 +1,5 @@
-/**
- * Prompt Utilities — builds system and user prompts for the multi-draft RAG LLM.
- * Injects 3-layer context, retention strategy catalog, allowed fact citations, and store policies.
- */
-
-import type { FullCustomerContext } from '@/types';
+import type { FullCustomerContext, RetentionStrategy } from '@/types';
 import { getPoliciesByIntent, type PolicyRule } from './policyUtils';
-import {
-  buildGroundingFactCatalog,
-  formatGroundingFactsForPrompt,
-} from '@/services/rag/groundingFacts';
-import {
-  formatRetentionStrategyCatalogForPrompt,
-  type RetentionStrategy,
-} from '@/services/rag/strategyCatalog';
 
 export const MULTI_DRAFT_RESPONSE_JSON_FORMAT = `{
   "recommendedStrategyId": "strat_goodwill",
@@ -50,6 +37,20 @@ export const MULTI_DRAFT_RESPONSE_JSON_FORMAT = `{
 export const RESPONSE_JSON_FORMAT = MULTI_DRAFT_RESPONSE_JSON_FORMAT;
 
 /**
+ * Format database-owned strategy definitions for LLM provider system instructions.
+ */
+export function formatRetentionStrategyCatalogForPrompt(
+  strategies: readonly RetentionStrategy[],
+): string {
+  return strategies
+    .map(
+      (strategy) =>
+        `- ${strategy.code}: ${strategy.name}. Tone: ${strategy.tone}. Focus: ${strategy.retentionFocus}. Guidance: ${strategy.selectionGuidance}`,
+    )
+    .join('\n');
+}
+
+/**
  * Format linked order details for prompt injection.
  */
 export function formatLinkedOrder(context: FullCustomerContext): string {
@@ -59,8 +60,7 @@ export function formatLinkedOrder(context: FullCustomerContext): string {
   const items = linkedOrder.items
     .map(
       (item) =>
-        `  - ${item.productName} (qty: ${item.quantity}, ${item.unitPrice.toLocaleString()} VND${
-          item.category ? `, category: ${item.category.name}` : ''
+        `  - ${item.productName} (qty: ${item.quantity}, ${item.unitPrice.toLocaleString()} VND${item.category ? `, category: ${item.category.name}` : ''
         })`,
     )
     .join('\n');
@@ -68,8 +68,7 @@ export function formatLinkedOrder(context: FullCustomerContext): string {
   const statusHistory = linkedOrder.statusHistory
     .map(
       (h) =>
-        `  - ${h.status.name} at ${h.changedAt.toISOString().split('T')[0]}${
-          h.note ? ` (${h.note})` : ''
+        `  - ${h.status.name} at ${h.changedAt.toISOString().split('T')[0]}${h.note ? ` (${h.note})` : ''
         }`,
     )
     .join('\n');
@@ -109,9 +108,8 @@ export function formatConversationContext(context: FullCustomerContext): string 
           ? '🧑 Customer'
           : '👤 Seller'
         : `🤖 ${msg.senderType.name}`;
-      return `  [${msg.timestamp.toISOString().split('T')[1]?.slice(0, 5)}] ${sender}: ${
-        msg.text ?? `[${msg.messageType}]`
-      }`;
+      return `  [${msg.timestamp.toISOString().split('T')[1]?.slice(0, 5)}] ${sender}: ${msg.text ?? `[${msg.messageType}]`
+        }`;
     })
     .join('\n');
 
@@ -139,7 +137,7 @@ ${formatted}`;
  * Generate VIP handling instructions based on customer tier.
  */
 export function getVipInstructions(tierCode: string): string {
-  switch (tierCode) {
+  switch (tierCode?.toLowerCase()) {
     case 'platinum':
       return `- Address as a valued priority customer with personalized greeting
 - Offer proactive compensation for severe service issues (courier delays > 3 days)
@@ -162,6 +160,92 @@ export function getVipInstructions(tierCode: string): string {
 }
 
 /**
+ * Extract allowed fact citations directly from customer context and active policies.
+ * Pure formatting without external state or services.
+ */
+export function buildAllowedFactCitations(
+  context: FullCustomerContext,
+  policies: readonly PolicyRule[],
+): string {
+  const { turn, dossier, evidence } = context;
+  const facts: Array<{ id: string; label: string; confidence: number }> = [];
+
+  if (turn.detectedIntent) {
+    facts.push({ id: 'conversation:intent', label: 'Detected Intent', confidence: 1.0 });
+  }
+  facts.push({ id: 'conversation:priority', label: 'Conversation Priority', confidence: 1.0 });
+  facts.push({ id: 'conversation:message_count', label: 'Message Count', confidence: 1.0 });
+
+  if (turn.linkedOrder) {
+    facts.push({ id: 'order:id', label: 'Order ID', confidence: 1.0 });
+    facts.push({ id: 'order:status', label: 'Current Order Status', confidence: 1.0 });
+    facts.push({ id: 'order:total_value', label: 'Order Total Value', confidence: 1.0 });
+    facts.push({ id: 'order:discount', label: 'Order Discount Amount', confidence: 1.0 });
+    facts.push({ id: 'order:shipping_fee', label: 'Shipping Fee', confidence: 1.0 });
+    if (turn.linkedOrder.items.length > 0) {
+      facts.push({ id: 'order:items', label: 'Order Items', confidence: 1.0 });
+    }
+    facts.push({ id: 'order:created_at', label: 'Order Creation Date', confidence: 1.0 });
+    if (turn.linkedOrder.paidAt) {
+      facts.push({ id: 'order:paid_at', label: 'Order Payment Date', confidence: 1.0 });
+    }
+    if (turn.linkedOrder.cancelledAt) {
+      facts.push({ id: 'order:cancelled_at', label: 'Order Cancellation Date', confidence: 1.0 });
+    }
+    if (turn.linkedOrder.cancellationReason) {
+      facts.push({ id: 'order:cancel_reason', label: 'Order Cancellation Reason', confidence: 1.0 });
+    }
+    if (turn.linkedOrder.statusHistory.length > 0) {
+      facts.push({ id: 'order:status_history', label: 'Order Status History', confidence: 1.0 });
+    }
+  }
+
+  facts.push({ id: 'customer:tier', label: 'VIP Customer Tier', confidence: 1.0 });
+  facts.push({ id: 'customer:score', label: 'VIP Engagement Score', confidence: 1.0 });
+  facts.push({ id: 'customer:spend', label: 'Customer Lifetime Spend', confidence: 1.0 });
+  facts.push({ id: 'customer:order_count', label: 'Lifetime Order Count', confidence: 1.0 });
+  facts.push({ id: 'customer:avg_order_value', label: 'Average Order Value', confidence: 1.0 });
+  if (dossier.customer.daysSinceLastOrder != null) {
+    facts.push({ id: 'customer:days_since_last_order', label: 'Days Since Last Order', confidence: 1.0 });
+  }
+  facts.push({ id: 'customer:cancellation_rate', label: 'Customer Cancellation Rate', confidence: 1.0 });
+  facts.push({ id: 'customer:refund_rate', label: 'Customer Refund Rate', confidence: 1.0 });
+  facts.push({ id: 'customer:voucher_sensitivity', label: 'Customer Voucher Sensitivity', confidence: 1.0 });
+  if (dossier.customer.preferredLanguage) {
+    facts.push({ id: 'customer:preferred_language', label: 'Preferred Language', confidence: 1.0 });
+  }
+  facts.push({ id: 'customer:total_conversations', label: 'Total Service Inquiries', confidence: 1.0 });
+  facts.push({ id: 'customer:unresolved_conversations', label: 'Unresolved Inquiries', confidence: 1.0 });
+  if (dossier.pastIntents.length > 0) {
+    facts.push({ id: 'customer:past_intents', label: 'Past Inquired Intents', confidence: 1.0 });
+  }
+
+  for (const fact of evidence.facts) {
+    facts.push({
+      id: `evidence:${fact.id}`,
+      label: `Customer Evidence #${fact.id}`,
+      confidence: fact.confidence,
+    });
+  }
+
+  for (const policy of policies) {
+    facts.push({
+      id: `policy:${policy.code}`,
+      label: `Store Policy [${policy.code}]`,
+      confidence: 1.0,
+    });
+  }
+
+  if (facts.length === 0) {
+    return '## ALLOWED FACT CITATIONS\nNo specific context fact citations available.';
+  }
+
+  const lines = facts.map((f) => `  - [${f.id}] ${f.label} (conf: ${f.confidence.toFixed(2)})`);
+
+  return `## ALLOWED FACT CITATIONS (cite these EXACT IDs in groundedFactsUsed & recommendationGroundedFactsUsed)
+${lines.join('\n')}`;
+}
+
 /**
  * Build a lightweight system prompt for simple inquiries (greetings, general FAQs, product info).
  * Strips heavy dossier metrics and evidence layers, generating exactly 1 fast, polite response draft.
@@ -169,6 +253,7 @@ export function getVipInstructions(tierCode: string): string {
 export function buildLiteSystemPrompt(
   context: FullCustomerContext,
   strategies: readonly RetentionStrategy[],
+  customFactsSection?: string,
 ): string {
   const primaryStrategy = strategies[0] ?? {
     code: 'strat_goodwill',
@@ -179,8 +264,7 @@ export function buildLiteSystemPrompt(
 
   const intentCode = context.turn.detectedIntent?.code ?? 'general';
   const policies = getPoliciesByIntent(intentCode);
-  const factCatalog = buildGroundingFactCatalog(context, policies);
-  const formattedFacts = formatGroundingFactsForPrompt(factCatalog);
+  const formattedFacts = customFactsSection ?? buildAllowedFactCitations(context, policies);
 
   return `You are a helpful and polite e-commerce customer support co-pilot for a Lazada seller store in Vietnam.
 Generate a concise, professional, and friendly response to assist the customer.
@@ -232,13 +316,13 @@ Return ONLY valid JSON matching this schema:
 export function buildStandardSystemPrompt(
   context: FullCustomerContext,
   strategies: readonly RetentionStrategy[],
+  customFactsSection?: string,
 ): string {
   const { customer } = context.dossier;
   const intentCode = context.turn.detectedIntent?.code ?? null;
   const policies = getPoliciesByIntent(intentCode);
 
-  const factCatalog = buildGroundingFactCatalog(context, policies);
-  const formattedFacts = formatGroundingFactsForPrompt(factCatalog);
+  const formattedFacts = customFactsSection ?? buildAllowedFactCitations(context, policies);
   const formattedStrategies = formatRetentionStrategyCatalogForPrompt(strategies);
 
   return `You are a professional e-commerce customer care co-pilot for a Lazada seller store in Vietnam.
@@ -277,14 +361,14 @@ ${MULTI_DRAFT_RESPONSE_JSON_FORMAT}`;
 export function buildSystemPrompt(
   context: FullCustomerContext,
   strategies: readonly RetentionStrategy[],
+  customFactsSection?: string,
 ): string {
   const { turn, dossier } = context;
   const { customer } = dossier;
   const intentCode = turn.detectedIntent?.code ?? null;
   const policies = getPoliciesByIntent(intentCode);
 
-  const factCatalog = buildGroundingFactCatalog(context, policies);
-  const formattedFacts = formatGroundingFactsForPrompt(factCatalog);
+  const formattedFacts = customFactsSection ?? buildAllowedFactCitations(context, policies);
   const formattedStrategies = formatRetentionStrategyCatalogForPrompt(strategies);
 
   return `You are a professional e-commerce customer care co-pilot for a Lazada seller store in Vietnam.
@@ -369,4 +453,3 @@ export function buildUserPrompt(latestMessageText: string): string {
 
 Generate grounded response draft(s) following the RETENTION STRATEGY CATALOG and ALLOWED FACT CITATIONS. Return ONLY valid JSON matching the schema.`;
 }
-

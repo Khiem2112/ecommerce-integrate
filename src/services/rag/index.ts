@@ -2,24 +2,23 @@
  * RAG Orchestrator — central entry point for generating grounded customer responses.
  *
  * Pipeline Flow:
- * 1. Assemble 3-layer customer context (TurnContext, CustomerDossier, EvidenceContext)
- * 2. Formulate system and user prompts with VIP handling and policy rules
- * 3. Generate structured response via multi-provider LLM service
- * 4. Validate output with grounding validator (anti-hallucination & PII check)
- * 5. Return safe, grounded response
+ * - Assemble 3-layer customer context (TurnContext, CustomerDossier, EvidenceContext)
+ * - Formulate system and user prompts with VIP handling and policy rules
+ * - Generate structured response via multi-provider LLM service
+ * - Validate output with grounding validator (anti-hallucination & PII check)
+ * - Return safe, grounded response
  */
 
 import { buildFullContext } from './contextBuilder';
 import { getActiveRetentionStrategies } from './strategyCatalog';
-import { generateResponse } from './llmService';
+import { generateResponse, getAvailableProvidersForTier } from './llmService';
 import { resolveIntentTier, filterStrategiesForTier } from './intentRouter';
+import { validateMultiDraftGrounding } from './groundingValidator';
 import {
   buildLiteSystemPrompt,
   buildStandardSystemPrompt,
   buildSystemPrompt,
   buildUserPrompt,
-  getAvailableProvidersForTier,
-  validateMultiDraftGrounding,
 } from '@/utils/rag';
 import type { FullCustomerContext, MultiDraftGroundingResult, MultiDraftResponse } from '@/types';
 
@@ -31,10 +30,7 @@ export type GenerateGroundedResponseResult = {
 
 /**
  * Generate a grounded, personalized customer-care multi-draft response for a conversation.
- * Applies Tiered Prompting (Method #3) to route simple/standard queries to ultra-fast prompts and models.
- *
- * @param conversationId - The ID of the conversation to handle
- * @returns Result object containing context, generated multi-draft response, and grounding evaluation
+ * Routes simple/standard/complex queries to appropriate prompts, strategies, and LLM tiers.
  */
 export async function generateGroundedResponse(
   conversationId: number,
@@ -45,7 +41,7 @@ export async function generateGroundedResponse(
     throw new Error(`Conversation with ID ${conversationId} or associated customer not found.`);
   }
 
-  // Extract latest customer message
+  // Extract latest incoming buyer turn
   const messages = context.turn.recentMessages;
   const lastCustomerMessage = [...messages]
     .reverse()
@@ -102,5 +98,4 @@ export * from './groundingFacts';
 export * from './strategyCatalog';
 export * from './intentRouter';
 export * from './llmService';
-export * from '@/utils/rag';
-
+export * from './groundingValidator';

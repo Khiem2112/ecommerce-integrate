@@ -1,10 +1,11 @@
 /**
- * Conversation Service — data access layer for conversation and message domain.
- * Returns Prisma-derived types directly. No manual field mapping needed.
+ * Conversation Service — data access and persistence layer for conversation and message domain.
+ * Supports injected transaction clients for composable transactions initiated by Server Actions.
  */
 
 import { prisma } from '@/lib/prisma';
 import type {
+  DbClient,
   ConversationWithRelations,
   ConversationWithMessages,
   MessageWithSender,
@@ -26,8 +27,11 @@ const CONVERSATION_INCLUDE = {
 } as const;
 
 /** Fetch a single conversation by ID with messages */
-export async function getConversationById(id: number): Promise<ConversationWithMessages | null> {
-  return prisma.conversation.findUnique({
+export async function getConversationById(
+  id: number,
+  tx: DbClient = prisma,
+): Promise<ConversationWithMessages | null> {
+  return tx.conversation.findUnique({
     where: { id },
     include: {
       ...CONVERSATION_INCLUDE,
@@ -44,10 +48,11 @@ export async function getConversationById(id: number): Promise<ConversationWithM
 /** Fetch inbox conversations with their customer and newest active message */
 export async function getInboxConversations(
   filters: InboxConversationFilters = {},
+  tx: DbClient = prisma,
 ): Promise<ConversationWithMessages[]> {
   const searchQuery = filters.searchQuery?.trim();
 
-  return prisma.conversation.findMany({
+  return tx.conversation.findMany({
     where: {
       isActive: true,
       ...(filters.statusCode && filters.statusCode !== 'all'
@@ -81,16 +86,19 @@ export async function getInboxConversations(
 }
 
 /** Persist a seller or AI-agent reply and return it with sender information */
-export async function createConversationMessage(input: {
-  readonly conversationId: number;
-  readonly text: string;
-  readonly senderTypeCode: string;
-  readonly groundedFacts?: readonly string[];
-  readonly ungroundedClaims?: readonly string[];
-  readonly confidence?: number;
-  readonly suggestedAction?: string;
-}): Promise<MessageWithSender> {
-  const senderType = await prisma.senderType.findUnique({
+export async function createConversationMessage(
+  input: {
+    readonly conversationId: number;
+    readonly text: string;
+    readonly senderTypeCode: string;
+    readonly groundedFacts?: readonly string[];
+    readonly ungroundedClaims?: readonly string[];
+    readonly confidence?: number;
+    readonly suggestedAction?: string;
+  },
+  tx: DbClient = prisma,
+): Promise<MessageWithSender> {
+  const senderType = await tx.senderType.findUnique({
     where: { code: input.senderTypeCode },
     select: { id: true },
   });
@@ -99,8 +107,8 @@ export async function createConversationMessage(input: {
     throw new Error(`Sender type "${input.senderTypeCode}" was not found.`);
   }
 
-  return prisma.$transaction(async (transaction) => {
-    const message = await transaction.message.create({
+  const persistMessage = async (client: DbClient) => {
+    const message = await client.message.create({
       data: {
         conversationId: input.conversationId,
         senderTypeId: senderType.id,
@@ -113,20 +121,28 @@ export async function createConversationMessage(input: {
       include: { senderType: true },
     });
 
-    await transaction.conversation.update({
+    await client.conversation.update({
       where: { id: input.conversationId },
       data: { updatedAt: new Date() },
     });
 
     return message;
-  });
+  };
+
+  // If already executing in a transaction client, run directly; otherwise wrap atomically
+  if ('$transaction' in tx && typeof tx.$transaction === 'function') {
+    return tx.$transaction((innerTx) => persistMessage(innerTx));
+  }
+
+  return persistMessage(tx);
 }
 
 /** Fetch all conversations for a customer (summaries only, no messages) */
 export async function getConversationsByCustomerId(
   customerId: number,
+  tx: DbClient = prisma,
 ): Promise<ConversationWithRelations[]> {
-  return prisma.conversation.findMany({
+  return tx.conversation.findMany({
     where: { customerId, isActive: true },
     include: CONVERSATION_INCLUDE,
     orderBy: { startedAt: 'desc' },
@@ -136,8 +152,9 @@ export async function getConversationsByCustomerId(
 /** Fetch unresolved (non-final status) conversations for a customer */
 export async function getUnresolvedConversations(
   customerId: number,
+  tx: DbClient = prisma,
 ): Promise<ConversationWithRelations[]> {
-  return prisma.conversation.findMany({
+  return tx.conversation.findMany({
     where: {
       customerId,
       isActive: true,
@@ -152,8 +169,9 @@ export async function getUnresolvedConversations(
 export async function getConversationMessages(
   conversationId: number,
   limit: number = 10,
+  tx: DbClient = prisma,
 ): Promise<MessageWithSender[]> {
-  const messages = await prisma.message.findMany({
+  const messages = await tx.message.findMany({
     where: { conversationId, isActive: true },
     include: { senderType: true },
     orderBy: { timestamp: 'desc' },
@@ -165,8 +183,11 @@ export async function getConversationMessages(
 }
 
 /** Get distinct past intent codes for a customer */
-export async function getCustomerPastIntents(customerId: number): Promise<string[]> {
-  const conversations = await prisma.conversation.findMany({
+export async function getCustomerPastIntents(
+  customerId: number,
+  tx: DbClient = prisma,
+): Promise<string[]> {
+  const conversations = await tx.conversation.findMany({
     where: {
       customerId,
       isActive: true,
@@ -182,8 +203,11 @@ export async function getCustomerPastIntents(customerId: number): Promise<string
 }
 
 /** Count total conversations for a customer */
-export async function getConversationCount(customerId: number): Promise<number> {
-  return prisma.conversation.count({
+export async function getConversationCount(
+  customerId: number,
+  tx: DbClient = prisma,
+): Promise<number> {
+  return tx.conversation.count({
     where: { customerId, isActive: true },
   });
 }
