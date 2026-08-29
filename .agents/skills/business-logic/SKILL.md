@@ -16,8 +16,8 @@ When working on a feature, consult the corresponding specification in `features/
 
 | Feature Area | Specification File | Key Rules Covered |
 | :--- | :--- | :--- |
-| **VIP Customer Care & Routing** | [`features/vip_customer_routing.md`](file:///c:/University/Study/Programming/Web_React/ecommerce_integrate/.agents/skills/business-logic/features/vip_customer_routing.md) | RFM Tiers, 3-layer memory RAG, anti-hallucination fact citation, specialized agent routing, 3-arm experiment. |
-| **OmniCart Order Recovery** | [`features/omnicart_recovery.md`](file:///c:/University/Study/Programming/Web_React/ecommerce_integrate/.agents/skills/business-logic/features/omnicart_recovery.md) | Abandoned checkout triggers, sequence pacing, multi-channel constraints. |
+| **VIP Customer Care & Routing** | [`features/vip_customer_routing.md`](.agents/skills/business-logic/features/vip_customer_routing.md) | RFM Tiers, 3-layer memory RAG, anti-hallucination fact citation, specialized agent routing, 3-arm experiment. |
+| **OmniCart Order Recovery** | [`features/omnicart_recovery.md`](.agents/skills/business-logic/features/omnicart_recovery.md) | Abandoned checkout triggers, sequence pacing, multi-channel constraints. |
 
 ---
 

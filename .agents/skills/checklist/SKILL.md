@@ -34,10 +34,13 @@ Before declaring any feature or task complete, verify the technical implementati
 
 ---
 
-## 3. Styling & UI
-- [ ] Are all styles built with Tailwind CSS utility classes (no inline styles)?
+## 3. Styling, UI & Accessibility
+- [ ] Are all styles built with Tailwind CSS utility classes and tokens (no inline styles or ad-hoc hex values)?
 - [ ] Is dynamic class merging handled using the `cn()` utility?
-- [ ] Are loading skeletons and empty states handled explicitly?
+- [ ] Are interactive elements accessible (visible labels/`aria-label`, visible `:focus-visible` rings, semantic controls)?
+- [ ] Does the UI adapt responsively across mobile (~375px) and desktop layouts without overflow?
+- [ ] Are loading skeletons and empty states handled explicitly (layout-stable, clear next actions)?
+- [ ] Do contrast (WCAG AA 4.5:1 for text) and interaction states (hover/active/disabled) work properly?
 
 ---
 
@@ -48,4 +51,4 @@ Before declaring any feature or task complete, verify the technical implementati
 ---
 
 ## 5. Domain Business Logic Verification
-- [ ] **Check Domain Rules**: Consult the [business-logic skill](file:///c:/University/Study/Programming/Web_React/ecommerce_integrate/.agents/skills/business-logic/SKILL.md) and verify that all feature-specific rules in `features/` are satisfied.
+- [ ] **Check Domain Rules**: Consult the [business-logic skill](.agents/skills/business-logic/SKILL.md) and verify that all feature-specific rules in `features/` are satisfied.

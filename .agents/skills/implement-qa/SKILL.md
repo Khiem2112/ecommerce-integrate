@@ -107,13 +107,13 @@ Last updated: <YYYY-MM-DD>
 ## Guardrails
 
 - **Do not** delete or overwrite **Answer** content that the user has written.
-- **Do not** paste long code conventions into the QA file — conventions belong in `skills/convention/SKILL.md`.
+- **Do not** paste long code conventions into the QA file — conventions belong in `.agents/skills/convention/SKILL.md`.
 - If the answer is still ambiguous after reading, **append a follow-up question**; do not guess.
 
 ---
 
 ## Related Skills
 
-- Technical Standards: [`skills/convention/SKILL.md`](file:///c:/University/Study/Programming/Web_React/ecommerce_integrate/.agents/skills/convention/SKILL.md)
-- Pre-Commit Checklist: [`skills/checklist/SKILL.md`](file:///c:/University/Study/Programming/Web_React/ecommerce_integrate/.agents/skills/checklist/SKILL.md)
-- Domain Business Logic: [`skills/business-logic/SKILL.md`](file:///c:/University/Study/Programming/Web_React/ecommerce_integrate/.agents/skills/business-logic/SKILL.md)
+- Technical Standards: [`.agents/skills/convention/SKILL.md`](.agents/skills/convention/SKILL.md)
+- Pre-Commit Checklist: [`.agents/skills/checklist/SKILL.md`](.agents/skills/checklist/SKILL.md)
+- Domain Business Logic: [`.agents/skills/business-logic/SKILL.md`](.agents/skills/business-logic/SKILL.md)

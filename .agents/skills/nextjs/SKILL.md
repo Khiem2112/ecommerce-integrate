@@ -48,7 +48,7 @@ Always maintain strict separation across architectural boundaries:
 - Utils **MUST NOT** call Prisma, external APIs, or file system APIs.
 - Hooks & Components **MUST NOT** call Services or Prisma directly.
 
-> 📖 **Full Good vs. Bad Practice Code Examples**: See [`examples/layer_practices.md`](file:///c:/University/Study/Programming/Web_React/ecommerce_integrate/.agents/skills/nextjs/examples/layer_practices.md).
+> 📖 **Full Good vs. Bad Practice Code Examples**: See [`examples/layer_practices.md`](.agents/skills/nextjs/examples/layer_practices.md).
 
 ---
 

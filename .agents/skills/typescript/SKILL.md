@@ -156,7 +156,7 @@ if (PHONE_REGEX.test(text)) { ... }
 if (PHONE_REGEX.test(text)) { ... }
 ```
 
-> 📖 **Full Example**: See [`examples/commenting_guidelines.md`](file:///c:/University/Study/Programming/Web_React/ecommerce_integrate/.agents/skills/typescript/examples/commenting_guidelines.md).
+> 📖 **Full Example**: See [`examples/commenting_guidelines.md`](.agents/skills/typescript/examples/commenting_guidelines.md).
 
 
 
