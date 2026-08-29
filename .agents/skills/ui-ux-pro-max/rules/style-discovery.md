@@ -13,6 +13,21 @@ Use this workflow before creating or visually changing any user-facing web featu
 4. Inspect `src/app/globals.css`, the root layout/theme provider, shared UI primitives, and the nearest existing route/component with the same job.
 5. Reuse existing tokens, typography, spacing, surfaces, component variants, icon family, and interaction patterns before adding anything new.
 
+## Runtime Theme Source of Truth
+
+`design-system/<project>/MASTER.md` describes the intended visual language. `src/app/globals.css` is the runtime source of truth for reusable visual tokens available to the application.
+
+Before adding or changing UI:
+
+1. Read both the resolved `MASTER.md` and `src/app/globals.css`.
+2. Prefer semantic Tailwind utilities mapped from `globals.css`, such as `bg-background`, `text-foreground`, `bg-surface-lifted`, and `border-border-subtle`.
+3. Do not introduce arbitrary color, typography, radius, shadow, or spacing values when an equivalent global token or established utility already exists.
+4. Do not use hard-coded Tailwind values such as `bg-[#...]`, `text-[#...]`, or `border-[#...]` when the same role has a global token.
+5. If `MASTER.md` defines a reusable value that `globals.css` does not expose, add or map the token in `globals.css` before using it in a component.
+6. Use a one-off value only when reuse is genuinely insufficient; record the reason in the Style Decision block.
+
+At the end of a UI change, review modified components for hard-coded visual values and replace avoidable ones with the appropriate global token.
+
 ## No Persisted Master
 
 If no `MASTER.md` exists, treat the repository implementation as the current source of truth. Inspect at least:
@@ -45,6 +60,8 @@ Before coding or in your implementation plan / response, record an explicit, ver
 > - **Reused:** [Existing page/component/token establishing the visual baseline]
 > - **Extended:** [Existing pattern being adapted and why]
 > - **New:** [Any genuinely new token/pattern and why reuse was insufficient — or "None (100% Reused)"]
+> - **Runtime tokens:** [The `globals.css` tokens or Tailwind semantic utilities used]
+
 ```
 
 A new page may have a page override, but it must not silently replace Master rules. Avoid one-off page-level colors, fonts, spacing scales, shadows, or interaction conventions.
