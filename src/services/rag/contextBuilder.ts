@@ -6,30 +6,37 @@
  * EvidenceContext:   Evidence-backed facts with confidence levels
  */
 
+import { prisma } from '@/lib/prisma';
 import {
   getConversationById,
   getUnresolvedConversations,
   getCustomerPastIntents,
   getConversationCount,
-  getConversationMessages,
 } from '@/services/conversationService';
 import { getCustomerById, getCustomerEvidences } from '@/services/customerService';
 import { getOrderById } from '@/services/orderService';
-import type { TurnContext, CustomerDossier, EvidenceContext, FullCustomerContext } from '@/types';
+import type {
+  TurnContext,
+  CustomerDossier,
+  EvidenceContext,
+  FullCustomerContext,
+  ConversationWithMessages,
+  DbClient,
+} from '@/types';
 
 const MAX_RECENT_MESSAGES = 10;
 const MIN_EVIDENCE_CONFIDENCE = 0.5;
 const HIGH_CONFIDENCE_THRESHOLD = 0.85;
 
-/** Build the turn-level operational context */
-async function buildTurnContext(conversationId: number): Promise<TurnContext | null> {
-  const conversation = await getConversationById(conversationId);
-  if (!conversation) return null;
-
-  const recentMessages = await getConversationMessages(conversationId, MAX_RECENT_MESSAGES);
+/** Build the turn-level operational context from a pre-loaded conversation snapshot */
+async function buildTurnContext(
+  conversation: ConversationWithMessages,
+  tx: DbClient = prisma,
+): Promise<TurnContext> {
+  const recentMessages = conversation.messages.slice(-MAX_RECENT_MESSAGES);
 
   const linkedOrder = conversation.orderId
-    ? await getOrderById(conversation.orderId)
+    ? await getOrderById(conversation.orderId, tx)
     : null;
 
   return {
@@ -43,12 +50,15 @@ async function buildTurnContext(conversationId: number): Promise<TurnContext | n
 }
 
 /** Build the customer behavioral dossier */
-async function buildCustomerDossier(customerId: number): Promise<CustomerDossier | null> {
+async function buildCustomerDossier(
+  customerId: number,
+  tx: DbClient = prisma,
+): Promise<CustomerDossier | null> {
   const [customer, unresolvedConvs, pastIntents, totalCount] = await Promise.all([
-    getCustomerById(customerId),
-    getUnresolvedConversations(customerId),
-    getCustomerPastIntents(customerId),
-    getConversationCount(customerId),
+    getCustomerById(customerId, tx),
+    getUnresolvedConversations(customerId, tx),
+    getCustomerPastIntents(customerId, tx),
+    getConversationCount(customerId, tx),
   ]);
 
   if (!customer) return null;
@@ -62,8 +72,11 @@ async function buildCustomerDossier(customerId: number): Promise<CustomerDossier
 }
 
 /** Build the evidence-backed facts context */
-async function buildEvidenceContext(customerId: number): Promise<EvidenceContext> {
-  const facts = await getCustomerEvidences(customerId, MIN_EVIDENCE_CONFIDENCE);
+async function buildEvidenceContext(
+  customerId: number,
+  tx: DbClient = prisma,
+): Promise<EvidenceContext> {
+  const facts = await getCustomerEvidences(customerId, MIN_EVIDENCE_CONFIDENCE, tx);
   const highConfidenceCount = facts.filter((f) => f.confidence >= HIGH_CONFIDENCE_THRESHOLD).length;
 
   return {
@@ -77,18 +90,22 @@ async function buildEvidenceContext(customerId: number): Promise<EvidenceContext
  * Build the complete 3-layer customer context for a conversation.
  *
  * @param conversationId - The conversation to build context for
+ * @param tx - Optional database transaction client
  * @returns FullCustomerContext or null if conversation/customer not found
  */
-export async function buildFullContext(conversationId: number): Promise<FullCustomerContext | null> {
-  const conversation = await getConversationById(conversationId);
+export async function buildFullContext(
+  conversationId: number,
+  tx: DbClient = prisma,
+): Promise<FullCustomerContext | null> {
+  const conversation = await getConversationById(conversationId, tx);
   if (!conversation) return null;
 
   const customerId = conversation.customerId;
 
   const [turn, dossier, evidence] = await Promise.all([
-    buildTurnContext(conversationId),
-    buildCustomerDossier(customerId),
-    buildEvidenceContext(customerId),
+    buildTurnContext(conversation, tx),
+    buildCustomerDossier(customerId, tx),
+    buildEvidenceContext(customerId, tx),
   ]);
 
   if (!turn || !dossier) return null;

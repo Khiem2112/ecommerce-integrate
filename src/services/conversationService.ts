@@ -107,34 +107,44 @@ export async function createConversationMessage(
     throw new Error(`Sender type "${input.senderTypeCode}" was not found.`);
   }
 
-  const persistMessage = async (client: DbClient) => {
-    const message = await client.message.create({
-      data: {
-        conversationId: input.conversationId,
-        senderTypeId: senderType.id,
-        text: input.text,
-        groundedFacts: input.groundedFacts ? [...input.groundedFacts] : undefined,
-        ungroundedClaims: input.ungroundedClaims ? [...input.ungroundedClaims] : undefined,
-        confidence: input.confidence,
-        suggestedAction: input.suggestedAction,
-      },
-      include: { senderType: true },
-    });
+  const message = await tx.message.create({
+    data: {
+      conversationId: input.conversationId,
+      senderTypeId: senderType.id,
+      text: input.text,
+      groundedFacts: input.groundedFacts ? [...input.groundedFacts] : undefined,
+      ungroundedClaims: input.ungroundedClaims ? [...input.ungroundedClaims] : undefined,
+      confidence: input.confidence,
+      suggestedAction: input.suggestedAction,
+    },
+    include: { senderType: true },
+  });
 
-    await client.conversation.update({
-      where: { id: input.conversationId },
-      data: { updatedAt: new Date() },
-    });
+  await tx.conversation.update({
+    where: { id: input.conversationId },
+    data: { updatedAt: new Date() },
+  });
 
-    return message;
-  };
+  return message;
+}
 
-  // If already executing in a transaction client, run directly; otherwise wrap atomically
-  if ('$transaction' in tx && typeof tx.$transaction === 'function') {
-    return tx.$transaction((innerTx) => persistMessage(innerTx));
+/** Look up the conversation to verify existence and resolve the response sender type code. */
+export async function resolveResponseSenderTypeService(
+  conversationId: number,
+  tx: DbClient = prisma,
+): Promise<string> {
+  const conversation = await tx.conversation.findUnique({
+    where: { id: conversationId, isActive: true },
+    include: { assignedAgent: true },
+  });
+
+  if (!conversation) {
+    throw new Error(`Conversation ${conversationId} was not found.`);
   }
 
-  return persistMessage(tx);
+  return conversation.assignedAgent
+    ? `agent_${conversation.assignedAgent.code.replace('_agent', '')}`
+    : 'seller';
 }
 
 /** Fetch all conversations for a customer (summaries only, no messages) */

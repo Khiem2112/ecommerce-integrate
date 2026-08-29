@@ -1,10 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { prisma } from '@/lib/prisma';
 import {
   createConversationMessage,
   getConversationById,
   getInboxConversations,
+  resolveResponseSenderTypeService,
 } from '@/services/conversationService';
 import {
   inboxFiltersSchema,
@@ -150,10 +152,15 @@ export async function sendMessageAction(
       return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input.' };
     }
 
-    const message = await createConversationMessage({
-      conversationId: parsed.data.conversationId,
-      text: parsed.data.text,
-      senderTypeCode: 'seller',
+    const message = await prisma.$transaction(async (tx) => {
+      return createConversationMessage(
+        {
+          conversationId: parsed.data.conversationId,
+          text: parsed.data.text,
+          senderTypeCode: 'seller',
+        },
+        tx,
+      );
     });
 
     revalidatePath('/conversations');
@@ -177,23 +184,24 @@ export async function saveAiResponseAction(
       return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input.' };
     }
 
-    const conversation = await getConversationById(parsed.data.conversationId);
-    if (!conversation) {
-      return { success: false, error: `Conversation ${parsed.data.conversationId} was not found.` };
-    }
+    const message = await prisma.$transaction(async (tx) => {
+      const senderTypeCode = await resolveResponseSenderTypeService(
+        parsed.data.conversationId,
+        tx,
+      );
 
-    const senderTypeCode = conversation.assignedAgent
-      ? `agent_${conversation.assignedAgent.code.replace('_agent', '')}`
-      : 'seller';
-
-    const message = await createConversationMessage({
-      conversationId: parsed.data.conversationId,
-      text: parsed.data.text,
-      senderTypeCode,
-      groundedFacts: parsed.data.groundedFactsUsed,
-      ungroundedClaims: parsed.data.ungroundedClaims,
-      confidence: parsed.data.confidence,
-      suggestedAction: parsed.data.suggestedAction,
+      return createConversationMessage(
+        {
+          conversationId: parsed.data.conversationId,
+          text: parsed.data.text,
+          senderTypeCode,
+          groundedFacts: parsed.data.groundedFactsUsed,
+          ungroundedClaims: parsed.data.ungroundedClaims,
+          confidence: parsed.data.confidence,
+          suggestedAction: parsed.data.suggestedAction,
+        },
+        tx,
+      );
     });
 
     revalidatePath('/conversations');
