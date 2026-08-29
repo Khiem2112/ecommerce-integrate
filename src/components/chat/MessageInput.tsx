@@ -51,14 +51,14 @@ export function MessageInput({
   return (
     <div>
       {error && (
-        <p role="alert" className="mb-2 text-xs text-rose-300">
+        <p role="alert" className="mb-2 text-xs text-status-warning">
           {error}
         </p>
       )}
 
-      <div className="relative rounded-xl border border-slate-700 bg-slate-900 p-2.5 shadow-2xl shadow-black/20 transition focus-within:border-violet-400/80 focus-within:ring-2 focus-within:ring-violet-500/20">
+      <div className="relative rounded-2xl border border-hairline bg-white p-3 shadow-xs transition duration-150 focus-within:border-foreground focus-within:ring-2 focus-within:ring-foreground/10">
         {/* Top-Right AI Sparkle Button */}
-        <div className="absolute right-2 top-2 z-10">
+        <div className="absolute right-2.5 top-2.5 z-10">
           <IconButton
             size="xs"
             variant="ai"
@@ -76,7 +76,7 @@ export function MessageInput({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="size-3.5 text-violet-300 transition hover:text-violet-100"
+                className="size-3.5 text-status-warning"
               >
                 <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" />
                 <path d="M19 3v4" />
@@ -92,11 +92,11 @@ export function MessageInput({
           onChange={(event) => setText(event.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Write a customer reply…"
-          className="block w-full resize-none bg-transparent pr-8 text-sm text-slate-100 outline-none placeholder:text-slate-500"
+          className="block w-full resize-none bg-transparent pr-8 text-xs text-foreground outline-none placeholder:text-muted"
         />
 
-        <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-800/80 pt-2">
-          <p className="text-[10px] text-slate-500">
+        <div className="mt-2 flex items-center justify-between gap-2 border-t border-hairline pt-2">
+          <p className="text-[10px] text-muted">
             Enter to send · Shift+Enter for new line
           </p>
 
@@ -104,7 +104,7 @@ export function MessageInput({
             type="button"
             onClick={() => void handleSend()}
             disabled={!text.trim() || isSending}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1 text-xs font-semibold text-background shadow-xs transition duration-150 hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/30 disabled:cursor-not-allowed disabled:bg-hairline disabled:text-muted cursor-pointer"
           >
             {isSending ? (
               <span>Sending…</span>

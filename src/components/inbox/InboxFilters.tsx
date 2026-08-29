@@ -10,21 +10,21 @@ type InboxFiltersProps = {
 };
 
 const STATUS_ITEMS: readonly ComboboxItem[] = [
-  { value: 'all', label: 'All Statuses' },
-  { value: 'open', label: 'Open', dotColor: 'bg-emerald-400' },
-  { value: 'awaiting_reply', label: 'Awaiting Reply', dotColor: 'bg-amber-400' },
-  { value: 'in_progress', label: 'In Progress', dotColor: 'bg-violet-400' },
-  { value: 'escalated', label: 'Escalated', dotColor: 'bg-rose-400' },
-  { value: 'resolved', label: 'Resolved', dotColor: 'bg-teal-400' },
-  { value: 'closed', label: 'Closed', dotColor: 'bg-slate-500' },
+  { value: 'all', label: 'All Status' },
+  { value: 'open', label: 'Open', dotColor: 'bg-status-success' },
+  { value: 'awaiting_reply', label: 'Awaiting', dotColor: 'bg-status-warning' },
+  { value: 'in_progress', label: 'In Progress', dotColor: 'bg-foreground' },
+  { value: 'escalated', label: 'Escalated', dotColor: 'bg-status-warning' },
+  { value: 'resolved', label: 'Resolved', dotColor: 'bg-status-success' },
+  { value: 'closed', label: 'Closed', dotColor: 'bg-muted' },
 ];
 
 const PRIORITY_ITEMS: readonly ComboboxItem[] = [
-  { value: 'all', label: 'All Priorities' },
-  { value: 'urgent', label: 'Urgent', dotColor: 'bg-rose-400' },
-  { value: 'high', label: 'High', dotColor: 'bg-amber-400' },
-  { value: 'normal', label: 'Normal', dotColor: 'bg-sky-400' },
-  { value: 'low', label: 'Low', dotColor: 'bg-slate-500' },
+  { value: 'all', label: 'All Priority' },
+  { value: 'urgent', label: 'Urgent', dotColor: 'bg-status-warning' },
+  { value: 'high', label: 'High', dotColor: 'bg-status-accent' },
+  { value: 'normal', label: 'Normal', dotColor: 'bg-status-info' },
+  { value: 'low', label: 'Low', dotColor: 'bg-muted' },
 ];
 
 export function InboxFilters({
@@ -34,7 +34,7 @@ export function InboxFilters({
   onPriorityChange,
 }: InboxFiltersProps) {
   return (
-    <div className="mt-3 grid grid-cols-2 gap-2">
+    <div className="mt-2 grid grid-cols-2 gap-1.5">
       <Combobox
         ariaLabel="Filter by status"
         placeholder="Status"
@@ -42,6 +42,7 @@ export function InboxFilters({
         value={selectedStatus}
         onChange={onStatusChange}
         searchable={false}
+        size="md"
       />
       <Combobox
         ariaLabel="Filter by priority"
@@ -50,6 +51,7 @@ export function InboxFilters({
         value={selectedPriority}
         onChange={onPriorityChange}
         searchable={false}
+        size="sm"
       />
     </div>
   );

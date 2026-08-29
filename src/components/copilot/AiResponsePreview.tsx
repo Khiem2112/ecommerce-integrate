@@ -21,9 +21,9 @@ const actionLabels: Record<SuggestedAction, string> = {
 };
 
 const actionClasses: Record<SuggestedAction, string> = {
-  auto_reply: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
-  await_approval: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
-  escalate_to_human: 'border-rose-400/30 bg-rose-400/10 text-rose-300',
+  auto_reply: 'border-status-success/25 bg-status-success/10 text-status-success-text',
+  await_approval: 'border-status-warning/25 bg-status-warning/10 text-status-warning',
+  escalate_to_human: 'border-status-warning/30 bg-status-warning/12 text-status-warning-text',
 };
 
 export function AiResponsePreview({
@@ -124,37 +124,32 @@ export function AiResponsePreview({
   }
 
   return (
-    <article className="overflow-hidden rounded-xl border border-violet-500/30 bg-slate-900 shadow-2xl shadow-violet-950/40">
-      {/* Header */}
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-gradient-to-r from-violet-950/60 via-slate-900 to-indigo-950/40 px-4 py-3.5">
-        <div className="flex items-center gap-2.5">
+    <article className="overflow-hidden rounded-2xl border border-hairline bg-white shadow-md shadow-black/5">
+      {/* Compact Header */}
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-surface-lifted px-3.5 py-2">
+        <div className="flex items-center gap-2">
           <span
-            className="grid size-7 place-items-center rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 text-xs font-bold text-white shadow-md shadow-violet-500/20"
+            className="grid size-5.5 place-items-center rounded-full bg-foreground text-[10px] font-bold text-background"
             aria-hidden="true"
           >
             ✦
           </span>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-violet-200">
-                AI Multi-Draft Co-Pilot
-              </h3>
-              {draft.response?.providerUsed && (
-                <span className="rounded bg-violet-900/50 px-1.5 py-0.5 text-[10px] font-medium text-violet-300">
-                  {draft.response.providerUsed}
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] text-slate-400">
-              Compare 2–3 grounded strategy drafts and select the optimal response.
-            </p>
+          <div className="flex items-center gap-2">
+            <h3 className="text-xs font-semibold text-foreground">
+              AI Multi-Draft Co-Pilot
+            </h3>
+            {draft.response?.providerUsed && (
+              <span className="rounded-full bg-foreground/5 px-2 py-0.2 text-[10px] font-medium text-muted">
+                {draft.response.providerUsed}
+              </span>
+            )}
           </div>
         </div>
 
         {/* Global/Active suggested action pill */}
         <span
           className={cn(
-            'rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-wide',
+            'rounded-full border px-2.5 py-0.5 text-[10px] font-semibold tracking-tight',
             actionClasses[activeStrategy.suggestedAction],
           )}
         >
@@ -162,32 +157,30 @@ export function AiResponsePreview({
         </span>
       </header>
 
-      <div className="space-y-4 p-4 md:p-5">
+      <div className="space-y-2.5 p-3">
         {/* Recommendation Rationale Callout */}
         {draft.response?.recommendationReason && (
-          <div className="flex items-start gap-2.5 rounded-lg border border-violet-400/20 bg-violet-500/10 p-3 text-xs text-violet-100">
-            <span className="text-sm font-bold text-violet-400">💡</span>
-            <div>
-              <span className="font-semibold text-violet-300">
-                AI Recommendation Rationale:{' '}
-              </span>
-              <span>{draft.response.recommendationReason}</span>
+          <div className="flex items-center gap-2 rounded-xl border border-status-warning/20 bg-status-warning/5 px-2.5 py-1.5 text-xs text-foreground">
+            <span className="text-xs font-bold text-status-warning">💡</span>
+            <div className="truncate">
+              <span className="font-semibold text-status-warning">Recommendation: </span>
+              <span className="text-foreground">{draft.response.recommendationReason}</span>
             </div>
           </div>
         )}
 
-        {/* Strategy Selector Tabs */}
+        {/* Horizontal Strategy Segmented Pill Tabs */}
         <div>
-          <div className="mb-2 flex items-center justify-between">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Select Response Strategy ({strategies.length} options)
-            </label>
-            <span className="text-[10px] text-slate-500">
-              Click to compare approach & tone
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted">
+              Strategy ({strategies.length} options)
+            </span>
+            <span className="text-[10px] text-muted">
+              {activeStrategy.strategy?.tone ? `Tone: ${activeStrategy.strategy.tone}` : ''}
             </span>
           </div>
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+          <div className="flex flex-wrap items-center gap-1.5">
             {strategies.map((strategy) => {
               const isSelected = strategy.id === selectedStrategyId;
               const isBest =
@@ -200,52 +193,36 @@ export function AiResponsePreview({
                   type="button"
                   onClick={() => handleSelectStrategy(strategy.id)}
                   className={cn(
-                    'group relative flex flex-col justify-between rounded-lg border p-3 text-left transition-all',
+                    'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition duration-150 cursor-pointer border',
                     isSelected
-                      ? 'border-violet-500 bg-violet-500/15 shadow-md shadow-violet-950/40 ring-2 ring-violet-500/30'
-                      : 'border-slate-800 bg-slate-950/60 hover:border-slate-700 hover:bg-slate-800/50',
+                      ? 'border-foreground bg-foreground text-background shadow-xs'
+                      : 'border-hairline bg-background text-foreground hover:border-foreground/30 hover:bg-hairline',
                   )}
                 >
-                  <div className="mb-2">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-[10px] font-bold uppercase text-slate-400">
-                        Rank #{strategy.rank}
-                      </span>
-                      {isBest && (
-                        <span className="rounded-full border border-amber-400/40 bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">
-                          ★ Recommended
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-1 font-semibold text-slate-100 group-hover:text-white">
-                      {strategy.strategy?.name ?? strategy.id}
-                    </div>
-                    {strategy.strategy?.tone && (
-                      <p className="mt-0.5 text-[11px] text-slate-400">
-                        Tone: {strategy.strategy.tone}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-1 pt-2 border-t border-slate-800/80">
+                  <span>{strategy.strategy?.name ?? `Rank #${strategy.rank}`}</span>
+                  {isBest && (
                     <span
                       className={cn(
-                        'rounded px-1.5 py-0.5 text-[9px] font-medium',
-                        actionClasses[strategy.suggestedAction],
+                        'rounded-full px-1.5 py-0.2 text-[9px] font-bold',
+                        isSelected ? 'bg-status-warning text-white' : 'bg-status-warning/15 text-status-warning',
                       )}
                     >
-                      {strategy.suggestedAction === 'auto_reply'
-                        ? 'Auto-Reply'
-                        : strategy.suggestedAction === 'await_approval'
-                          ? 'Approval'
-                          : 'Escalate'}
+                      ★ Best
                     </span>
-                    {hasVoucher && (
-                      <span className="rounded bg-emerald-950/70 border border-emerald-500/30 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">
-                        🎫 {strategy.proposedCompensation.amountVnd?.toLocaleString()}đ
-                      </span>
-                    )}
-                  </div>
+                  )}
+                  {hasVoucher && (
+                    <span
+                      className={cn(
+                        'rounded-full px-1.5 py-0.2 text-[9px] font-bold',
+                        isSelected ? 'bg-emerald-500 text-white' : 'bg-status-success/15 text-status-success-text',
+                      )}
+                    >
+                      🎫 Voucher
+                    </span>
+                  )}
+                  <span className={cn('text-[10px]', isSelected ? 'text-dust-taupe' : 'text-muted')}>
+                    {Math.round(strategy.confidence * 100)}%
+                  </span>
                 </button>
               );
             })}
@@ -253,32 +230,23 @@ export function AiResponsePreview({
         </div>
 
         {/* Draft Text Preview or Editor */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-300">
-              Draft Message: {activeStrategy.strategy?.name ?? activeStrategy.id}
-            </span>
-            <span className="text-[11px] text-slate-400">
-              Confidence: {Math.round(activeStrategy.confidence * 100)}%
-            </span>
-          </div>
-
+        <div className="space-y-1">
           {isEditing ? (
             <textarea
               value={currentText}
               onChange={(event) => handleTextChange(event.target.value)}
-              rows={5}
-              className="block w-full resize-y rounded-lg border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm leading-6 text-slate-100 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20"
+              rows={3}
+              className="block w-full resize-y rounded-xl border border-hairline bg-white p-2.5 text-xs leading-5 text-foreground outline-none transition focus:border-foreground focus:ring-2 focus:ring-foreground/10"
               aria-label="Edit AI response"
             />
           ) : (
-            <div className="rounded-lg border border-slate-800 bg-slate-950/80 p-3.5 text-sm leading-6 text-slate-100">
+            <div className="custom-scrollbar max-h-32 overflow-y-auto rounded-xl border border-hairline bg-surface-lifted p-2.5 text-xs leading-5 text-foreground">
               <p className="whitespace-pre-wrap">{currentText}</p>
             </div>
           )}
         </div>
 
-        {/* Grounding & Evidence Annotations */}
+        {/* Grounding & Evidence Annotations (Compact Collapsible) */}
         <GroundingAnnotation
           groundedFacts={activeStrategy.groundedFactsUsed}
           ungroundedClaims={activeStrategy.ungroundedClaims}
@@ -291,7 +259,7 @@ export function AiResponsePreview({
         {error && (
           <p
             role="alert"
-            className="rounded-md border border-rose-400/25 bg-rose-400/10 p-2.5 text-xs text-rose-200"
+            className="rounded-xl border border-status-warning/30 bg-status-warning/10 p-2 text-xs text-status-warning-text"
           >
             {error}
           </p>
@@ -299,10 +267,10 @@ export function AiResponsePreview({
 
         {/* Escalate or Invalid Notice */}
         {!canApprove && (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs leading-5 text-amber-200">
+          <div className="rounded-xl border border-status-warning/30 bg-status-warning/8 p-2 text-xs leading-5 text-status-warning-text">
             {activeStrategy.suggestedAction === 'escalate_to_human'
-              ? '⚠️ This strategy requires human handling due to risk level or customer complaint.'
-              : '⚠️ This draft cannot be sent until its grounding issues or empty content are resolved.'}
+              ? '⚠️ This strategy requires human handling due to risk level.'
+              : '⚠️ This draft cannot be sent until its grounding issues are resolved.'}
           </div>
         )}
 

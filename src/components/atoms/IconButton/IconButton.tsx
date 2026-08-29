@@ -18,19 +18,19 @@ export type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const VARIANT_STYLES: Record<IconButtonVariant, string> = {
-  ghost: 'text-slate-400 hover:bg-slate-800 hover:text-slate-100 focus-visible:ring-violet-400',
-  subtle: 'bg-slate-800/60 text-slate-300 hover:bg-slate-700/70 hover:text-white border border-slate-700/50 focus-visible:ring-violet-400',
-  secondary: 'bg-slate-800 text-slate-200 hover:bg-slate-700 focus-visible:ring-violet-400 border border-slate-700',
-  primary: 'bg-violet-600 text-white hover:bg-violet-500 shadow-md shadow-violet-950/40 focus-visible:ring-violet-300',
-  outline: 'border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white focus-visible:ring-violet-400',
-  ai: 'border border-violet-400/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/25 hover:text-violet-100 hover:border-violet-400/60 focus-visible:ring-violet-400 shadow-sm',
+  ghost: 'text-muted hover:bg-foreground/6 hover:text-foreground focus-visible:ring-foreground/20',
+  subtle: 'bg-white text-foreground hover:bg-background border border-hairline shadow-xs focus-visible:ring-foreground/20',
+  secondary: 'bg-foreground/5 text-foreground hover:bg-foreground/10 border border-hairline focus-visible:ring-foreground/20',
+  primary: 'bg-foreground text-background hover:bg-primary-hover shadow-xs focus-visible:ring-foreground/30',
+  outline: 'border border-hairline bg-transparent text-foreground hover:bg-white shadow-xs focus-visible:ring-foreground/20',
+  ai: 'border border-status-warning/30 bg-status-warning/10 text-status-warning hover:bg-status-warning/18 focus-visible:ring-status-warning/30 shadow-xs',
 };
 
 const SIZE_STYLES: Record<IconButtonSize, string> = {
-  xs: 'size-6 p-0.5 text-xs rounded',
-  sm: 'size-8 p-1.5 text-sm rounded-md',
-  md: 'size-9 p-2 text-base rounded-lg',
-  lg: 'size-10 p-2.5 text-lg rounded-lg',
+  xs: 'size-6 p-0.5 text-xs rounded-full',
+  sm: 'size-8 p-1.5 text-sm rounded-full',
+  md: 'size-9 p-2 text-base rounded-full',
+  lg: 'size-10 p-2.5 text-lg rounded-full',
 };
 
 export function IconButton({
@@ -55,10 +55,10 @@ export function IconButton({
       title={tooltip ?? ariaLabel}
       disabled={disabled || isLoading}
       className={cn(
-        'inline-grid place-items-center transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-40 select-none',
+        'inline-grid place-items-center transition duration-150 focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-40 select-none cursor-pointer',
         VARIANT_STYLES[variant],
         SIZE_STYLES[size],
-        isActive && 'bg-violet-600/30 text-violet-200 border-violet-500/50 ring-1 ring-violet-500/30',
+        isActive && 'bg-foreground text-background shadow-xs ring-1 ring-foreground/30',
         className,
       )}
       {...buttonProps}

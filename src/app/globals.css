@@ -1,19 +1,158 @@
 @import "tailwindcss";
 
 :root {
-  --background: #020617;
-  --foreground: #e2e8f0;
+  /* ElevenLabs Brand Colors */
+  --primary: #292524;
+  --primary-active: #0c0a09;
+  --ink: #0c0a09;
+  --body: #4e4e4e;
+  --body-strong: #292524;
+  --muted: #777169;
+  --muted-soft: #a8a29e;
+
+  /* Surfaces & Canvas */
+  --canvas: #f5f5f5;
+  --canvas-soft: #fafafa;
+  --canvas-deep: #0c0a09;
+  --surface-card: #ffffff;
+  --surface-strong: #f0efed;
+  --surface-dark: #0c0a09;
+  --surface-dark-elevated: #1c1917;
+
+  /* Hairlines & Borders */
+  --hairline: #e7e5e4;
+  --hairline-soft: #f0efed;
+  --hairline-strong: #d6d3d1;
+
+  /* On-Color Text */
+  --on-primary: #ffffff;
+  --on-dark: #ffffff;
+  --on-dark-soft: #a8a29e;
+
+  /* Atmospheric Gradient Stops (Brand Voltage) */
+  --gradient-mint: #a7e5d3;
+  --gradient-peach: #f4c5a8;
+  --gradient-lavender: #c8b8e0;
+  --gradient-sky: #a8c8e8;
+  --gradient-rose: #e8b8c4;
+
+  /* Semantic */
+  --semantic-error: #dc2626;
+  --semantic-success: #16a34a;
+
+  /* Workspace Status Palette */
+  --status-warning: #CF4500;
+  --status-warning-text: #9A3A0A;
+  --status-success: #149e61;
+  --status-success-text: #026b3f;
+  --status-info: #3860BE;
+  --status-accent: #F37338;
+  --primary-hover: #262627;
+
+  /* Badge Palette */
+  --badge-purple: #6366f1;
+  --badge-purple-text: #4f46e5;
+  --badge-pink: #db2777;
+  --badge-pink-text: #9d174d;
+  --badge-teal: #0d9488;
+  --badge-teal-text: #0f766e;
+  --badge-cyan: #0891b2;
+  --badge-cyan-text: #155e75;
+
+  /* Compatibility & Semantic Mappings */
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --surface-lifted: var(--canvas-soft);
+  --surface-white: var(--surface-card);
+  --border-subtle: var(--hairline);
+  --ink-black: var(--ink);
+  --slate-gray: var(--muted);
+  --dust-taupe: var(--hairline-strong);
 }
 
 @theme inline {
+  --color-primary: var(--primary);
+  --color-primary-active: var(--primary-active);
+  --color-primary-hover: var(--primary-hover);
+  --color-ink: var(--ink);
+  --color-body: var(--body);
+  --color-body-strong: var(--body-strong);
+  --color-muted: var(--muted);
+  --color-muted-soft: var(--muted-soft);
+
+  --color-hairline: var(--hairline);
+  --color-hairline-soft: var(--hairline-soft);
+  --color-hairline-strong: var(--hairline-strong);
+
+  --color-canvas: var(--canvas);
+  --color-canvas-soft: var(--canvas-soft);
+  --color-canvas-deep: var(--canvas-deep);
+
+  --color-surface-card: var(--surface-card);
+  --color-surface-strong: var(--surface-strong);
+  --color-surface-dark: var(--surface-dark);
+  --color-surface-dark-elevated: var(--surface-dark-elevated);
+
+  --color-on-primary: var(--on-primary);
+  --color-on-dark: var(--on-dark);
+  --color-on-dark-soft: var(--on-dark-soft);
+
+  --color-gradient-mint: var(--gradient-mint);
+  --color-gradient-peach: var(--gradient-peach);
+  --color-gradient-lavender: var(--gradient-lavender);
+  --color-gradient-sky: var(--gradient-sky);
+  --color-gradient-rose: var(--gradient-rose);
+
+  --color-semantic-error: var(--semantic-error);
+  --color-semantic-success: var(--semantic-success);
+
+  /* Workspace Status */
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-text: var(--status-warning-text);
+  --color-status-success: var(--status-success);
+  --color-status-success-text: var(--status-success-text);
+  --color-status-info: var(--status-info);
+  --color-status-accent: var(--status-accent);
+
+  /* Badge Palette */
+  --color-badge-purple: var(--badge-purple);
+  --color-badge-purple-text: var(--badge-purple-text);
+  --color-badge-pink: var(--badge-pink);
+  --color-badge-pink-text: var(--badge-pink-text);
+  --color-badge-teal: var(--badge-teal);
+  --color-badge-teal-text: var(--badge-teal-text);
+  --color-badge-cyan: var(--badge-cyan);
+  --color-badge-cyan-text: var(--badge-cyan-text);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface-lifted: var(--surface-lifted);
+  --color-surface-white: var(--surface-white);
+  --color-border-subtle: var(--border-subtle);
+  --color-ink-black: var(--ink-black);
+  --color-slate-gray: var(--slate-gray);
+  --color-dust-taupe: var(--dust-taupe);
+
+  --font-sans: var(--font-sans), 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Waldenburg', 'EB Garamond', 'Times New Roman', serif;
+  --font-serif: 'Waldenburg', 'EB Garamond', 'Times New Roman', serif;
+  --font-mono: var(--font-mono);
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-xxl: 24px;
+  --radius-pill: 9999px;
+
+  --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.02);
+  --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
 * {
-  border-color: rgb(30 41 59);
+  border-color: var(--hairline, #e7e5e4);
 }
 
 html,
@@ -26,7 +165,11 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 button,
@@ -37,18 +180,94 @@ textarea {
 }
 
 ::selection {
-  background: rgb(139 92 246 / 0.45);
-  color: white;
+  background: rgba(41, 37, 36, 0.12);
+  color: #0c0a09;
 }
 
+/* ElevenLabs Typography Utility Classes */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 300;
+}
+
+.text-display-mega {
+  font-family: var(--font-display);
+  font-size: 4rem; /* 64px */
+  line-height: 1.05;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+}
+
+.text-display-xl {
+  font-family: var(--font-display);
+  font-size: 3rem; /* 48px */
+  line-height: 1.08;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+.text-display-lg {
+  font-family: var(--font-display);
+  font-size: 2.25rem; /* 36px */
+  line-height: 1.17;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+.text-display-md {
+  font-family: var(--font-display);
+  font-size: 2rem; /* 32px */
+  line-height: 1.13;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+.text-display-sm {
+  font-family: var(--font-display);
+  font-size: 1.5rem; /* 24px */
+  line-height: 1.2;
+  font-weight: 300;
+  letter-spacing: 0;
+}
+
+.text-caption-uppercase {
+  font-size: 0.75rem; /* 12px */
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Atmospheric Gradient Orb Utilities */
+.orb-mint {
+  background: radial-gradient(circle, var(--gradient-mint) 0%, rgba(167, 229, 211, 0) 70%);
+}
+
+.orb-peach {
+  background: radial-gradient(circle, var(--gradient-peach) 0%, rgba(244, 197, 168, 0) 70%);
+}
+
+.orb-lavender {
+  background: radial-gradient(circle, var(--gradient-lavender) 0%, rgba(200, 184, 224, 0) 70%);
+}
+
+.orb-sky {
+  background: radial-gradient(circle, var(--gradient-sky) 0%, rgba(168, 200, 232, 0) 70%);
+}
+
+.orb-rose {
+  background: radial-gradient(circle, var(--gradient-rose) 0%, rgba(232, 184, 196, 0) 70%);
+}
+
+/* ElevenLabs Scrollbar */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgb(51 65 85 / 0.8) transparent;
+  scrollbar-color: var(--hairline-strong, #d6d3d1) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -56,11 +275,10 @@ textarea {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgb(51 65 85 / 0.8);
+  background: var(--hairline-strong, #d6d3d1);
   border-radius: 9999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgb(71 85 105);
+  background: var(--muted-soft, #a8a29e);
 }
-

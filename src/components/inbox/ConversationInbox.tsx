@@ -31,13 +31,13 @@ export function ConversationInbox({
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="shrink-0 border-b border-slate-800 p-4">
+      <div className="shrink-0 border-b border-hairline p-4">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-white">Conversations</h2>
-            <p className="mt-0.5 text-xs text-slate-400">Live customer inbox</p>
+            <h2 className="text-sm font-semibold text-foreground">Conversations</h2>
+            <p className="mt-0.5 text-xs text-muted">Live customer inbox</p>
           </div>
-          <span className="grid min-w-6 place-items-center rounded-full bg-slate-800 px-1.5 py-0.5 text-xs font-medium text-slate-300">
+          <span className="grid min-w-6 place-items-center rounded-full bg-foreground/6 px-1.5 py-0.5 text-xs font-medium text-foreground">
             {conversations.length}
           </span>
         </div>
@@ -46,7 +46,7 @@ export function ConversationInbox({
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500"
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted"
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
@@ -58,7 +58,7 @@ export function ConversationInbox({
             value={searchText}
             onChange={(event) => handleSearchChange(event.target.value)}
             placeholder="Search ID, intent, message"
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-9 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20"
+            className="w-full rounded-lg border border-hairline bg-surface-lifted px-9 py-2 text-sm text-foreground placeholder:text-muted outline-none transition focus:border-foreground focus:ring-2 focus:ring-foreground/10"
           />
         </label>
         <InboxFilters
@@ -76,15 +76,15 @@ export function ConversationInbox({
       >
         {isLoading && <InboxSkeleton />}
         {error && (
-          <div className="m-2 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">
+          <div className="m-2 rounded-lg border border-status-warning/30 bg-status-warning/10 p-3 text-sm text-status-warning-text">
             Unable to load the inbox. {error.message}
           </div>
         )}
         {!isLoading && !error && conversations.length === 0 && (
           <div className="grid min-h-48 place-items-center px-5 text-center">
             <div>
-              <p className="text-sm font-medium text-slate-300">No conversations found</p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">
+              <p className="text-sm font-medium text-foreground">No conversations found</p>
+              <p className="mt-1 text-xs leading-5 text-muted">
                 Try changing your filters or clearing the search query.
               </p>
             </div>
@@ -109,11 +109,11 @@ function InboxSkeleton() {
       {Array.from({ length: 6 }, (_, index) => (
         <div
           key={`inbox-skeleton-${index}`}
-          className="animate-pulse rounded-lg border border-slate-800 bg-slate-900 p-3"
+          className="animate-pulse rounded-lg border border-hairline bg-surface-lifted p-3"
         >
-          <div className="h-3 w-2/5 rounded bg-slate-700" />
-          <div className="mt-3 h-3 w-4/5 rounded bg-slate-800" />
-          <div className="mt-2 h-2.5 w-3/5 rounded bg-slate-800" />
+          <div className="h-3 w-2/5 rounded bg-hairline" />
+          <div className="mt-3 h-3 w-4/5 rounded bg-background" />
+          <div className="mt-2 h-2.5 w-3/5 rounded bg-background" />
         </div>
       ))}
     </div>

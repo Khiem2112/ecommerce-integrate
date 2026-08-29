@@ -25,23 +25,25 @@ export function AgentWorkspace() {
   }
 
   return (
-    <main className="h-dvh max-h-dvh overflow-hidden bg-slate-950 text-slate-100">
+    <main className="h-dvh max-h-dvh overflow-hidden bg-background text-foreground">
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-800 bg-slate-950/90 px-4 backdrop-blur md:px-5">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-hairline bg-white px-4 shadow-xs md:px-5">
           <div className="flex items-center gap-3">
-            <div className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 text-sm font-bold text-white shadow-lg shadow-violet-950/40">
+            <div className="relative grid size-8 place-items-center rounded-full bg-foreground text-sm font-bold text-background shadow-xs">
               V
+              <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-white bg-status-warning" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold tracking-tight text-white">
+              <h1 className="text-sm font-semibold tracking-tight text-foreground">
                 VIP Agent Workspace
               </h1>
-              <p className="hidden text-xs text-slate-400 sm:block">
+              <p className="hidden text-xs text-muted sm:block">
                 Grounded customer-care co-pilot
               </p>
             </div>
           </div>
-          <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-300">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-status-success/25 bg-status-success/10 px-2.5 py-0.5 text-xs font-medium text-status-success-text">
+            <span className="size-1.5 rounded-full bg-status-success" />
             System ready
           </span>
         </header>
@@ -56,7 +58,7 @@ export function AgentWorkspace() {
         >
           <aside
             className={cn(
-              'h-full min-h-0 overflow-hidden border-r border-slate-800 bg-slate-900/40 xl:block',
+              'h-full min-h-0 overflow-hidden border-r border-hairline bg-surface-lifted xl:block',
               mobileView === 'inbox' ? 'block' : 'hidden',
             )}
           >
@@ -68,7 +70,7 @@ export function AgentWorkspace() {
 
           <section
             className={cn(
-              'h-full min-h-0 overflow-hidden bg-slate-950 xl:block',
+              'h-full min-h-0 overflow-hidden bg-background xl:block',
               mobileView === 'chat' ? 'block' : 'hidden',
             )}
           >
@@ -82,7 +84,7 @@ export function AgentWorkspace() {
           </section>
 
           {!sidebarCollapsed && (
-            <aside className="hidden h-full min-h-0 overflow-hidden border-l border-slate-800 bg-slate-900/30 xl:block">
+            <aside className="hidden h-full min-h-0 overflow-hidden border-l border-hairline bg-surface-lifted xl:block">
               <CustomerContextPanel
                 conversationId={selectedConversationId}
                 onCollapse={() => setSidebarCollapsed(true)}

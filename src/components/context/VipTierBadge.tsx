@@ -6,10 +6,10 @@ type VipTierBadgeProps = {
 };
 
 const badgeClasses: Record<string, string> = {
-  platinum: 'border-violet-400/35 bg-violet-500/15 text-violet-200',
-  gold: 'border-amber-400/35 bg-amber-500/15 text-amber-200',
-  silver: 'border-slate-400/35 bg-slate-400/15 text-slate-200',
-  standard: 'border-slate-600 bg-slate-800 text-slate-300',
+  platinum: 'border-foreground bg-foreground text-background',
+  gold: 'border-status-warning/25 bg-status-warning/10 text-status-warning',
+  silver: 'border-status-info/25 bg-status-info/10 text-status-info',
+  standard: 'border-hairline bg-foreground/5 text-muted',
 };
 
 const icons: Record<string, string> = {

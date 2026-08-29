@@ -60,11 +60,11 @@ export function CustomerContextPanel({
   ];
 
   return (
-    <div className="custom-scrollbar flex h-full min-h-0 flex-col overflow-y-auto">
-      <header className="flex min-h-16 shrink-0 items-center justify-between border-b border-slate-800 px-4">
+    <div className="custom-scrollbar flex h-full min-h-0 flex-col overflow-y-auto bg-surface-lifted">
+      <header className="flex min-h-14 shrink-0 items-center justify-between border-b border-hairline bg-surface-lifted px-4">
         <div>
-          <h2 className="text-sm font-semibold text-white">Customer context</h2>
-          <p className="mt-0.5 text-xs text-slate-500">Evidence-backed customer intel</p>
+          <h2 className="text-sm font-semibold text-foreground">Customer context</h2>
+          <p className="mt-0.5 text-xs text-muted">Evidence-backed customer intel</p>
         </div>
         <IconButton
           size="sm"
@@ -90,47 +90,47 @@ export function CustomerContextPanel({
           }
         />
       </header>
-      <div className="space-y-5 p-4">
-        <section className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+      <div className="space-y-4 p-3.5">
+        <section className="rounded-2xl border border-hairline bg-white p-3.5 shadow-xs">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
                 Customer ID
               </p>
-              <p className="mt-1 truncate text-sm font-semibold text-slate-100">
+              <p className="mt-0.5 truncate text-xs font-semibold text-foreground">
                 {customer.platformBuyerId}
               </p>
             </div>
             <VipTierBadge code={customer.vipTier.code} name={customer.vipTier.name} />
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-semibold tracking-tight text-white">
+          <div className="mt-2.5 flex items-baseline gap-2">
+            <span className="text-2xl font-bold tracking-tight text-foreground">
               {customer.vipScore.toFixed(1)}
             </span>
-            <span className="text-xs text-slate-500">VIP score / 100</span>
+            <span className="text-xs text-muted">VIP score / 100</span>
           </div>
         </section>
 
         <section>
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted">
               Customer metrics
             </h3>
-            <span className="text-[10px] text-slate-600">
+            <span className="text-[10px] text-muted">
               {totalConversationCount} cases · {unresolvedConversationCount} open
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-1.5">
             {metrics.map((metric) => (
               <div
                 key={metric.label}
-                className="rounded-lg border border-slate-800 bg-slate-900/55 p-3"
+                className="rounded-2xl border border-hairline bg-white p-2.5 shadow-xs"
               >
-                <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
                   {metric.label}
                 </p>
                 <p
-                  className="mt-1 truncate text-sm font-semibold text-slate-200"
+                  className="mt-0.5 truncate text-xs font-semibold text-foreground"
                   title={metric.value}
                 >
                   {metric.value}
@@ -153,17 +153,17 @@ export function CustomerContextPanel({
 function ContextSkeleton() {
   return (
     <div
-      className="space-y-5 p-4 animate-pulse"
+      className="space-y-4 p-3.5 animate-pulse bg-surface-lifted"
       aria-label="Loading customer context"
     >
-      <div className="h-36 rounded-xl border border-slate-800 bg-slate-900" />
-      <div className="grid grid-cols-2 gap-2">
-        <div className="h-20 rounded-lg bg-slate-900" />
-        <div className="h-20 rounded-lg bg-slate-900" />
-        <div className="h-20 rounded-lg bg-slate-900" />
-        <div className="h-20 rounded-lg bg-slate-900" />
+      <div className="h-28 rounded-2xl border border-hairline bg-white" />
+      <div className="grid grid-cols-2 gap-1.5">
+        <div className="h-16 rounded-2xl border border-hairline bg-white" />
+        <div className="h-16 rounded-2xl border border-hairline bg-white" />
+        <div className="h-16 rounded-2xl border border-hairline bg-white" />
+        <div className="h-16 rounded-2xl border border-hairline bg-white" />
       </div>
-      <div className="h-40 rounded-xl border border-slate-800 bg-slate-900" />
+      <div className="h-36 rounded-2xl border border-hairline bg-white" />
     </div>
   );
 }

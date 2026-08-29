@@ -137,23 +137,23 @@ export function Combobox({
         aria-label={ariaLabel ?? label ?? placeholder}
         onClick={() => setIsOpen((prev) => !prev)}
         className={cn(
-          'flex w-full items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-900/90 text-left text-slate-200 shadow-sm transition outline-none focus-visible:border-violet-400 focus-visible:ring-2 focus-visible:ring-violet-500/20 hover:border-slate-600',
-          size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-sm',
+          'flex h-8 w-full items-center justify-between gap-1.5 rounded-full border border-hairline bg-white text-left text-xs text-foreground shadow-xs transition duration-150 outline-none hover:border-foreground/30 focus-visible:border-foreground focus-visible:ring-2 focus-visible:ring-foreground/10 cursor-pointer',
+          size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-xs',
           disabled && 'cursor-not-allowed opacity-50',
-          isOpen && 'border-violet-500 ring-2 ring-violet-500/20',
+          isOpen && 'border-foreground ring-2 ring-foreground/10',
         )}
       >
         <span className="flex min-w-0 items-center gap-1.5 truncate">
           {selectedItem?.dotColor && (
             <span
-              className={cn('size-2 shrink-0 rounded-full', selectedItem.dotColor)}
+              className={cn('size-1.5 shrink-0 rounded-full', selectedItem.dotColor)}
               aria-hidden="true"
             />
           )}
           {selectedItem?.icon && (
-            <span className="shrink-0 text-slate-400">{selectedItem.icon}</span>
+            <span className="shrink-0 text-muted">{selectedItem.icon}</span>
           )}
-          <span className={cn('truncate', !selectedItem && 'text-slate-500')}>
+          <span className={cn('truncate', !selectedItem && 'text-muted')}>
             {selectedItem ? selectedItem.label : placeholder}
           </span>
         </span>
@@ -162,8 +162,8 @@ export function Combobox({
           viewBox="0 0 20 20"
           fill="currentColor"
           className={cn(
-            'size-4 shrink-0 text-slate-400 transition-transform duration-150',
-            isOpen && 'rotate-180 text-violet-400',
+            'size-3.5 shrink-0 text-muted transition-transform duration-150',
+            isOpen && 'rotate-180 text-foreground',
           )}
         >
           <path
@@ -179,26 +179,26 @@ export function Combobox({
           id={listboxId}
           role="listbox"
           className={cn(
-            'absolute z-50 mt-1 max-h-60 w-full min-w-[10rem] overflow-hidden rounded-lg border border-slate-700 bg-slate-900 shadow-xl shadow-black/40 animate-in fade-in-0 zoom-in-95',
+            'absolute z-50 mt-1 max-h-60 w-full min-w-[10rem] overflow-hidden rounded-2xl border border-hairline bg-white shadow-xl shadow-black/8 animate-in fade-in-0 zoom-in-95',
             menuClassName,
           )}
         >
           {searchable && items.length > 5 && (
-            <div className="border-b border-slate-800 p-1.5">
+            <div className="border-b border-hairline p-1.5">
               <input
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full rounded-md border border-slate-700/80 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-500 outline-none focus:border-violet-500"
+                className="w-full rounded-full border border-hairline bg-background px-2.5 py-1 text-xs text-foreground placeholder:text-muted outline-none focus:border-foreground"
               />
             </div>
           )}
 
           <ul className="max-h-48 overflow-y-auto p-1 text-xs">
             {filteredItems.length === 0 ? (
-              <li className="px-3 py-2 text-center text-slate-500">
+              <li className="px-3 py-2 text-center text-muted">
                 No options found
               </li>
             ) : (
@@ -213,10 +213,10 @@ export function Combobox({
                       if (!item.disabled) handleSelect(item.value);
                     }}
                     className={cn(
-                      'flex cursor-pointer select-none items-center justify-between rounded-md px-2.5 py-1.5 transition',
+                      'flex cursor-pointer select-none items-center justify-between rounded-xl px-2.5 py-1.5 transition duration-100',
                       isSelected
-                        ? 'bg-violet-600/20 font-medium text-violet-200'
-                        : 'text-slate-300 hover:bg-slate-800 hover:text-white',
+                        ? 'bg-foreground/8 font-medium text-foreground'
+                        : 'text-foreground hover:bg-background',
                       item.disabled &&
                         'cursor-not-allowed opacity-40 hover:bg-transparent',
                     )}
@@ -224,16 +224,16 @@ export function Combobox({
                     <span className="flex min-w-0 items-center gap-2 truncate">
                       {item.dotColor && (
                         <span
-                          className={cn('size-2 shrink-0 rounded-full', item.dotColor)}
+                          className={cn('size-1.5 shrink-0 rounded-full', item.dotColor)}
                           aria-hidden="true"
                         />
                       )}
                       {item.icon && (
-                        <span className="shrink-0 text-slate-400">{item.icon}</span>
+                        <span className="shrink-0 text-muted">{item.icon}</span>
                       )}
                       <span className="truncate">{item.label}</span>
                       {item.subLabel && (
-                        <span className="text-[10px] text-slate-500">
+                        <span className="text-[10px] text-muted">
                           {item.subLabel}
                         </span>
                       )}
@@ -243,7 +243,7 @@ export function Combobox({
                         aria-hidden="true"
                         viewBox="0 0 20 20"
                         fill="currentColor"
-                        className="size-3.5 shrink-0 text-violet-400"
+                        className="size-3.5 shrink-0 text-foreground"
                       >
                         <path
                           fillRule="evenodd"

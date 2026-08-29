@@ -52,12 +52,12 @@ export function ChatPanel({
   if (!conversation) return <EmptyChat />;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <header className="flex min-h-16 shrink-0 items-center gap-3 border-b border-slate-800 px-4 md:px-6">
+    <div className="flex h-full min-h-0 flex-col bg-background">
+      <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-hairline bg-white px-4 shadow-xs md:px-6">
         <button
           type="button"
           onClick={onBack}
-          className="grid size-8 place-items-center rounded-md text-slate-400 transition hover:bg-slate-800 hover:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 xl:hidden"
+          className="grid size-8 place-items-center rounded-full text-muted transition hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 xl:hidden cursor-pointer"
           aria-label="Back to conversations"
         >
           <svg
@@ -71,26 +71,26 @@ export function ChatPanel({
             <path d="m15 18-6-6 6-6" />
           </svg>
         </button>
-        <div className="grid size-9 place-items-center rounded-full bg-gradient-to-br from-violet-500/60 to-indigo-500/60 text-xs font-bold text-white shadow-sm">
+        <div className="grid size-8.5 place-items-center rounded-full bg-foreground text-xs font-bold text-background shadow-xs">
           {conversation.customerIdentifier.slice(-2).toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="truncate text-sm font-semibold text-white">
+            <h2 className="truncate text-sm font-semibold text-foreground">
               {conversation.customerIdentifier}
             </h2>
-            <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+            <span className="rounded-full border border-hairline bg-foreground/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
               {conversation.status.name}
             </span>
           </div>
-          <p className="mt-0.5 truncate text-xs text-slate-400">
+          <p className="mt-0.5 truncate text-xs text-muted">
             {conversation.intent?.name ?? 'Unclassified inquiry'}
             {conversation.assignedAgentName ? ` · ${conversation.assignedAgentName}` : ''}
           </p>
         </div>
 
         {conversation.humanApprovalRequired && (
-          <span className="hidden rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] font-semibold text-amber-200 sm:block">
+          <span className="hidden rounded-full border border-status-warning/25 bg-status-warning/10 px-2.5 py-0.5 text-[10px] font-semibold text-status-warning sm:block">
             Review required
           </span>
         )}
@@ -123,25 +123,25 @@ export function ChatPanel({
         )}
       </header>
 
-      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-6">
+      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
         {conversation.messages.length === 0 ? (
           <div className="grid h-full min-h-48 place-items-center text-center">
             <div>
-              <p className="text-sm font-medium text-slate-300">Start the conversation</p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="text-sm font-semibold text-foreground">Start the conversation</p>
+              <p className="mt-1 text-xs text-muted">
                 Write a reply or request a grounded AI draft.
               </p>
             </div>
           </div>
         ) : (
-          <div className="mx-auto flex max-w-3xl flex-col gap-4">
+          <div className="mx-auto flex max-w-3xl flex-col gap-3">
             {conversation.messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
             ))}
           </div>
         )}
         {draft && (
-          <div className="mx-auto mt-5 max-w-3xl" key={conversation.id}>
+          <div className="mx-auto mt-4 max-w-3xl" key={conversation.id}>
             <AiResponsePreview
               key={conversation.id}
               draft={draft}
@@ -157,7 +157,7 @@ export function ChatPanel({
         {generateError && !draft && (
           <div
             role="alert"
-            className="mx-auto mt-4 max-w-3xl rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200"
+            className="mx-auto mt-4 max-w-3xl rounded-2xl border border-status-warning/30 bg-status-warning/10 p-3 text-xs text-status-warning-text"
           >
             Unable to generate an AI response. {generateError.message}
           </div>
@@ -165,7 +165,7 @@ export function ChatPanel({
         <div ref={threadEndRef} />
       </div>
 
-      <div className="shrink-0 border-t border-slate-800 bg-slate-950/80 p-4 backdrop-blur md:px-6">
+      <div className="shrink-0 border-t border-hairline bg-surface-lifted p-3 md:px-6">
         <div className="mx-auto max-w-3xl">
           <MessageInput
             conversationId={conversation.id}
@@ -181,12 +181,12 @@ export function ChatPanel({
 
 function ChatLoading() {
   return (
-    <div className="flex h-full min-h-96 flex-col animate-pulse">
-      <div className="h-16 border-b border-slate-800" />
-      <div className="flex-1 space-y-5 p-6">
-        <div className="h-16 max-w-sm rounded-xl bg-slate-900" />
-        <div className="ml-auto h-20 max-w-md rounded-xl bg-slate-800" />
-        <div className="h-12 max-w-xs rounded-xl bg-slate-900" />
+    <div className="flex h-full min-h-96 flex-col animate-pulse bg-background">
+      <div className="h-14 border-b border-hairline bg-white" />
+      <div className="flex-1 space-y-4 p-6">
+        <div className="h-14 max-w-sm rounded-2xl border border-hairline bg-white" />
+        <div className="ml-auto h-16 max-w-md rounded-2xl bg-foreground/10" />
+        <div className="h-12 max-w-xs rounded-2xl border border-hairline bg-white" />
       </div>
     </div>
   );

@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { cn } from '@/lib/cn';
 
 type GroundingAnnotationProps = {
@@ -13,9 +16,9 @@ type GroundingAnnotationProps = {
 };
 
 const severityClasses: Record<'low' | 'medium' | 'high', string> = {
-  low: 'border-amber-400/25 bg-amber-400/10 text-amber-100',
-  medium: 'border-orange-400/25 bg-orange-400/10 text-orange-100',
-  high: 'border-rose-400/25 bg-rose-400/10 text-rose-100',
+  low: 'border-status-warning/25 bg-status-warning/10 text-status-warning',
+  medium: 'border-status-warning/30 bg-status-warning/12 text-status-warning-text',
+  high: 'border-status-warning/35 bg-status-warning/15 text-status-warning-text',
 };
 
 export function GroundingAnnotation({
@@ -25,55 +28,78 @@ export function GroundingAnnotation({
   groundingPrecision,
   violations,
 }: GroundingAnnotationProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const precision = Math.round(groundingPrecision * 100);
+  const hasDetails = groundedFacts.length > 0 || ungroundedClaims.length > 0 || violations.length > 0;
 
   return (
-    <section className="space-y-3 border-t border-slate-700/80 pt-3">
+    <section className="rounded-xl border border-hairline bg-surface-lifted p-2 text-xs">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h4 className="text-xs font-semibold text-slate-300">Grounding check</h4>
-        <span
-          className={cn(
-            'rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
-            isValid
-              ? 'border-emerald-400/25 bg-emerald-400/10 text-emerald-200'
-              : 'border-rose-400/25 bg-rose-400/10 text-rose-200',
-          )}
-        >
-          {isValid ? 'Validated' : 'Needs review'} · {precision}% grounded
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold tracking-tight',
+              isValid
+                ? 'border-status-success/25 bg-status-success/10 text-status-success-text'
+                : 'border-status-warning/30 bg-status-warning/12 text-status-warning-text',
+            )}
+          >
+            <span className={cn('size-1.5 rounded-full', isValid ? 'bg-status-success' : 'bg-status-warning')} />
+            {isValid ? 'Grounded & Validated' : 'Needs Review'} · {precision}%
+          </span>
+          <span className="text-[11px] text-muted">
+            {groundedFacts.length} cited {ungroundedClaims.length > 0 && `· ${ungroundedClaims.length} ungrounded`}
+          </span>
+        </div>
+
+        {hasDetails && (
+          <button
+            type="button"
+            onClick={() => setIsOpen((prev) => !prev)}
+            className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-muted hover:bg-foreground/6 hover:text-foreground transition cursor-pointer"
+          >
+            {isOpen ? 'Hide facts ▲' : 'Show facts ▼'}
+          </button>
+        )}
       </div>
 
-      {groundedFacts.length > 0 && (
-        <div>
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">Evidence cited</p>
-          <ul className="space-y-1.5">
-            {groundedFacts.map((fact, index) => (
-              <li key={`${fact}-${index}`} className="flex gap-2 text-xs leading-5 text-slate-300">
-                <span aria-hidden="true" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-emerald-400" />
-                <span>{fact}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {isOpen && (
+        <div className="mt-2 space-y-2 border-t border-hairline pt-2 animate-in fade-in-0 duration-150">
+          {groundedFacts.length > 0 && (
+            <div>
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-status-success-text">Grounded Facts</p>
+              <ul className="space-y-1">
+                {groundedFacts.map((fact, index) => (
+                  <li key={`${fact}-${index}`} className="flex items-start gap-1.5 text-[11px] leading-4 text-foreground">
+                    <span aria-hidden="true" className="mt-1 size-1.5 shrink-0 rounded-full bg-status-success" />
+                    <span>{fact}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-      {ungroundedClaims.length > 0 && (
-        <div className="rounded-lg border border-amber-400/20 bg-amber-400/5 p-2.5">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">Unsupported claims</p>
-          <ul className="mt-1.5 space-y-1">
-            {ungroundedClaims.map((claim, index) => <li key={`${claim}-${index}`} className="text-xs leading-5 text-amber-100">• {claim}</li>)}
-          </ul>
-        </div>
-      )}
+          {ungroundedClaims.length > 0 && (
+            <div className="rounded-lg border border-status-warning/25 bg-status-warning/8 p-2">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-status-warning">Unsupported Claims</p>
+              <ul className="mt-1 space-y-1">
+                {ungroundedClaims.map((claim, index) => (
+                  <li key={`${claim}-${index}`} className="text-[11px] leading-4 text-status-warning-text">• {claim}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-      {violations.length > 0 && (
-        <ul className="space-y-2" aria-label="Grounding violations">
-          {violations.map((violation, index) => (
-            <li key={`${violation.type}-${index}`} className={cn('rounded-lg border p-2.5 text-xs leading-5', severityClasses[violation.severity])}>
-              <span className="font-semibold capitalize">{violation.severity}: </span>{violation.description}
-            </li>
-          ))}
-        </ul>
+          {violations.length > 0 && (
+            <ul className="space-y-1.5" aria-label="Grounding violations">
+              {violations.map((violation, index) => (
+                <li key={`${violation.type}-${index}`} className={cn('rounded-lg border p-2 text-[11px] leading-4', severityClasses[violation.severity])}>
+                  <span className="font-semibold capitalize">{violation.severity}: </span>{violation.description}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </section>
   );

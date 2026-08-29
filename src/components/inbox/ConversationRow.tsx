@@ -78,19 +78,19 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
       type="button"
       onClick={() => onSelect(conversation.id)}
       className={cn(
-        'group relative mb-1.5 w-full rounded-xl p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 border',
+        'group relative mb-1.5 w-full rounded-2xl p-3 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 border cursor-pointer',
         isActive
-          ? 'border-violet-500/50 bg-violet-500/15 shadow-md shadow-violet-950/40'
-          : 'border-slate-800/80 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-800/60',
+          ? 'border-foreground bg-white shadow-sm ring-1 ring-foreground/10'
+          : 'border-hairline bg-white hover:border-foreground/25 hover:bg-surface-lifted shadow-xs',
       )}
     >
       <div className="flex items-start gap-2.5">
         <div
           className={cn(
-            'grid size-9 shrink-0 place-items-center rounded-full text-xs font-bold transition shadow-sm',
+            'grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold transition duration-150 shadow-xs',
             isActive
-              ? 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-violet-900/50'
-              : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700 group-hover:text-white',
+              ? 'bg-foreground text-background'
+              : 'bg-background text-foreground border border-hairline group-hover:bg-hairline',
           )}
         >
           {initial}
@@ -98,22 +98,22 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <span className="truncate text-xs font-semibold text-slate-100">
+            <span className="truncate text-xs font-semibold text-foreground">
               {conversation.customerIdentifier}
             </span>
             <time
-              className="shrink-0 text-[10px] font-medium text-slate-500"
+              className="shrink-0 text-[10px] font-medium text-muted"
               dateTime={conversation.updatedAt}
             >
               {formatRelativeTime(conversation.updatedAt)}
             </time>
           </div>
 
-          <p className="mt-1 line-clamp-1 text-xs text-slate-400">
+          <p className="mt-1 line-clamp-1 text-xs text-muted">
             {preview}
           </p>
 
-          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+          <div className="mt-2 flex flex-wrap items-center gap-1">
             {/* Status Badge */}
             <Badge
               variant={statusInfo.variant}
