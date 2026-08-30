@@ -25,7 +25,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           'max-w-[88%] rounded-2xl px-3.5 py-2 text-xs leading-5 sm:max-w-[76%]',
           isBuyer
             ? 'rounded-tl-xs border border-hairline bg-white text-foreground shadow-xs'
-            : 'rounded-tr-xs bg-foreground text-background shadow-xs',
+            : 'rounded-tr-xs border border-hairline-strong bg-surface-strong text-foreground shadow-xs',
         )}
       >
         <p className="whitespace-pre-wrap break-words">{message.text ?? `[${message.messageType}]`}</p>
