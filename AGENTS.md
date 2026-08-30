@@ -33,7 +33,7 @@ Skill Loading:
 - **On-demand (load only when relevant):**
   - `.agents/skills/react/SKILL.md` when creating/refactoring components, managing state (Jotai), forms (RHF), effects, or loading/empty states.
   - `.agents/skills/typescript/SKILL.md` when defining complex types, interfaces, generics, or type-safe mappers.
-  - `.agents/skills/ui-styling/SKILL.md` only for shadcn/Radix primitives or Tailwind theme customization.
+  - `.agents/skills/ui-styling/SKILL.md` for UI component primitives (shadcn/Radix), component installation, or Tailwind theme customization.
   - `.agents/skills/ui-ux-pro-max/SKILL.md` only when focused design intelligence/search is needed.
 
 ### Web UI/UX design or review

@@ -14,7 +14,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   const isSystem = message.senderCode === 'system';
 
   if (isSystem) {
-    return <p className="text-center text-xs text-slate-500">{message.text ?? 'System update'}</p>;
+    return <p className="text-center text-xs text-muted">{message.text ?? 'System update'}</p>;
   }
 
   return (

@@ -11,3 +11,4 @@ setup.ps1
 test/
 .next/
 refactor/
+.claude/

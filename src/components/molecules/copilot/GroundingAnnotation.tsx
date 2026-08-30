@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { cn } from '@/lib/cn';
+import { Badge, Button } from '@/components/atoms';
 
 type GroundingAnnotationProps = {
   readonly groundedFacts: readonly string[];
@@ -15,10 +15,10 @@ type GroundingAnnotationProps = {
   }[];
 };
 
-const severityClasses: Record<'low' | 'medium' | 'high', string> = {
-  low: 'border-status-warning/25 bg-status-warning/10 text-status-warning',
-  medium: 'border-status-warning/30 bg-status-warning/12 text-status-warning-text',
-  high: 'border-status-warning/35 bg-status-warning/15 text-status-warning-text',
+const severityBadgeVariants: Record<'low' | 'medium' | 'high', 'warning' | 'amber' | 'rose'> = {
+  low: 'warning',
+  medium: 'amber',
+  high: 'rose',
 };
 
 export function GroundingAnnotation({
@@ -36,30 +36,26 @@ export function GroundingAnnotation({
     <section className="rounded-xl border border-hairline bg-surface-lifted p-2 text-xs">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold tracking-tight',
-              isValid
-                ? 'border-status-success/25 bg-status-success/10 text-status-success-text'
-                : 'border-status-warning/30 bg-status-warning/12 text-status-warning-text',
-            )}
-          >
-            <span className={cn('size-1.5 rounded-full', isValid ? 'bg-status-success' : 'bg-status-warning')} />
-            {isValid ? 'Grounded & Validated' : 'Needs Review'} · {precision}%
-          </span>
+          <Badge
+            variant={isValid ? 'success' : 'warning'}
+            size="xs"
+            useDot
+            label={`${isValid ? 'Grounded & Validated' : 'Needs Review'} · ${precision}%`}
+          />
           <span className="text-[11px] text-muted">
             {groundedFacts.length} cited {ungroundedClaims.length > 0 && `· ${ungroundedClaims.length} ungrounded`}
           </span>
         </div>
 
         {hasDetails && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="xs"
             onClick={() => setIsOpen((prev) => !prev)}
-            className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-muted hover:bg-foreground/6 hover:text-foreground transition cursor-pointer"
+            className="h-6 px-2 text-[10px] font-semibold text-muted hover:text-foreground"
           >
             {isOpen ? 'Hide facts ▲' : 'Show facts ▼'}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -67,7 +63,9 @@ export function GroundingAnnotation({
         <div className="mt-2 space-y-2 border-t border-hairline pt-2 animate-in fade-in-0 duration-150">
           {groundedFacts.length > 0 && (
             <div>
-              <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-status-success-text">Grounded Facts</p>
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-status-success-text">
+                Grounded Facts
+              </p>
               <ul className="space-y-1">
                 {groundedFacts.map((fact, index) => (
                   <li key={`${fact}-${index}`} className="flex items-start gap-1.5 text-[11px] leading-4 text-foreground">
@@ -81,10 +79,14 @@ export function GroundingAnnotation({
 
           {ungroundedClaims.length > 0 && (
             <div className="rounded-lg border border-status-warning/25 bg-status-warning/8 p-2">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-status-warning">Unsupported Claims</p>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-status-warning">
+                Unsupported Claims
+              </p>
               <ul className="mt-1 space-y-1">
                 {ungroundedClaims.map((claim, index) => (
-                  <li key={`${claim}-${index}`} className="text-[11px] leading-4 text-status-warning-text">• {claim}</li>
+                  <li key={`${claim}-${index}`} className="text-[11px] leading-4 text-status-warning-text">
+                    • {claim}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -93,8 +95,16 @@ export function GroundingAnnotation({
           {violations.length > 0 && (
             <ul className="space-y-1.5" aria-label="Grounding violations">
               {violations.map((violation, index) => (
-                <li key={`${violation.type}-${index}`} className={cn('rounded-lg border p-2 text-[11px] leading-4', severityClasses[violation.severity])}>
-                  <span className="font-semibold capitalize">{violation.severity}: </span>{violation.description}
+                <li
+                  key={`${violation.type}-${index}`}
+                  className="flex items-start gap-2 rounded-lg border border-hairline bg-white p-2 text-[11px] leading-4 text-foreground shadow-xs"
+                >
+                  <Badge
+                    variant={severityBadgeVariants[violation.severity]}
+                    size="xs"
+                    label={violation.severity}
+                  />
+                  <span>{violation.description}</span>
                 </li>
               ))}
             </ul>

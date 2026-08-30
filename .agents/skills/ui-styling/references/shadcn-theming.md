@@ -92,67 +92,59 @@ if (localStorage.theme === 'dark' ||
 }
 ```
 
-## CSS Variable System
+## CSS Variable System & Tailwind v4 Theme Tokens
 
-shadcn/ui uses CSS variables for theming. Variables defined in `globals.css`:
+This project uses **Tailwind CSS v4** with CSS variables and `@theme inline` defined in [`src/app/globals.css`](src/app/globals.css).
 
 ```css
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-  }
+/* src/app/globals.css */
+@import "tailwindcss";
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-  }
+:root {
+  /* Brand & Core Palette */
+  --primary: #292524;
+  --primary-active: #0c0a09;
+  --ink: #0c0a09;
+  --body: #4e4e4e;
+  --muted: #777169;
+  --muted-soft: #a8a29e;
+
+  /* Surfaces & Canvas */
+  --canvas: #f5f5f5;
+  --canvas-soft: #fafafa;
+  --surface-card: #ffffff;
+  --hairline: #e7e5e4;
+
+  /* Semantic & Status */
+  --status-warning: #CF4500;
+  --status-success: #149e61;
+  --status-info: #3860BE;
+
+  /* Compatibility */
+  --background: var(--canvas);
+  --foreground: var(--ink);
+}
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-ink: var(--ink);
+  --color-canvas: var(--canvas);
+  --color-surface-card: var(--surface-card);
+  --color-hairline: var(--hairline);
+  --color-status-warning: var(--status-warning);
+  --color-status-success: var(--status-success);
+  --color-status-info: var(--status-info);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
 }
 ```
 
-### Color Format
+### Usage in Primitive Atoms
 
-Values use HSL format without `hsl()` wrapper for better opacity control:
-```css
---primary: 222.2 47.4% 11.2%;  /* H S L */
+Use the mapped Tailwind tokens directly in `src/components/atoms/`:
+```tsx
+<button className="bg-primary text-on-primary hover:bg-primary-hover border-hairline" />
 ```
-
-Usage in Tailwind:
-```css
-background: hsl(var(--primary));
-background: hsl(var(--primary) / 0.5);  /* 50% opacity */
-```
-
-## Tailwind Configuration
-
-Map CSS variables to Tailwind utilities:
 
 ```ts
 // tailwind.config.ts

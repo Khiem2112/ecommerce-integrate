@@ -28,23 +28,36 @@ Always use the `cn()` utility (`clsx` + `tailwind-merge`) when applying conditio
 
 ```tsx
 // ✅ CORRECT
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/cn';
 
 <button
   className={cn(
     'rounded-md px-4 py-2 text-sm font-medium transition-colors',
-    isActive ? 'bg-blue-600 text-white' : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700',
+    isActive ? 'bg-primary text-on-primary' : 'bg-surface-card text-muted hover:text-foreground',
     className
   )}
 />
 
 // ❌ INCORRECT
-<button className={`px-4 py-2 ${isActive ? 'bg-blue-600' : 'bg-neutral-800'} ${className}`} />
+<button className={`px-4 py-2 ${isActive ? 'bg-primary' : 'bg-surface-card'} ${className}`} />
 ```
 
 ---
 
-## 5. Layout & Spacing Consistency
+## 3. Design Token Usage from `globals.css`
+Always use semantic tokens defined in `src/app/globals.css` and mapped in `@theme inline` (e.g. `bg-canvas`, `bg-surface-card`, `border-hairline`, `text-foreground`, `text-muted`, `bg-status-*`, `bg-badge-*`). Never use hardcoded arbitrary hex colors like `bg-[#292524]`.
+
+```tsx
+// ✅ CORRECT
+<div className="border border-hairline bg-surface-card p-4 text-foreground shadow-card" />
+
+// ❌ INCORRECT
+<div className="border border-[#e7e5e4] bg-[#ffffff] p-4 text-[#0c0a09]" />
+```
+
+---
+
+## 4. Layout & Spacing Consistency
 Use Tailwind's standard design tokens for spacing, padding, margins, and flex/grid gaps (`p-2`, `p-4`, `p-6`, `gap-3`, `gap-6`). Avoid arbitrary values like `p-[17px]` unless specifically required by pixel-perfect designs.
 
 ```tsx
@@ -57,14 +70,14 @@ Use Tailwind's standard design tokens for spacing, padding, margins, and flex/gr
 
 ---
 
-## 6. Component States & Interactive Variants
+## 5. Component States & Interactive Variants
 Always provide clear interactive states (hover, focus-visible, active, disabled) using Tailwind modifiers:
 
 ```tsx
 // ✅ CORRECT
 <button
   disabled={isDisabled}
-  className="rounded-lg bg-primary px-4 py-2 font-medium text-white transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+  className="rounded-lg bg-primary px-4 py-2 font-medium text-on-primary transition-all hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
 >
   Submit
 </button>

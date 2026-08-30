@@ -1,29 +1,31 @@
 # shadcn/ui Component Reference
 
-Complete catalog of shadcn/ui components with usage patterns and installation.
+Complete catalog of shadcn/ui components with usage patterns, installation, and project atom integration.
 
-## Installation
+## Installation & Placement
+
+In this repository, all universal primitive components reside at the **`atoms`** layer under `src/components/atoms/`.
 
 **Add specific components:**
 ```bash
-npx shadcn@latest add button
-npx shadcn@latest add button card dialog  # Multiple
-npx shadcn@latest add --all              # All components
+npx shadcn@latest add button --path src/components/atoms
+npx shadcn@latest add table badge dialog input command --path src/components/atoms
 ```
 
-Components install to `components/ui/` with automatic dependency management.
+> **Note**: When installing components via shadcn CLI, configure or place them into `src/components/atoms/` and export through `src/components/atoms/index.ts`. All classes must be adapted to use `globals.css` CSS tokens and `@/lib/cn`.
 
 ## Form & Input Components
 
 ### Button
 ```tsx
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/atoms/Button/Button"
+// Or barrel import:
+import { Button } from "@/components/atoms"
 
-<Button variant="default">Default</Button>
-<Button variant="destructive">Delete</Button>
+<Button variant="primary">Primary</Button>
+<Button variant="secondary">Secondary</Button>
 <Button variant="outline" size="sm">Small Outline</Button>
 <Button variant="ghost" size="icon"><Icon /></Button>
-<Button variant="link">Link Style</Button>
 ```
 
 Variants: `default | destructive | outline | secondary | ghost | link`

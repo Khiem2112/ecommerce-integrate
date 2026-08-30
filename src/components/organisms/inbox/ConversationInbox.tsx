@@ -3,8 +3,8 @@
 import { useAtom } from 'jotai';
 import { useDeferredValue, useState } from 'react';
 import { inboxFiltersAtom } from '@/atoms/workspaceAtoms';
-import { ConversationRow } from '@/components/inbox/ConversationRow';
-import { InboxFilters } from '@/components/inbox/InboxFilters';
+import { Badge, Input } from '@/components/atoms';
+import { ConversationRow, InboxFilters } from '@/components/molecules';
 import { useConversations } from '@/hooks/useConversations';
 
 type ConversationInboxProps = {
@@ -37,16 +37,17 @@ export function ConversationInbox({
             <h2 className="text-sm font-semibold text-foreground">Conversations</h2>
             <p className="mt-0.5 text-xs text-muted">Live customer inbox</p>
           </div>
-          <span className="grid min-w-6 place-items-center rounded-full bg-foreground/6 px-1.5 py-0.5 text-xs font-medium text-foreground">
-            {conversations.length}
-          </span>
+          <Badge
+            variant="secondary"
+            size="xs"
+            label={conversations.length}
+          />
         </div>
-        <label className="relative block">
-          <span className="sr-only">Search conversations</span>
+        <div className="relative">
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted"
+            className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted z-10"
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
@@ -54,13 +55,15 @@ export function ConversationInbox({
             <circle cx="11" cy="11" r="6" />
             <path d="m20 20-4.2-4.2" />
           </svg>
-          <input
+          <Input
             value={searchText}
             onChange={(event) => handleSearchChange(event.target.value)}
             placeholder="Search ID, intent, message"
-            className="w-full rounded-lg border border-hairline bg-surface-lifted px-9 py-2 text-sm text-foreground placeholder:text-muted outline-none transition focus:border-foreground focus:ring-2 focus:ring-foreground/10"
+            aria-label="Search conversations"
+            size="sm"
+            className="pl-8.5 text-[11px]"
           />
-        </label>
+        </div>
         <InboxFilters
           selectedStatus={filters.statusCode ?? 'all'}
           selectedPriority={filters.priority ?? 'all'}
@@ -76,7 +79,7 @@ export function ConversationInbox({
       >
         {isLoading && <InboxSkeleton />}
         {error && (
-          <div className="m-2 rounded-lg border border-status-warning/30 bg-status-warning/10 p-3 text-sm text-status-warning-text">
+          <div className="m-2 rounded-lg border border-semantic-error/30 bg-semantic-error/10 p-3 text-sm text-semantic-error">
             Unable to load the inbox. {error.message}
           </div>
         )}

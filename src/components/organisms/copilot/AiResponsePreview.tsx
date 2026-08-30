@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { saveAiResponseAction } from '@/actions/conversationActions';
-import { CopilotActions } from '@/components/copilot/CopilotActions';
-import { GroundingAnnotation } from '@/components/copilot/GroundingAnnotation';
+import { Badge, type BadgeVariant } from '@/components/atoms';
+import { CopilotActions, GroundingAnnotation } from '@/components/molecules';
 import { cn } from '@/lib/cn';
 import type { MultiDraftRagDraft, SuggestedAction } from '@/types';
 
@@ -20,10 +20,10 @@ const actionLabels: Record<SuggestedAction, string> = {
   escalate_to_human: 'Escalate to human',
 };
 
-const actionClasses: Record<SuggestedAction, string> = {
-  auto_reply: 'border-status-success/25 bg-status-success/10 text-status-success-text',
-  await_approval: 'border-status-warning/25 bg-status-warning/10 text-status-warning',
-  escalate_to_human: 'border-status-warning/30 bg-status-warning/12 text-status-warning-text',
+const actionVariants: Record<SuggestedAction, BadgeVariant> = {
+  auto_reply: 'success',
+  await_approval: 'warning',
+  escalate_to_human: 'rose',
 };
 
 export function AiResponsePreview({
@@ -139,22 +139,21 @@ export function AiResponsePreview({
               AI Multi-Draft Co-Pilot
             </h3>
             {draft.response?.providerUsed && (
-              <span className="rounded-full bg-foreground/5 px-2 py-0.2 text-[10px] font-medium text-muted">
-                {draft.response.providerUsed}
-              </span>
+              <Badge
+                variant="secondary"
+                size="xs"
+                label={draft.response.providerUsed}
+              />
             )}
           </div>
         </div>
 
         {/* Global/Active suggested action pill */}
-        <span
-          className={cn(
-            'rounded-full border px-2.5 py-0.5 text-[10px] font-semibold tracking-tight',
-            actionClasses[activeStrategy.suggestedAction],
-          )}
-        >
-          {actionLabels[activeStrategy.suggestedAction]}
-        </span>
+        <Badge
+          variant={actionVariants[activeStrategy.suggestedAction]}
+          size="xs"
+          label={actionLabels[activeStrategy.suggestedAction]}
+        />
       </header>
 
       <div className="space-y-2.5 p-3">
@@ -201,24 +200,26 @@ export function AiResponsePreview({
                 >
                   <span>{strategy.strategy?.name ?? `Rank #${strategy.rank}`}</span>
                   {isBest && (
-                    <span
+                    <Badge
+                      variant={isSelected ? 'warning' : 'warning'}
+                      size="xs"
                       className={cn(
-                        'rounded-full px-1.5 py-0.2 text-[9px] font-bold',
+                        'px-1.5 py-0 text-[9px] font-bold border-0',
                         isSelected ? 'bg-status-warning text-white' : 'bg-status-warning/15 text-status-warning',
                       )}
-                    >
-                      ★ Best
-                    </span>
+                      label="★ Best"
+                    />
                   )}
                   {hasVoucher && (
-                    <span
+                    <Badge
+                      variant="success"
+                      size="xs"
                       className={cn(
-                        'rounded-full px-1.5 py-0.2 text-[9px] font-bold',
+                        'px-1.5 py-0 text-[9px] font-bold border-0',
                         isSelected ? 'bg-emerald-500 text-white' : 'bg-status-success/15 text-status-success-text',
                       )}
-                    >
-                      🎫 Voucher
-                    </span>
+                      label="🎫 Voucher"
+                    />
                   )}
                   <span className={cn('text-[10px]', isSelected ? 'text-dust-taupe' : 'text-muted')}>
                     {Math.round(strategy.confidence * 100)}%
@@ -259,7 +260,7 @@ export function AiResponsePreview({
         {error && (
           <p
             role="alert"
-            className="rounded-xl border border-status-warning/30 bg-status-warning/10 p-2 text-xs text-status-warning-text"
+            className="rounded-xl border border-semantic-error/30 bg-semantic-error/10 p-2 text-xs text-semantic-error"
           >
             {error}
           </p>

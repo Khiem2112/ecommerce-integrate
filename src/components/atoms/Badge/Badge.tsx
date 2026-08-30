@@ -6,9 +6,11 @@ import { cn } from '@/lib/cn';
 export type BadgeVariant =
   | 'primary'
   | 'secondary'
+  | 'outline'
   | 'success'
   | 'warning'
   | 'error'
+  | 'destructive'
   | 'info'
   | 'purple'
   | 'pink'
@@ -41,6 +43,10 @@ const VARIANT_STYLES: Record<BadgeVariant, { container: string; dot: string }> =
     container: 'border-hairline bg-foreground/5 text-muted ring-black/5',
     dot: 'bg-muted',
   },
+  outline: {
+    container: 'border-hairline bg-transparent text-foreground',
+    dot: 'bg-foreground',
+  },
   success: {
     container: 'border-status-success/25 bg-status-success/10 text-status-success-text ring-status-success/10',
     dot: 'bg-status-success',
@@ -50,8 +56,12 @@ const VARIANT_STYLES: Record<BadgeVariant, { container: string; dot: string }> =
     dot: 'bg-status-warning',
   },
   error: {
-    container: 'border-status-warning/30 bg-status-warning/12 text-status-warning-text ring-status-warning/10',
-    dot: 'bg-status-warning',
+    container: 'border-semantic-error/30 bg-semantic-error/12 text-semantic-error ring-semantic-error/10',
+    dot: 'bg-semantic-error',
+  },
+  destructive: {
+    container: 'border-semantic-error/30 bg-semantic-error/12 text-semantic-error ring-semantic-error/10',
+    dot: 'bg-semantic-error',
   },
   info: {
     container: 'border-status-info/25 bg-status-info/10 text-status-info ring-status-info/10',
@@ -82,8 +92,8 @@ const VARIANT_STYLES: Record<BadgeVariant, { container: string; dot: string }> =
     dot: 'bg-status-warning',
   },
   rose: {
-    container: 'border-status-warning/30 bg-status-warning/12 text-status-warning-text ring-status-warning/10',
-    dot: 'bg-status-warning',
+    container: 'border-semantic-error/30 bg-semantic-error/12 text-semantic-error ring-semantic-error/10',
+    dot: 'bg-semantic-error',
   },
   slate: {
     container: 'border-hairline bg-foreground/5 text-muted ring-black/5',

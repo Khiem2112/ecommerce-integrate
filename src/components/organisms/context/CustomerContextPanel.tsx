@@ -1,9 +1,7 @@
 'use client';
 
 import { IconButton } from '@/components/atoms';
-import { EvidenceFactList } from '@/components/context/EvidenceFactList';
-import { OrderSummaryCard } from '@/components/context/OrderSummaryCard';
-import { VipTierBadge } from '@/components/context/VipTierBadge';
+import { EvidenceFactList, OrderSummaryCard, VipTierBadge } from '@/components/molecules';
 import { useCustomerContext } from '@/hooks/useCustomerContext';
 
 type CustomerContextPanelProps = {
@@ -28,7 +26,7 @@ export function CustomerContextPanel({
   if (conversationId === null) {
     return (
       <div className="grid h-full min-h-96 place-items-center px-6 text-center">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted">
           Customer context appears when a conversation is selected.
         </p>
       </div>
@@ -38,7 +36,7 @@ export function CustomerContextPanel({
   if (isLoading) return <ContextSkeleton />;
   if (error || !context) {
     return (
-      <div className="m-4 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">
+      <div className="m-4 rounded-2xl border border-semantic-error/30 bg-semantic-error/10 p-3 text-xs text-semantic-error">
         Unable to load customer context. {error?.message}
       </div>
     );

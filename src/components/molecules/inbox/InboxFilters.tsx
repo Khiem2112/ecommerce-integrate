@@ -42,7 +42,7 @@ export function InboxFilters({
         value={selectedStatus}
         onChange={onStatusChange}
         searchable={false}
-        size="md"
+        size="sm"
       />
       <Combobox
         ariaLabel="Filter by priority"

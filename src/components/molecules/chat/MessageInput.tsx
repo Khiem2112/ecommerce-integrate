@@ -3,7 +3,7 @@
 import { useState, type KeyboardEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { sendMessageAction } from '@/actions/conversationActions';
-import { IconButton } from '@/components/atoms';
+import { Button, IconButton } from '@/components/atoms';
 
 type MessageInputProps = {
   readonly conversationId: number;
@@ -100,28 +100,25 @@ export function MessageInput({
             Enter to send · Shift+Enter for new line
           </p>
 
-          <button
-            type="button"
+          <Button
+            size="xs"
+            variant="primary"
             onClick={() => void handleSend()}
             disabled={!text.trim() || isSending}
-            className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1 text-xs font-semibold text-background shadow-xs transition duration-150 hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/30 disabled:cursor-not-allowed disabled:bg-hairline disabled:text-muted cursor-pointer"
+            isLoading={isSending}
+            rightIcon={
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="size-3"
+              >
+                <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 004.835 9.25h4.915a.75.75 0 010 1.5H4.835a1.5 1.5 0 00-1.142 1.086L2.279 16.76a.75.75 0 00.95.826l14.25-6.25a.75.75 0 000-1.372L3.105 2.289z" />
+              </svg>
+            }
           >
-            {isSending ? (
-              <span>Sending…</span>
-            ) : (
-              <>
-                <span>Send</span>
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="size-3"
-                >
-                  <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 004.835 9.25h4.915a.75.75 0 010 1.5H4.835a1.5 1.5 0 00-1.142 1.086L2.279 16.76a.75.75 0 00.95.826l14.25-6.25a.75.75 0 000-1.372L3.105 2.289z" />
-                </svg>
-              </>
-            )}
-          </button>
+            Send
+          </Button>
         </div>
       </div>
     </div>

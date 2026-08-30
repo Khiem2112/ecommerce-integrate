@@ -3,9 +3,10 @@
 import { useAtom } from 'jotai';
 import { useState } from 'react';
 import { selectedConversationIdAtom, sidebarCollapsedAtom } from '@/atoms/workspaceAtoms';
-import { ChatPanel } from '@/components/chat/ChatPanel';
-import { CustomerContextPanel } from '@/components/context/CustomerContextPanel';
-import { ConversationInbox } from '@/components/inbox/ConversationInbox';
+import { Badge } from '@/components/atoms';
+import { ChatPanel } from '@/components/organisms/chat/ChatPanel';
+import { CustomerContextPanel } from '@/components/organisms/context/CustomerContextPanel';
+import { ConversationInbox } from '@/components/organisms/inbox/ConversationInbox';
 import { useConversationDetail } from '@/hooks/useConversationDetail';
 import { cn } from '@/lib/cn';
 
@@ -42,10 +43,12 @@ export function AgentWorkspace() {
               </p>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-status-success/25 bg-status-success/10 px-2.5 py-0.5 text-xs font-medium text-status-success-text">
-            <span className="size-1.5 rounded-full bg-status-success" />
-            System ready
-          </span>
+          <Badge
+            variant="success"
+            size="sm"
+            useDot
+            label="System ready"
+          />
         </header>
 
         <div

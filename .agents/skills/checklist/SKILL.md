@@ -35,8 +35,10 @@ Before declaring any feature or task complete, verify the technical implementati
 ---
 
 ## 3. Styling, UI & Accessibility
-- [ ] Are all styles built with Tailwind CSS utility classes and tokens (no inline styles or ad-hoc hex values)?
-- [ ] Is dynamic class merging handled using the `cn()` utility?
+- [ ] Are universal primitive components (Button, Table, Badge, Autocomplete/Combobox, Input, Dialog, etc.) placed in `src/components/atoms/` using shadcn/Radix foundations?
+- [ ] Are all UI components styled using Tailwind CSS utility classes and design tokens from `src/app/globals.css` (no inline styles or ad-hoc hex values)?
+- [ ] Is dynamic class merging handled using the `cn()` utility from `@/lib/cn`?
+- [ ] Do higher-level business components compose primitive atoms cleanly with domain logic?
 - [ ] Are interactive elements accessible (visible labels/`aria-label`, visible `:focus-visible` rings, semantic controls)?
 - [ ] Does the UI adapt responsively across mobile (~375px) and desktop layouts without overflow?
 - [ ] Are loading skeletons and empty states handled explicitly (layout-stable, clear next actions)?

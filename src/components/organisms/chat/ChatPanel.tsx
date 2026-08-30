@@ -2,11 +2,9 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { IconButton } from '@/components/atoms';
-import { EmptyChat } from '@/components/chat/EmptyChat';
-import { MessageBubble } from '@/components/chat/MessageBubble';
-import { MessageInput } from '@/components/chat/MessageInput';
-import { AiResponsePreview } from '@/components/copilot/AiResponsePreview';
+import { Badge, IconButton } from '@/components/atoms';
+import { EmptyChat, MessageBubble, MessageInput } from '@/components/molecules';
+import { AiResponsePreview } from '@/components/organisms/copilot/AiResponsePreview';
 import { useRagGenerate } from '@/hooks/useRagGenerate';
 import type { ConversationDetail, MultiDraftRagDraft } from '@/types';
 
@@ -54,23 +52,26 @@ export function ChatPanel({
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
       <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-hairline bg-white px-4 shadow-xs md:px-6">
-        <button
-          type="button"
+        <IconButton
+          size="sm"
+          variant="ghost"
+          ariaLabel="Back to conversations"
+          tooltip="Back to conversations"
           onClick={onBack}
-          className="grid size-8 place-items-center rounded-full text-muted transition hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 xl:hidden cursor-pointer"
-          aria-label="Back to conversations"
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            className="size-5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-        </button>
+          className="xl:hidden"
+          icon={
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="size-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+          }
+        />
         <div className="grid size-8.5 place-items-center rounded-full bg-foreground text-xs font-bold text-background shadow-xs">
           {conversation.customerIdentifier.slice(-2).toUpperCase()}
         </div>
@@ -79,9 +80,11 @@ export function ChatPanel({
             <h2 className="truncate text-sm font-semibold text-foreground">
               {conversation.customerIdentifier}
             </h2>
-            <span className="rounded-full border border-hairline bg-foreground/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
-              {conversation.status.name}
-            </span>
+            <Badge
+              variant="secondary"
+              size="xs"
+              label={conversation.status.name}
+            />
           </div>
           <p className="mt-0.5 truncate text-xs text-muted">
             {conversation.intent?.name ?? 'Unclassified inquiry'}
@@ -90,9 +93,12 @@ export function ChatPanel({
         </div>
 
         {conversation.humanApprovalRequired && (
-          <span className="hidden rounded-full border border-status-warning/25 bg-status-warning/10 px-2.5 py-0.5 text-[10px] font-semibold text-status-warning sm:block">
-            Review required
-          </span>
+          <Badge
+            variant="warning"
+            size="xs"
+            label="Review required"
+            className="hidden sm:inline-flex"
+          />
         )}
 
         {onToggleContext && (
@@ -157,7 +163,7 @@ export function ChatPanel({
         {generateError && !draft && (
           <div
             role="alert"
-            className="mx-auto mt-4 max-w-3xl rounded-2xl border border-status-warning/30 bg-status-warning/10 p-3 text-xs text-status-warning-text"
+            className="mx-auto mt-4 max-w-3xl rounded-2xl border border-semantic-error/30 bg-semantic-error/10 p-3 text-xs text-semantic-error"
           >
             Unable to generate an AI response. {generateError.message}
           </div>

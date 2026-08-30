@@ -1,4 +1,4 @@
-import { AgentWorkspace } from '@/components/workspace/AgentWorkspace';
+import { AgentWorkspace } from '@/components/organisms';
 
 export default function Home() {
   return <AgentWorkspace />;
