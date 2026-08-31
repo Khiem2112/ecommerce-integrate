@@ -26,6 +26,7 @@ export function CopilotActions({
         size="xs"
         onClick={onReject}
         disabled={isSaving}
+        title="Discard this draft"
       >
         Dismiss
       </Button>
@@ -34,6 +35,7 @@ export function CopilotActions({
         size="xs"
         onClick={onStartEditing}
         disabled={isSaving}
+        title={isEditing ? 'Revert to original draft text' : 'Modify before sending'}
       >
         {isEditing ? 'Cancel edit' : 'Edit text'}
       </Button>
@@ -43,6 +45,7 @@ export function CopilotActions({
         onClick={onApprove}
         disabled={isSaving || !canApprove}
         isLoading={isSaving}
+        title="Send this draft as your reply"
       >
         {isEditing ? 'Send edited reply' : 'Approve & send'}
       </Button>

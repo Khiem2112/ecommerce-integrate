@@ -1,12 +1,26 @@
 'use client';
 
-import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
-import { Badge, IconButton } from '@/components/atoms';
+import { useEffect, useRef } from 'react';
+import { Badge, type BadgeVariant, IconButton } from '@/components/atoms';
 import { EmptyChat, MessageBubble, MessageInput } from '@/components/molecules';
-import { AiResponsePreview } from '@/components/organisms/copilot/AiResponsePreview';
-import { useRagGenerate } from '@/hooks/useRagGenerate';
+import { ErrorBanner } from '@/components/molecules/ErrorBanner';
 import type { ConversationDetail, MultiDraftRagDraft } from '@/types';
+
+const STATUS_CONFIG: Record<string, { label: string; variant: BadgeVariant }> = {
+  open: { label: 'Open', variant: 'emerald' },
+  awaiting_reply: { label: 'Awaiting Reply', variant: 'amber' },
+  in_progress: { label: 'In Progress', variant: 'purple' },
+  escalated: { label: 'Escalated', variant: 'rose' },
+  resolved: { label: 'Resolved', variant: 'teal' },
+  closed: { label: 'Closed', variant: 'slate' },
+};
+
+const PRIORITY_CONFIG: Record<string, { label: string; variant: BadgeVariant }> = {
+  urgent: { label: 'Urgent', variant: 'rose' },
+  high: { label: 'High', variant: 'amber' },
+  normal: { label: 'Normal', variant: 'info' },
+  low: { label: 'Low', variant: 'slate' },
+};
 
 type ChatPanelProps = {
   readonly conversation: ConversationDetail | null;
@@ -14,6 +28,12 @@ type ChatPanelProps = {
   readonly onBack: () => void;
   readonly isContextOpen?: boolean;
   readonly onToggleContext?: () => void;
+  readonly draft: MultiDraftRagDraft | null;
+  readonly isGenerating: boolean;
+  readonly generateError: Error | null;
+  readonly onGenerate: () => void;
+  readonly onRefresh: () => void;
+  readonly onViewDraft?: () => void;
 };
 
 export function ChatPanel({
@@ -22,32 +42,32 @@ export function ChatPanel({
   onBack,
   isContextOpen = true,
   onToggleContext,
+  draft,
+  isGenerating,
+  generateError,
+  onGenerate,
+  onRefresh,
+  onViewDraft,
 }: ChatPanelProps) {
-  const queryClient = useQueryClient();
-  const { mutate: generateResponse, isPending: isGenerating, error: generateError } =
-    useRagGenerate();
-  const [draft, setDraft] = useState<MultiDraftRagDraft | null>(null);
   const threadEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     threadEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [conversation?.messages.length, draft]);
-
-  function refreshConversation() {
-    if (!conversation) return;
-    void queryClient.invalidateQueries({ queryKey: ['conversation', conversation.id] });
-    void queryClient.invalidateQueries({ queryKey: ['conversations'] });
-  }
-
-  function handleGenerate() {
-    if (!conversation) return;
-    generateResponse(conversation.id, {
-      onSuccess: (generatedDraft) => setDraft(generatedDraft),
-    });
-  }
+  }, [conversation?.messages.length]);
 
   if (isLoading) return <ChatLoading />;
   if (!conversation) return <EmptyChat />;
+
+  const statusCode = conversation.status.code;
+  const statusInfo = STATUS_CONFIG[statusCode] ?? {
+    label: conversation.status.name,
+    variant: 'slate' as BadgeVariant,
+  };
+
+  const priorityInfo = PRIORITY_CONFIG[conversation.priority] ?? {
+    label: conversation.priority,
+    variant: 'slate' as BadgeVariant,
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
@@ -80,16 +100,28 @@ export function ChatPanel({
             <h2 className="truncate text-sm font-semibold text-foreground">
               {conversation.customerIdentifier}
             </h2>
-            <Badge
-              variant="secondary"
-              size="xs"
-              label={conversation.status.name}
-            />
           </div>
-          <p className="mt-0.5 truncate text-xs text-muted">
-            {conversation.intent?.name ?? 'Unclassified inquiry'}
-            {conversation.assignedAgentName ? ` · ${conversation.assignedAgentName}` : ''}
-          </p>
+          {/* Full conversation metadata in header */}
+          <div className="mt-1 flex flex-wrap items-center gap-1">
+            <Badge
+              variant={statusInfo.variant}
+              size="xs"
+              useDot
+              label={statusInfo.label}
+            />
+            <Badge
+              variant={priorityInfo.variant}
+              size="xs"
+              label={priorityInfo.label}
+            />
+            {conversation.intent && (
+              <Badge
+                variant="secondary"
+                size="xs"
+                label={conversation.intent.name}
+              />
+            )}
+          </div>
         </div>
 
         {conversation.humanApprovalRequired && (
@@ -106,8 +138,8 @@ export function ChatPanel({
             size="sm"
             variant="subtle"
             isActive={isContextOpen}
-            ariaLabel={isContextOpen ? 'Close customer context' : 'Open customer context'}
-            tooltip={isContextOpen ? 'Close customer context' : 'Open customer context'}
+            ariaLabel={isContextOpen ? 'Close sidebar' : 'Open sidebar'}
+            tooltip={isContextOpen ? 'Close sidebar' : 'Open sidebar'}
             onClick={onToggleContext}
             icon={
               <svg
@@ -146,26 +178,44 @@ export function ChatPanel({
             ))}
           </div>
         )}
+
+        {/* Compact draft-ready banner — links to sidebar tab */}
         {draft && (
-          <div className="mx-auto mt-4 max-w-3xl" key={conversation.id}>
-            <AiResponsePreview
-              key={conversation.id}
-              draft={draft}
-              conversationId={conversation.id}
-              onDismiss={() => setDraft(null)}
-              onSaved={() => {
-                setDraft(null);
-                refreshConversation();
-              }}
-            />
+          <div className="mx-auto mt-4 max-w-3xl">
+            <button
+              type="button"
+              onClick={onViewDraft}
+              className="flex w-full cursor-pointer items-center gap-2.5 rounded-2xl border border-status-warning/25 bg-status-warning/8 px-4 py-2.5 text-left text-xs transition duration-150 hover:bg-status-warning/15"
+            >
+              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-foreground text-[10px] font-bold text-background">
+                ✦
+              </span>
+              <span className="flex-1 font-medium text-foreground">
+                AI draft ready — View in sidebar
+              </span>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="size-4 text-muted"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
           </div>
         )}
+
+        {/* Generate error with retry */}
         {generateError && !draft && (
-          <div
-            role="alert"
-            className="mx-auto mt-4 max-w-3xl rounded-2xl border border-semantic-error/30 bg-semantic-error/10 p-3 text-xs text-semantic-error"
-          >
-            Unable to generate an AI response. {generateError.message}
+          <div className="mx-auto mt-4 max-w-3xl">
+            <ErrorBanner
+              message={`Unable to generate an AI response. ${generateError.message}`}
+              onRetry={onGenerate}
+            />
           </div>
         )}
         <div ref={threadEndRef} />
@@ -176,8 +226,8 @@ export function ChatPanel({
           <MessageInput
             conversationId={conversation.id}
             isGenerating={isGenerating}
-            onGenerate={handleGenerate}
-            onSent={refreshConversation}
+            onGenerate={onGenerate}
+            onSent={onRefresh}
           />
         </div>
       </div>

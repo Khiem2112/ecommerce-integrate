@@ -1,24 +1,60 @@
 'use client';
 
 import { useAtom } from 'jotai';
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { selectedConversationIdAtom, sidebarCollapsedAtom } from '@/atoms/workspaceAtoms';
 import { Badge } from '@/components/atoms';
 import { ChatPanel } from '@/components/organisms/chat/ChatPanel';
-import { CustomerContextPanel } from '@/components/organisms/context/CustomerContextPanel';
+import { ContextSidebar } from '@/components/organisms/context/ContextSidebar';
 import { ConversationInbox } from '@/components/organisms/inbox/ConversationInbox';
 import { useConversationDetail } from '@/hooks/useConversationDetail';
+import { useRagGenerate } from '@/hooks/useRagGenerate';
 import { cn } from '@/lib/cn';
+import type { MultiDraftRagDraft } from '@/types';
 
 export function AgentWorkspace() {
+  const queryClient = useQueryClient();
   const [selectedConversationId, setSelectedConversationId] = useAtom(selectedConversationIdAtom);
   const [sidebarCollapsed, setSidebarCollapsed] = useAtom(sidebarCollapsedAtom);
   const [mobileView, setMobileView] = useState<'inbox' | 'chat'>('inbox');
   const { data: conversation, isLoading } = useConversationDetail(selectedConversationId);
 
+  /* Draft state lifted from ChatPanel */
+  const { mutate: generateResponse, isPending: isGenerating, error: generateError } =
+    useRagGenerate();
+  const [draft, setDraft] = useState<MultiDraftRagDraft | null>(null);
+
   function selectConversation(conversationId: number) {
     setSelectedConversationId(conversationId);
     setMobileView('chat');
+    setDraft(null);
+  }
+
+  function refreshConversation() {
+    if (!selectedConversationId) return;
+    void queryClient.invalidateQueries({ queryKey: ['conversation', selectedConversationId] });
+    void queryClient.invalidateQueries({ queryKey: ['conversations'] });
+  }
+
+  function handleGenerate() {
+    if (!selectedConversationId) return;
+    generateResponse(selectedConversationId, {
+      onSuccess: (generatedDraft) => {
+        setDraft(generatedDraft);
+        /* Auto-open sidebar when draft arrives */
+        if (sidebarCollapsed) {
+          setSidebarCollapsed(false);
+        }
+      },
+    });
+  }
+
+  function handleViewDraft() {
+    if (sidebarCollapsed) {
+      setSidebarCollapsed(false);
+    }
+    /* ContextSidebar auto-switches to AI Draft tab via useEffect when draft is set */
   }
 
   function handleToggleContext() {
@@ -83,14 +119,27 @@ export function AgentWorkspace() {
               onBack={() => setMobileView('inbox')}
               isContextOpen={!sidebarCollapsed}
               onToggleContext={handleToggleContext}
+              draft={draft}
+              isGenerating={isGenerating}
+              generateError={generateError}
+              onGenerate={handleGenerate}
+              onRefresh={refreshConversation}
+              onViewDraft={handleViewDraft}
             />
           </section>
 
           {!sidebarCollapsed && (
             <aside className="hidden h-full min-h-0 overflow-hidden border-l border-hairline bg-surface-lifted xl:block">
-              <CustomerContextPanel
+              <ContextSidebar
                 conversationId={selectedConversationId}
                 onCollapse={() => setSidebarCollapsed(true)}
+                draft={draft}
+                conversationIdForDraft={selectedConversationId}
+                onDismissDraft={() => setDraft(null)}
+                onSavedDraft={() => {
+                  setDraft(null);
+                  refreshConversation();
+                }}
               />
             </aside>
           )}

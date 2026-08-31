@@ -180,11 +180,19 @@ body {
   textarea {
     font: inherit;
   }
-}
 
-::selection {
-  background: rgba(41, 37, 36, 0.12);
-  color: #0c0a09;
+  ::selection {
+    background: rgba(41, 37, 36, 0.12);
+    color: var(--foreground);
+  }
+
+  .bg-foreground ::selection,
+  .bg-foreground::selection,
+  .bg-primary ::selection,
+  .bg-primary::selection {
+    background: rgba(255, 255, 255, 0.25);
+    color: var(--on-primary);
+  }
 }
 
 /* ElevenLabs Typography Utility Classes */

@@ -3,7 +3,8 @@
 import { useState, type KeyboardEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { sendMessageAction } from '@/actions/conversationActions';
-import { Button, IconButton } from '@/components/atoms';
+import { Button } from '@/components/atoms';
+import { ErrorBanner } from '@/components/molecules/ErrorBanner';
 
 type MessageInputProps = {
   readonly conversationId: number;
@@ -51,48 +52,62 @@ export function MessageInput({
   return (
     <div>
       {error && (
-        <p role="alert" className="mb-2 text-xs text-status-warning">
-          {error}
-        </p>
+        <div className="mb-2">
+          <ErrorBanner
+            message={error}
+            variant="inline"
+            onRetry={() => void handleSend()}
+            onDismiss={() => setError(null)}
+          />
+        </div>
       )}
 
       <div className="relative rounded-2xl border border-hairline bg-white p-3 shadow-xs transition duration-150 focus-within:border-foreground focus-within:ring-2 focus-within:ring-foreground/10">
-        {/* Top-Right AI Sparkle Button */}
-        <div className="absolute right-2.5 top-2.5 z-10">
-          <IconButton
+        {/* Persistent label + AI draft button row */}
+        <div className="mb-2 flex items-center justify-between">
+          <label
+            htmlFor={`composer-${conversationId}`}
+            className="text-[11px] font-semibold text-foreground"
+          >
+            Reply to customer
+          </label>
+          <Button
             size="xs"
             variant="ai"
-            ariaLabel="Generate AI Co-pilot reply"
-            tooltip="Generate AI Co-pilot reply"
-            isLoading={isGenerating}
             onClick={onGenerate}
             disabled={isGenerating}
+            isLoading={isGenerating}
             icon={
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="size-3.5 text-status-warning"
-              >
-                <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" />
-                <path d="M19 3v4" />
-                <path d="M21 5h-4" />
-              </svg>
+              !isGenerating ? (
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="size-3.5 text-status-warning"
+                >
+                  <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" />
+                  <path d="M19 3v4" />
+                  <path d="M21 5h-4" />
+                </svg>
+              ) : undefined
             }
-          />
+          >
+            <span className="hidden sm:inline">AI Draft</span>
+          </Button>
         </div>
 
         <textarea
+          id={`composer-${conversationId}`}
           rows={2}
           value={text}
           onChange={(event) => setText(event.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Write a customer reply…"
-          className="block w-full resize-none bg-transparent pr-8 text-xs text-foreground outline-none placeholder:text-muted"
+          className="block w-full resize-none bg-transparent text-xs text-foreground outline-none placeholder:text-muted"
         />
 
         <div className="mt-2 flex items-center justify-between gap-2 border-t border-hairline pt-2">

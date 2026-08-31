@@ -30,11 +30,11 @@ const STATUS_CONFIG: Record<string, { label: string; variant: BadgeVariant }> = 
   closed: { label: 'Closed', variant: 'slate' },
 };
 
-const PRIORITY_CONFIG: Record<string, { label: string; variant: BadgeVariant }> = {
-  urgent: { label: 'Urgent', variant: 'rose' },
-  high: { label: 'High', variant: 'amber' },
-  normal: { label: 'Normal', variant: 'info' },
-  low: { label: 'Low', variant: 'slate' },
+const PRIORITY_DOT_COLORS: Record<string, string> = {
+  urgent: 'bg-semantic-error',
+  high: 'bg-status-warning',
+  normal: 'bg-status-info',
+  low: 'bg-muted-soft',
 };
 
 const VIP_TIER_CONFIG: Record<string, { variant: BadgeVariant }> = {
@@ -54,6 +54,19 @@ function formatRelativeTime(timestamp: string): string {
   return `${Math.floor(hours / 24)}d`;
 }
 
+function buildTooltipText(conversation: ConversationSummary): string {
+  const lines = [
+    `Priority: ${conversation.priority}`,
+    `Status: ${conversation.status.name}`,
+  ];
+  if (conversation.intent) {
+    lines.push(`Intent: ${conversation.intent.name}`);
+  }
+  lines.push(`VIP: ${conversation.vipTierName}`);
+  lines.push(`Updated: ${formatRelativeTime(conversation.updatedAt)} ago`);
+  return lines.join('\n');
+}
+
 export function ConversationRow({ conversation, isActive, onSelect }: ConversationRowProps) {
   const preview = conversation.latestMessage?.text ?? 'No messages yet';
   const initial = conversation.customerIdentifier.slice(-2).toUpperCase();
@@ -65,18 +78,22 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
   };
 
   const priorityCode = conversation.priority;
-  const priorityInfo = PRIORITY_CONFIG[priorityCode] ?? {
-    label: priorityCode,
-    variant: 'slate' as BadgeVariant,
-  };
+  const priorityDotColor = PRIORITY_DOT_COLORS[priorityCode] ?? 'bg-muted-soft';
 
   const vipTierCode = conversation.vipTierCode?.toLowerCase() ?? 'standard';
   const vipTierVariant = VIP_TIER_CONFIG[vipTierCode]?.variant ?? 'slate';
+  const showVipBadge = vipTierCode !== 'standard';
+
+  /* Intent prefix for preview line */
+  const intentLabel = conversation.intent
+    ? INTENT_LABELS[conversation.intent.code] ?? conversation.intent.name
+    : null;
 
   return (
     <button
       type="button"
       onClick={() => onSelect(conversation.id)}
+      title={buildTooltipText(conversation)}
       className={cn(
         'group relative mb-1.5 w-full rounded-2xl p-3 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 border cursor-pointer',
         isActive
@@ -85,15 +102,25 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
       )}
     >
       <div className="flex items-start gap-2.5">
-        <div
-          className={cn(
-            'grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold transition duration-150 shadow-xs',
-            isActive
-              ? 'bg-foreground text-background'
-              : 'bg-background text-foreground border border-hairline group-hover:bg-hairline',
-          )}
-        >
-          {initial}
+        {/* Avatar with priority indicator dot */}
+        <div className="relative shrink-0">
+          <div
+            className={cn(
+              'grid size-8 place-items-center rounded-full text-sm font-bold transition duration-150 shadow-xs',
+              isActive
+                ? 'bg-foreground text-background'
+                : 'bg-background text-foreground border border-hairline group-hover:bg-hairline',
+            )}
+          >
+            {initial}
+          </div>
+          {/* Priority dot */}
+          <span
+            className={cn(
+              'absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-white',
+              priorityDotColor,
+            )}
+          />
         </div>
 
         <div className="min-w-0 flex-1">
@@ -109,12 +136,16 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
             </time>
           </div>
 
+          {/* Preview line with intent prefix */}
           <p className="mt-1 line-clamp-1 text-xs text-muted">
+            {intentLabel && (
+              <span className="font-medium text-foreground/70">{intentLabel} · </span>
+            )}
             {preview}
           </p>
 
+          {/* Max 2 badges: Status + VIP (non-standard only) */}
           <div className="mt-2 flex flex-wrap items-center gap-1">
-            {/* Status Badge */}
             <Badge
               variant={statusInfo.variant}
               size="xs"
@@ -122,31 +153,15 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
               label={statusInfo.label}
             />
 
-            {/* Priority Badge */}
-            <Badge
-              variant={priorityInfo.variant}
-              size="xs"
-              useDot
-              label={priorityInfo.label}
-            />
-
-            {/* Intent Badge */}
-            {conversation.intent && (
-              <Badge
-                variant="secondary"
-                size="xs"
-                label={INTENT_LABELS[conversation.intent.code] ?? conversation.intent.name}
-              />
+            {showVipBadge && (
+              <span className="ml-auto">
+                <Badge
+                  variant={vipTierVariant}
+                  size="xs"
+                  label={conversation.vipTierName}
+                />
+              </span>
             )}
-
-            {/* VIP Tier Badge */}
-            <span className="ml-auto">
-              <Badge
-                variant={vipTierVariant}
-                size="xs"
-                label={conversation.vipTierName}
-              />
-            </span>
           </div>
         </div>
       </div>

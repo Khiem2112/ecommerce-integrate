@@ -2,11 +2,13 @@
 
 import { IconButton } from '@/components/atoms';
 import { EvidenceFactList, OrderSummaryCard, VipTierBadge } from '@/components/molecules';
+import { ErrorBanner } from '@/components/molecules/ErrorBanner';
 import { useCustomerContext } from '@/hooks/useCustomerContext';
 
 type CustomerContextPanelProps = {
   readonly conversationId: number | null;
   readonly onCollapse: () => void;
+  readonly headerHidden?: boolean;
 };
 
 function formatVnd(value: number): string {
@@ -20,8 +22,9 @@ function formatVnd(value: number): string {
 export function CustomerContextPanel({
   conversationId,
   onCollapse,
+  headerHidden = false,
 }: CustomerContextPanelProps) {
-  const { data: context, isLoading, error } = useCustomerContext(conversationId);
+  const { data: context, isLoading, error, refetch } = useCustomerContext(conversationId);
 
   if (conversationId === null) {
     return (
@@ -36,8 +39,11 @@ export function CustomerContextPanel({
   if (isLoading) return <ContextSkeleton />;
   if (error || !context) {
     return (
-      <div className="m-4 rounded-2xl border border-semantic-error/30 bg-semantic-error/10 p-3 text-xs text-semantic-error">
-        Unable to load customer context. {error?.message}
+      <div className="m-4">
+        <ErrorBanner
+          message={`Unable to load customer context.${error?.message ? ` ${error.message}` : ''}`}
+          onRetry={() => void refetch()}
+        />
       </div>
     );
   }
@@ -59,35 +65,37 @@ export function CustomerContextPanel({
 
   return (
     <div className="custom-scrollbar flex h-full min-h-0 flex-col overflow-y-auto bg-surface-lifted">
-      <header className="flex min-h-14 shrink-0 items-center justify-between border-b border-hairline bg-surface-lifted px-4">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">Customer context</h2>
-          <p className="mt-0.5 text-xs text-muted">Evidence-backed customer intel</p>
-        </div>
-        <IconButton
-          size="sm"
-          variant="ghost"
-          ariaLabel="Collapse customer context"
-          tooltip="Collapse customer context"
-          onClick={onCollapse}
-          icon={
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              className="size-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect width="18" height="18" x="3" y="3" rx="2" />
-              <path d="M15 3v18" />
-              <path d="m11 9-3 3 3 3" />
-            </svg>
-          }
-        />
-      </header>
+      {!headerHidden && (
+        <header className="flex min-h-14 shrink-0 items-center justify-between border-b border-hairline bg-surface-lifted px-4">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Customer context</h2>
+            <p className="mt-0.5 text-xs text-muted">Evidence-backed customer intel</p>
+          </div>
+          <IconButton
+            size="sm"
+            variant="ghost"
+            ariaLabel="Collapse customer context"
+            tooltip="Collapse customer context"
+            onClick={onCollapse}
+            icon={
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect width="18" height="18" x="3" y="3" rx="2" />
+                <path d="M15 3v18" />
+                <path d="m11 9-3 3 3 3" />
+              </svg>
+            }
+          />
+        </header>
+      )}
       <div className="space-y-4 p-3.5">
         <section className="rounded-2xl border border-hairline bg-white p-3.5 shadow-xs">
           <div className="flex items-start justify-between gap-3">

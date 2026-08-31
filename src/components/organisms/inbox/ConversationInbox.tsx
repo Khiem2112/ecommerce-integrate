@@ -5,6 +5,7 @@ import { useDeferredValue, useState } from 'react';
 import { inboxFiltersAtom } from '@/atoms/workspaceAtoms';
 import { Badge, Input } from '@/components/atoms';
 import { ConversationRow, InboxFilters } from '@/components/molecules';
+import { ErrorBanner } from '@/components/molecules/ErrorBanner';
 import { useConversations } from '@/hooks/useConversations';
 
 type ConversationInboxProps = {
@@ -19,7 +20,7 @@ export function ConversationInbox({
   const [filters, setFilters] = useAtom(inboxFiltersAtom);
   const [searchText, setSearchText] = useState(filters.searchQuery ?? '');
   const deferredSearchText = useDeferredValue(searchText);
-  const { data: conversations = [], isLoading, error } = useConversations({
+  const { data: conversations = [], isLoading, error, refetch } = useConversations({
     ...filters,
     searchQuery: deferredSearchText,
   });
@@ -79,8 +80,11 @@ export function ConversationInbox({
       >
         {isLoading && <InboxSkeleton />}
         {error && (
-          <div className="m-2 rounded-lg border border-semantic-error/30 bg-semantic-error/10 p-3 text-sm text-semantic-error">
-            Unable to load the inbox. {error.message}
+          <div className="m-2">
+            <ErrorBanner
+              message={`Unable to load the inbox.${error.message ? ` ${error.message}` : ''}`}
+              onRetry={() => void refetch()}
+            />
           </div>
         )}
         {!isLoading && !error && conversations.length === 0 && (

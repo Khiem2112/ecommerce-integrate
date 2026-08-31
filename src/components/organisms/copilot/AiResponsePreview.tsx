@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { saveAiResponseAction } from '@/actions/conversationActions';
 import { Badge, type BadgeVariant } from '@/components/atoms';
 import { CopilotActions, GroundingAnnotation } from '@/components/molecules';
+import { ErrorBanner } from '@/components/molecules/ErrorBanner';
 import { cn } from '@/lib/cn';
 import type { MultiDraftRagDraft, SuggestedAction } from '@/types';
 
@@ -124,9 +125,9 @@ export function AiResponsePreview({
   }
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-hairline bg-white shadow-md shadow-black/5">
+    <div className="space-y-2.5">
       {/* Compact Header */}
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-surface-lifted px-3.5 py-2">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-surface-lifted px-1 pb-2">
         <div className="flex items-center gap-2">
           <span
             className="grid size-5.5 place-items-center rounded-full bg-foreground text-[10px] font-bold text-background"
@@ -156,7 +157,7 @@ export function AiResponsePreview({
         />
       </header>
 
-      <div className="space-y-2.5 p-3">
+      <div className="space-y-2.5 px-0.5 pt-2">
         {/* Recommendation Rationale Callout */}
         {draft.response?.recommendationReason && (
           <div className="flex items-center gap-2 rounded-xl border border-status-warning/20 bg-status-warning/5 px-2.5 py-1.5 text-xs text-foreground">
@@ -179,7 +180,7 @@ export function AiResponsePreview({
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Draft strategy options">
             {strategies.map((strategy) => {
               const isSelected = strategy.id === selectedStrategyId;
               const isBest =
@@ -190,6 +191,8 @@ export function AiResponsePreview({
                 <button
                   key={strategy.id}
                   type="button"
+                  role="tab"
+                  aria-selected={isSelected}
                   onClick={() => handleSelectStrategy(strategy.id)}
                   className={cn(
                     'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition duration-150 cursor-pointer border',
@@ -247,23 +250,23 @@ export function AiResponsePreview({
           )}
         </div>
 
-        {/* Grounding & Evidence Annotations (Compact Collapsible) */}
+        {/* Grounding & Evidence Annotations (expanded by default in sidebar) */}
         <GroundingAnnotation
           groundedFacts={activeStrategy.groundedFactsUsed}
           ungroundedClaims={activeStrategy.ungroundedClaims}
           isValid={activeGrounding.isValid}
           groundingPrecision={activeGrounding.groundingPrecision}
           violations={activeGrounding.violations}
+          defaultOpen
         />
 
         {/* Error message */}
         {error && (
-          <p
-            role="alert"
-            className="rounded-xl border border-semantic-error/30 bg-semantic-error/10 p-2 text-xs text-semantic-error"
-          >
-            {error}
-          </p>
+          <ErrorBanner
+            message={error}
+            onRetry={() => void handleApprove()}
+            onDismiss={() => setError(null)}
+          />
         )}
 
         {/* Escalate or Invalid Notice */}
@@ -285,6 +288,6 @@ export function AiResponsePreview({
           onReject={onDismiss}
         />
       </div>
-    </article>
+    </div>
   );
 }

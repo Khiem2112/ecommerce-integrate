@@ -13,6 +13,7 @@ type GroundingAnnotationProps = {
     readonly description: string;
     readonly severity: 'low' | 'medium' | 'high';
   }[];
+  readonly defaultOpen?: boolean;
 };
 
 const severityBadgeVariants: Record<'low' | 'medium' | 'high', 'warning' | 'amber' | 'rose'> = {
@@ -27,10 +28,13 @@ export function GroundingAnnotation({
   isValid,
   groundingPrecision,
   violations,
+  defaultOpen = false,
 }: GroundingAnnotationProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const precision = Math.round(groundingPrecision * 100);
   const hasDetails = groundedFacts.length > 0 || ungroundedClaims.length > 0 || violations.length > 0;
+  const highSeverityViolations = violations.filter((v) => v.severity === 'high');
+  const otherViolations = violations.filter((v) => v.severity !== 'high');
 
   return (
     <section className="rounded-xl border border-hairline bg-surface-lifted p-2 text-xs">
@@ -58,6 +62,25 @@ export function GroundingAnnotation({
           </Button>
         )}
       </div>
+
+      {/* High-severity violations always visible */}
+      {highSeverityViolations.length > 0 && (
+        <ul className="mt-2 space-y-1.5 border-t border-semantic-error/20 pt-2" aria-label="Critical violations">
+          {highSeverityViolations.map((violation, index) => (
+            <li
+              key={`high-${violation.type}-${index}`}
+              className="flex items-start gap-2 rounded-lg border border-semantic-error/25 bg-semantic-error/8 p-2 text-[11px] leading-4 text-foreground"
+            >
+              <Badge
+                variant="rose"
+                size="xs"
+                label="high"
+              />
+              <span>{violation.description}</span>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {isOpen && (
         <div className="mt-2 space-y-2 border-t border-hairline pt-2 animate-in fade-in-0 duration-150">
@@ -92,9 +115,9 @@ export function GroundingAnnotation({
             </div>
           )}
 
-          {violations.length > 0 && (
+          {otherViolations.length > 0 && (
             <ul className="space-y-1.5" aria-label="Grounding violations">
-              {violations.map((violation, index) => (
+              {otherViolations.map((violation, index) => (
                 <li
                   key={`${violation.type}-${index}`}
                   className="flex items-start gap-2 rounded-lg border border-hairline bg-white p-2 text-[11px] leading-4 text-foreground shadow-xs"
