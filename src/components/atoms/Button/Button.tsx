@@ -99,7 +99,7 @@ export function Button({
       ) : (
         icon && <span className="shrink-0">{icon}</span>
       )}
-      {children && <span>{children}</span>}
+      {children && <span className="inline-flex items-center gap-1.5">{children}</span>}
       {!isLoading && rightIcon && <span className="shrink-0">{rightIcon}</span>}
     </button>
   );

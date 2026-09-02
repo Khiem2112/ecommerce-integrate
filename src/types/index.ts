@@ -47,6 +47,10 @@ export type {
   OrderWithHistory,
   OrderItemWithCategory,
   OrderStatusHistoryWithStatus,
+  OrderFilterParams,
+  PaginationMeta,
+  OrderListResponse,
+  OrderLookupOptions,
 } from './order';
 
 export type {

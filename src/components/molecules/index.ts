@@ -1,3 +1,5 @@
+export { Breadcrumb, type BreadcrumbProps } from './Breadcrumb/Breadcrumb';
+
 export { EmptyChat } from './chat/EmptyChat';
 export { MessageBubble } from './chat/MessageBubble';
 export { MessageInput } from './chat/MessageInput';
