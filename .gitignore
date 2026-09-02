@@ -12,3 +12,6 @@ test/
 .next/
 refactor/
 .claude/
+src/generated/
+.impeccable/critique/
+/plan/
