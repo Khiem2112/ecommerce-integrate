@@ -1,6 +1,7 @@
 'use client';
 
 import { useAtom } from 'jotai';
+import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { selectedConversationIdAtom, sidebarCollapsedAtom } from '@/atoms/workspaceAtoms';
@@ -85,12 +86,23 @@ export function AgentWorkspace() {
               </p>
             </div>
           </div>
-          <Badge
-            variant="success"
-            size="sm"
-            useDot
-            label="System ready"
-          />
+          <div className="flex items-center gap-3">
+            <Link
+              href="/orders"
+              className="flex items-center gap-1.5 rounded-lg border border-hairline bg-surface-lifted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-surface-card hover:border-hairline-strong transition shadow-xs"
+            >
+              <svg aria-hidden="true" className="size-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
+              </svg>
+              <span>Đơn hàng</span>
+            </Link>
+            <Badge
+              variant="success"
+              size="sm"
+              useDot
+              label="System ready"
+            />
+          </div>
         </header>
 
         <div

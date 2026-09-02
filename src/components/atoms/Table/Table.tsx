@@ -5,12 +5,17 @@ import {
 } from 'react';
 import { cn } from '@/lib/cn';
 
+export type TableProps = HTMLAttributes<HTMLTableElement> & {
+  readonly containerClassName?: string;
+};
+
 export function Table({
   className,
+  containerClassName,
   ...props
-}: HTMLAttributes<HTMLTableElement>) {
+}: TableProps) {
   return (
-    <div className="relative w-full overflow-auto">
+    <div className={cn('custom-scrollbar relative w-full overflow-auto', containerClassName)}>
       <table
         className={cn('w-full caption-bottom text-xs text-foreground', className)}
         {...props}

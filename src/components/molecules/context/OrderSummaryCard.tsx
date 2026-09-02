@@ -1,23 +1,16 @@
 import { Badge } from '@/components/atoms';
+import { formatVND } from '@/utils';
 import type { LinkedOrderContext } from '@/types';
 
 type OrderSummaryCardProps = {
   readonly order: LinkedOrderContext | null;
 };
 
-function formatVnd(value: number): string {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
   if (!order) {
     return (
       <section>
-        <h3 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted">
+        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
           Linked order
         </h3>
         <div className="rounded-2xl border border-dashed border-hairline bg-surface-card p-3 text-center text-xs text-muted">
@@ -30,7 +23,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
   return (
     <section>
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-muted">
           Linked order
         </h3>
         <Badge
@@ -45,7 +38,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
             #{order.platformOrderId}
           </p>
           <p className="shrink-0 text-xs font-bold text-foreground">
-            {formatVnd(order.totalValue)}
+            {formatVND(order.totalValue)}
           </p>
         </div>
         {order.items.length > 0 && (
@@ -56,8 +49,8 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
         {order.statusHistory.length > 0 && (
           <ol className="mt-3 space-y-2 border-l border-hairline pl-3">
             {order.statusHistory.slice(-4).map((item) => (
-              <li key={item.id} className="relative text-[11px] text-muted">
-                <span className="absolute -left-[17px] top-1 size-2 rounded-full border-2 border-surface-card bg-foreground" />
+              <li key={item.id} className="relative text-xs text-muted">
+                <span className="absolute -left-4 top-1 size-2 rounded-full border-2 border-surface-card bg-foreground" />
                 <span className="font-semibold text-foreground">{item.status.name}</span>
                 <span className="ml-1 text-muted">
                   {new Intl.DateTimeFormat('vi-VN', { month: 'short', day: 'numeric' }).format(
