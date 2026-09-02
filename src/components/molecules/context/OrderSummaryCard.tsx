@@ -20,7 +20,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
         <h3 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted">
           Linked order
         </h3>
-        <div className="rounded-2xl border border-dashed border-hairline bg-white p-3 text-center text-xs text-muted">
+        <div className="rounded-2xl border border-dashed border-hairline bg-surface-card p-3 text-center text-xs text-muted">
           No order is linked to this conversation.
         </div>
       </section>
@@ -39,7 +39,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
           label={order.currentStatus.name}
         />
       </div>
-      <div className="rounded-2xl border border-hairline bg-white p-3.5 shadow-xs">
+      <div className="rounded-2xl border border-hairline bg-surface-card p-3.5 shadow-xs">
         <div className="flex items-start justify-between gap-2">
           <p className="truncate font-mono text-xs font-semibold text-foreground">
             #{order.platformOrderId}
@@ -57,7 +57,7 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
           <ol className="mt-3 space-y-2 border-l border-hairline pl-3">
             {order.statusHistory.slice(-4).map((item) => (
               <li key={item.id} className="relative text-[11px] text-muted">
-                <span className="absolute -left-[17px] top-1 size-2 rounded-full border-2 border-white bg-foreground" />
+                <span className="absolute -left-[17px] top-1 size-2 rounded-full border-2 border-surface-card bg-foreground" />
                 <span className="font-semibold text-foreground">{item.status.name}</span>
                 <span className="ml-1 text-muted">
                   {new Intl.DateTimeFormat('vi-VN', { month: 'short', day: 'numeric' }).format(

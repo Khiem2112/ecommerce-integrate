@@ -134,7 +134,7 @@ export function Autocomplete({
         aria-label={ariaLabel ?? label ?? placeholder}
         onClick={() => setIsOpen((prev) => !prev)}
         className={cn(
-          'flex h-8 w-full items-center justify-between gap-1.5 rounded-full border border-hairline bg-white text-left text-foreground shadow-xs transition duration-150 outline-none hover:border-foreground/30 focus-visible:border-foreground focus-visible:ring-2 focus-visible:ring-foreground/10 cursor-pointer',
+          'flex h-8 w-full items-center justify-between gap-1.5 rounded-full border border-hairline bg-surface-card text-left text-foreground shadow-xs transition duration-150 outline-none hover:border-foreground/30 focus-visible:border-foreground focus-visible:ring-2 focus-visible:ring-foreground/10 cursor-pointer',
           size === 'sm' ? 'px-2.5 py-1 text-[11px]' : 'px-3 py-1.5 text-xs',
           disabled && 'cursor-not-allowed opacity-50',
           isOpen && 'border-foreground ring-2 ring-foreground/10',
@@ -176,7 +176,7 @@ export function Autocomplete({
           id={listboxId}
           role="listbox"
           className={cn(
-            'absolute z-50 mt-1 max-h-60 w-full min-w-[10rem] overflow-hidden rounded-2xl border border-hairline bg-white shadow-xl shadow-black/8 animate-in fade-in-0 zoom-in-95',
+            'absolute z-50 mt-1 max-h-60 w-full min-w-[10rem] overflow-hidden rounded-2xl border border-hairline bg-surface-card shadow-xl shadow-black/8 animate-in fade-in-0 zoom-in-95',
             menuClassName,
           )}
         >

@@ -25,6 +25,8 @@ export type {
   EscalationStatus,
   SenderType,
   MessageType,
+  AiDraftResponse,
+  AiDraftStrategy,
 } from '@prisma/client';
 
 // Common cross-layer utility types
@@ -51,6 +53,7 @@ export type {
   MessageWithSender,
   ConversationWithRelations,
   ConversationWithMessages,
+  InboxConversationRecord,
 } from './conversation';
 
 export type {
@@ -88,3 +91,21 @@ export type {
   LlmProviderConfig,
   PromptLogOptions,
 } from './rag';
+
+// AI Draft Prisma-derived relation types & domain DTOs
+export type {
+  AiDraftResponseWithRelations,
+  AiDraftStrategyRecord,
+  AiDraftResponseForHistory,
+  AiDraftStatus,
+  AiDraftOutdatedReason,
+  AiDraftTriggerMessageDto,
+  AiDraftStrategyDto,
+  AiDraftDetailDto,
+  AiDraftSummaryDto,
+  CreateAiDraftInput,
+  CreateAiDraftStrategyInput,
+  ApplyAiDraftInput,
+  RejectAiDraftInput,
+} from './aiDraft';
+

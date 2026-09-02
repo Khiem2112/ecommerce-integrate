@@ -8,6 +8,7 @@ import {
   getInboxConversations,
   resolveResponseSenderTypeService,
 } from '@/services/conversationService';
+import { applyAiDraftService } from '@/services/aiDraftService';
 import {
   inboxFiltersSchema,
   sendMessageSchema,
@@ -61,6 +62,16 @@ function toWorkspaceMessage(message: {
 function toConversationSummary(
   conversation: Awaited<ReturnType<typeof getInboxConversations>>[number],
 ): ConversationSummary {
+  const latestDraft = conversation.aiDrafts?.[0] ?? null;
+  const latestMsg = conversation.messages[0];
+  const isOutdated =
+    latestDraft &&
+    latestDraft.status === 'pending' &&
+    latestMsg &&
+    latestMsg.senderType.code === 'buyer' &&
+    latestDraft.triggerMessageId !== null &&
+    latestDraft.triggerMessageId !== latestMsg.id;
+
   return {
     id: conversation.id,
     customerId: conversation.customerId,
@@ -74,7 +85,15 @@ function toConversationSummary(
     status: { code: conversation.status.code, name: conversation.status.name },
     assignedAgentName: conversation.assignedAgent?.name ?? null,
     humanApprovalRequired: conversation.humanApprovalRequired,
-    latestMessage: conversation.messages[0] ? toWorkspaceMessage(conversation.messages[0]) : null,
+    latestMessage: latestMsg ? toWorkspaceMessage(latestMsg) : null,
+    latestDraft: latestDraft
+      ? {
+          status: latestDraft.status,
+          recommendedStrategyCode: latestDraft.recommendedStrategyCode,
+          selectedStrategyCode: latestDraft.selectedStrategyCode,
+          isOutdated: Boolean(isOutdated),
+        }
+      : null,
     updatedAt: conversation.updatedAt.toISOString(),
   };
 }
@@ -174,7 +193,7 @@ export async function sendMessageAction(
   }
 }
 
-/** Persist a reviewed AI co-pilot response with its grounding citations. */
+/** Persist a reviewed AI co-pilot response by applying the draft. */
 export async function saveAiResponseAction(
   input: SaveAiResponseInput,
 ): Promise<ActionResponse<WorkspaceMessage>> {
@@ -184,24 +203,35 @@ export async function saveAiResponseAction(
       return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input.' };
     }
 
-    const message = await prisma.$transaction(async (tx) => {
-      const senderTypeCode = await resolveResponseSenderTypeService(
-        parsed.data.conversationId,
-        tx,
-      );
+    const {
+      draftId,
+      selectedStrategyCode,
+      customDraftText,
+      conversationId,
+      text,
+    } = parsed.data;
 
-      return createConversationMessage(
+    const message = await prisma.$transaction(async (tx) => {
+      const { appliedMessageId } = await applyAiDraftService(
+        draftId,
         {
-          conversationId: parsed.data.conversationId,
-          text: parsed.data.text,
-          senderTypeCode,
-          groundedFacts: parsed.data.groundedFactsUsed,
-          ungroundedClaims: parsed.data.ungroundedClaims,
-          confidence: parsed.data.confidence,
-          suggestedAction: parsed.data.suggestedAction,
+          conversationId,
+          selectedStrategyCode,
+          customDraftText: customDraftText ?? text,
         },
         tx,
       );
+
+      const created = await tx.message.findUnique({
+        where: { id: appliedMessageId },
+        include: { senderType: true },
+      });
+
+      if (!created) {
+        throw new Error('Failed to retrieve created message.');
+      }
+
+      return created;
     });
 
     revalidatePath('/conversations');

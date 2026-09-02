@@ -26,6 +26,11 @@ export type GenerateGroundedResponseResult = {
   readonly context: FullCustomerContext;
   readonly response: MultiDraftResponse;
   readonly grounding: MultiDraftGroundingResult;
+  readonly triggerMessage: {
+    readonly id: number;
+    readonly text: string | null;
+    readonly timestamp: string;
+  } | null;
 };
 
 /**
@@ -45,7 +50,7 @@ export async function generateGroundedResponse(
   const messages = context.turn.recentMessages;
   const lastCustomerMessage = [...messages]
     .reverse()
-    .find((m) => m.senderType.code === 'buyer' || m.senderType.isHuman);
+    .find((m) => m.senderType.code === 'buyer');
 
   const latestText = lastCustomerMessage?.text ?? 'Hello, I need assistance with my order.';
 
@@ -90,6 +95,13 @@ export async function generateGroundedResponse(
     context,
     response: grounding.sanitizedResponse,
     grounding,
+    triggerMessage: lastCustomerMessage
+      ? {
+          id: lastCustomerMessage.id,
+          text: lastCustomerMessage.text,
+          timestamp: lastCustomerMessage.timestamp.toISOString(),
+        }
+      : null,
   };
 }
 

@@ -19,10 +19,10 @@ export type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const VARIANT_STYLES: Record<IconButtonVariant, string> = {
   ghost: 'text-muted hover:bg-foreground/6 hover:text-foreground focus-visible:ring-foreground/20',
-  subtle: 'bg-white text-foreground hover:bg-background border border-hairline shadow-xs focus-visible:ring-foreground/20',
+  subtle: 'bg-surface-card text-foreground hover:bg-background border border-hairline shadow-xs focus-visible:ring-foreground/20',
   secondary: 'bg-foreground/5 text-foreground hover:bg-foreground/10 border border-hairline focus-visible:ring-foreground/20',
   primary: 'bg-foreground text-background hover:bg-primary-hover shadow-xs focus-visible:ring-foreground/30',
-  outline: 'border border-hairline bg-transparent text-foreground hover:bg-white shadow-xs focus-visible:ring-foreground/20',
+  outline: 'border border-hairline bg-transparent text-foreground hover:bg-surface-card shadow-xs focus-visible:ring-foreground/20',
   ai: 'border border-status-warning/30 bg-status-warning/10 text-status-warning hover:bg-status-warning/18 focus-visible:ring-status-warning/30 shadow-xs',
 };
 

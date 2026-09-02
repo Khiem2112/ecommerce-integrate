@@ -62,7 +62,7 @@ export function MessageInput({
         </div>
       )}
 
-      <div className="relative rounded-2xl border border-hairline bg-white p-3 shadow-xs transition duration-150 focus-within:border-foreground focus-within:ring-2 focus-within:ring-foreground/10">
+      <div className="relative rounded-2xl border border-hairline bg-surface-card p-3 shadow-xs transition duration-150 focus-within:border-foreground focus-within:ring-2 focus-within:ring-foreground/10">
         {/* Persistent label + AI draft button row */}
         <div className="mb-2 flex items-center justify-between">
           <label

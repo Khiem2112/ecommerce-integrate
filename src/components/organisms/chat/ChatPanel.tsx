@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { Badge, type BadgeVariant, IconButton } from '@/components/atoms';
 import { EmptyChat, MessageBubble, MessageInput } from '@/components/molecules';
 import { ErrorBanner } from '@/components/molecules/ErrorBanner';
-import type { ConversationDetail, MultiDraftRagDraft } from '@/types';
+import type { ConversationDetail, MultiDraftRagDraft, AiDraftDetailDto } from '@/types';
 
 const STATUS_CONFIG: Record<string, { label: string; variant: BadgeVariant }> = {
   open: { label: 'Open', variant: 'emerald' },
@@ -28,7 +28,7 @@ type ChatPanelProps = {
   readonly onBack: () => void;
   readonly isContextOpen?: boolean;
   readonly onToggleContext?: () => void;
-  readonly draft: MultiDraftRagDraft | null;
+  readonly draft: MultiDraftRagDraft | AiDraftDetailDto | null;
   readonly isGenerating: boolean;
   readonly generateError: Error | null;
   readonly onGenerate: () => void;
@@ -71,7 +71,7 @@ export function ChatPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
-      <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-hairline bg-white px-4 shadow-xs md:px-6">
+      <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-hairline bg-surface-card px-4 shadow-xs md:px-6">
         <IconButton
           size="sm"
           variant="ghost"
@@ -238,11 +238,11 @@ export function ChatPanel({
 function ChatLoading() {
   return (
     <div className="flex h-full min-h-96 flex-col animate-pulse bg-background">
-      <div className="h-14 border-b border-hairline bg-white" />
+      <div className="h-14 border-b border-hairline bg-surface-card" />
       <div className="flex-1 space-y-4 p-6">
-        <div className="h-14 max-w-sm rounded-2xl border border-hairline bg-white" />
+        <div className="h-14 max-w-sm rounded-2xl border border-hairline bg-surface-card" />
         <div className="ml-auto h-16 max-w-md rounded-2xl bg-foreground/10" />
-        <div className="h-12 max-w-xs rounded-2xl border border-hairline bg-white" />
+        <div className="h-12 max-w-xs rounded-2xl border border-hairline bg-surface-card" />
       </div>
     </div>
   );

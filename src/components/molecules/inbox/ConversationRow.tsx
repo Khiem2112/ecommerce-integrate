@@ -97,8 +97,8 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
       className={cn(
         'group relative mb-1.5 w-full rounded-2xl p-3 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 border cursor-pointer',
         isActive
-          ? 'border-foreground bg-white shadow-sm ring-1 ring-foreground/10'
-          : 'border-hairline bg-white hover:border-foreground/25 hover:bg-surface-lifted shadow-xs',
+          ? 'border-foreground bg-surface-card shadow-sm ring-1 ring-foreground/10'
+          : 'border-hairline bg-surface-card hover:border-foreground/25 hover:bg-surface-lifted shadow-xs',
       )}
     >
       <div className="flex items-start gap-2.5">
@@ -117,7 +117,7 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
           {/* Priority dot */}
           <span
             className={cn(
-              'absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-white',
+              'absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-surface-card',
               priorityDotColor,
             )}
           />
@@ -144,7 +144,7 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
             {preview}
           </p>
 
-          {/* Max 2 badges: Status + VIP (non-standard only) */}
+          {/* Badges: Status + AI Draft + VIP */}
           <div className="mt-2 flex flex-wrap items-center gap-1">
             <Badge
               variant={statusInfo.variant}
@@ -152,6 +152,33 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
               useDot
               label={statusInfo.label}
             />
+
+            {conversation.latestDraft?.status === 'pending' && !conversation.latestDraft?.isOutdated && (
+              <Badge
+                variant="warning"
+                size="xs"
+                className="px-1.5 py-0 text-[9px] font-bold"
+                label="✦ AI Draft"
+              />
+            )}
+
+            {conversation.latestDraft?.status === 'pending' && conversation.latestDraft?.isOutdated && (
+              <Badge
+                variant="rose"
+                size="xs"
+                className="px-1.5 py-0 text-[9px] font-bold"
+                label="⚠️ Outdated"
+              />
+            )}
+
+            {conversation.latestDraft?.status === 'applied' && (
+              <Badge
+                variant="success"
+                size="xs"
+                className="px-1.5 py-0 text-[9px] font-bold"
+                label="✓ AI Saved"
+              />
+            )}
 
             {showVipBadge && (
               <span className="ml-auto">

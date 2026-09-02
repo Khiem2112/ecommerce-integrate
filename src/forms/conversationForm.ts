@@ -13,11 +13,14 @@ export const sendMessageSchema = z.object({
 
 export const saveAiResponseSchema = z.object({
   conversationId: z.number().int().positive({ message: 'A valid conversation ID is required.' }),
-  text: z.string().trim().min(1, { message: 'An AI response cannot be empty.' }),
+  draftId: z.number().int().positive({ message: 'A valid draft ID is required.' }),
+  selectedStrategyCode: z.string().trim().min(1, { message: 'A strategy code is required.' }),
+  text: z.string().trim().optional(),
   groundedFactsUsed: z.array(z.string()).readonly().default([]),
   ungroundedClaims: z.array(z.string()).readonly().default([]),
   confidence: z.number().min(0).max(1).optional(),
   suggestedAction: z.string().optional(),
+  customDraftText: z.string().trim().nullable().optional(),
 });
 
 export type InboxFiltersInput = z.infer<typeof inboxFiltersSchema>;

@@ -34,9 +34,24 @@ type ConversationWithMessages = Prisma.ConversationGetPayload<{
   };
 }>;
 
+/** Inbox conversation record with latest message and latest active ai draft */
+type InboxConversationRecord = Prisma.ConversationGetPayload<{
+  include: {
+    intent: true;
+    assignedAgent: true;
+    status: true;
+    escalationStatus: true;
+    platform: true;
+    customer: { include: { vipTier: true } };
+    messages: { include: { senderType: true } };
+    aiDrafts: true;
+  };
+}>;
+
 export type {
   MessageWithSender,
   ConversationWithRelations,
   ConversationWithMessages,
+  InboxConversationRecord,
   MessageType,
 };

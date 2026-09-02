@@ -22,7 +22,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     <article className={cn('flex gap-2', isBuyer ? 'justify-start' : 'justify-end')}>
       {/* Buyer avatar (left) */}
       {isBuyer && (
-        <div className="mt-5 grid size-6 shrink-0 place-items-center rounded-full border border-hairline bg-white text-[10px] font-bold text-foreground shadow-xs">
+        <div className="mt-5 grid size-6 shrink-0 place-items-center rounded-full border border-hairline bg-surface-card text-[10px] font-bold text-foreground shadow-xs">
           {message.senderName.slice(0, 2).toUpperCase()}
         </div>
       )}
@@ -36,7 +36,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           className={cn(
             'px-3.5 py-2.5 text-xs leading-5',
             isBuyer
-              ? 'rounded-2xl rounded-tl-sm border border-hairline bg-white text-foreground shadow-xs'
+              ? 'rounded-2xl rounded-tl-sm border border-hairline bg-surface-card text-foreground shadow-xs'
               : 'rounded-2xl rounded-tr-sm bg-foreground text-on-primary shadow-xs selection:bg-on-primary/30 selection:text-on-primary',
           )}
         >

@@ -17,13 +17,13 @@ export function EvidenceFactList({ facts, highConfidenceFactCount }: EvidenceFac
         <span className="text-[10px] font-bold text-status-success-text">{highConfidenceFactCount} high confidence</span>
       </div>
       {facts.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-hairline bg-white p-3 text-center text-xs text-muted">No evidence-backed facts are available.</div>
+        <div className="rounded-2xl border border-dashed border-hairline bg-surface-card p-3 text-center text-xs text-muted">No evidence-backed facts are available.</div>
       ) : (
         <ul className="space-y-1.5">
           {facts.map((fact) => {
             const percentage = Math.round(fact.confidence * 100);
             return (
-              <li key={fact.id} className="rounded-2xl border border-hairline bg-white p-3 shadow-xs">
+              <li key={fact.id} className="rounded-2xl border border-hairline bg-surface-card p-3 shadow-xs">
                 <p className="text-xs font-semibold leading-4.5 text-foreground">{fact.fact}</p>
                 <p className="mt-1 text-[11px] leading-4 text-muted">{fact.evidence}</p>
                 <div className="mt-2 flex items-center gap-2">

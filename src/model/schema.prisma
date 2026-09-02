@@ -10,7 +10,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -391,6 +390,7 @@ model Conversation {
 
   messages           Message[]
   routingDecisions   RoutingDecision[]
+  aiDrafts           AiDraftResponse[]
 
   @@map("conversation")
 }
@@ -424,7 +424,101 @@ model Message {
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @default(now()) @updatedAt
 
+  // AI Draft back-relations
+  triggeredDrafts  AiDraftResponse[] @relation("TriggerMessage")
+  appliedDrafts    AiDraftResponse[] @relation("AppliedMessage")
+
+  @@index([conversationId, senderTypeId, timestamp, id])
   @@map("message")
+}
+
+// ============================================================
+// AI DRAFT RESPONSE & STRATEGY — Persistent AI co-pilot drafts
+// ============================================================
+
+/// Stores a complete AI-generated draft response for agent review.
+/// Lifecycle: pending → applied (approved & saved internally) | rejected
+/// Freshness (isOutdated) is computed at read time, not persisted.
+model AiDraftResponse {
+  id                          Int                @id @default(autoincrement())
+  conversationId              Int
+  conversation                Conversation       @relation(fields: [conversationId], references: [id])
+
+  // Context trigger and internal message after approval (not yet sent to platform)
+  triggerMessageId            Int?
+  triggerMessage              Message?           @relation("TriggerMessage", fields: [triggerMessageId], references: [id])
+  appliedMessageId            Int?
+  appliedMessage              Message?           @relation("AppliedMessage", fields: [appliedMessageId], references: [id])
+
+  // Lifecycle status & agent decision
+  status                      String             @default("pending") // "pending" | "applied" | "rejected"
+  rejectionReason             String?            // "manual_reply" | "hallucination" | "tone_inappropriate" | "policy_violation" | "customer_cancelled"
+
+  // Strategy recommendation/selection stored by code, avoiding circular FK in InnoDB.
+  // When pending, selectedStrategyCode must be null: AI recommendation ≠ agent selection.
+  recommendedStrategyCode     String
+  selectedStrategyCode        String?
+
+  customDraftText             String?            @db.Text
+
+  // Audit trail for agent decisions. Using String until User/Staff model exists.
+  approvedById                String?
+  approvedAt                  DateTime?
+  rejectedById                String?
+  rejectedAt                  DateTime?
+
+  // AI model recommendation metadata
+  recommendationReason        String?            @db.Text
+  recommendationGroundedFacts Json?              // string[] fact citations
+  providerUsed                String?            // "gemini" | "openai" | "deepseek"
+
+  // Grounding & safety assessment
+  groundingIsValid            Boolean            @default(true)
+  groundingPrecision          Float              @default(1.0)
+  groundingViolations         Json?              // GroundingViolation[]
+
+  // Child strategy drafts (Rank 1, 2, 3)
+  strategies                  AiDraftStrategy[]  @relation("DraftStrategies")
+
+  isActive                    Boolean            @default(true)
+  createdAt                   DateTime           @default(now())
+  updatedAt                   DateTime           @default(now()) @updatedAt
+
+  @@index([conversationId, createdAt])
+  @@index([conversationId, status])
+  @@index([conversationId, triggerMessageId, createdAt])
+  @@map("ai_draft_response")
+}
+
+/// Individual strategy option within a draft response.
+/// Each draft contains 1–3 strategies ranked by AI confidence.
+model AiDraftStrategy {
+  id                   Int               @id @default(autoincrement())
+  draftResponseId      Int
+  draftResponse        AiDraftResponse   @relation("DraftStrategies", fields: [draftResponseId], references: [id], onDelete: Cascade)
+
+  strategyCode         String            // e.g. "strat_goodwill"
+  rank                 Int               // 1, 2, 3
+  draftText            String            @db.Text
+  confidence           Float
+  suggestedAction      String            // "auto_reply" | "await_approval" | "escalate_to_human"
+
+  groundedFactsUsed    Json              // string[]
+  ungroundedClaims     Json              // string[]
+  proposedCompensation Json?             // { kind: "none" } | { kind: "voucher", amountVnd: number }
+  isBestMatch          Boolean           @default(false)
+
+  groundingIsValid     Boolean           @default(true)
+  groundingPrecision   Float             @default(1.0)
+  groundingViolations  Json?
+
+  isActive             Boolean           @default(true)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @default(now()) @updatedAt
+
+  @@unique([draftResponseId, strategyCode])
+  @@index([draftResponseId])
+  @@map("ai_draft_strategy")
 }
 
 /// Records routing decisions for audit

@@ -97,7 +97,7 @@ export function CustomerContextPanel({
         </header>
       )}
       <div className="space-y-4 p-3.5">
-        <section className="rounded-2xl border border-hairline bg-white p-3.5 shadow-xs">
+        <section className="rounded-2xl border border-hairline bg-surface-card p-3.5 shadow-xs">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
@@ -130,7 +130,7 @@ export function CustomerContextPanel({
             {metrics.map((metric) => (
               <div
                 key={metric.label}
-                className="rounded-2xl border border-hairline bg-white p-2.5 shadow-xs"
+                className="rounded-2xl border border-hairline bg-surface-card p-2.5 shadow-xs"
               >
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
                   {metric.label}
@@ -162,14 +162,14 @@ function ContextSkeleton() {
       className="space-y-4 p-3.5 animate-pulse bg-surface-lifted"
       aria-label="Loading customer context"
     >
-      <div className="h-28 rounded-2xl border border-hairline bg-white" />
+      <div className="h-28 rounded-2xl border border-hairline bg-surface-card" />
       <div className="grid grid-cols-2 gap-1.5">
-        <div className="h-16 rounded-2xl border border-hairline bg-white" />
-        <div className="h-16 rounded-2xl border border-hairline bg-white" />
-        <div className="h-16 rounded-2xl border border-hairline bg-white" />
-        <div className="h-16 rounded-2xl border border-hairline bg-white" />
+        <div className="h-16 rounded-2xl border border-hairline bg-surface-card" />
+        <div className="h-16 rounded-2xl border border-hairline bg-surface-card" />
+        <div className="h-16 rounded-2xl border border-hairline bg-surface-card" />
+        <div className="h-16 rounded-2xl border border-hairline bg-surface-card" />
       </div>
-      <div className="h-36 rounded-2xl border border-hairline bg-white" />
+      <div className="h-36 rounded-2xl border border-hairline bg-surface-card" />
     </div>
   );
 }

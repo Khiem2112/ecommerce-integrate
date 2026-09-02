@@ -120,7 +120,7 @@ export function GroundingAnnotation({
               {otherViolations.map((violation, index) => (
                 <li
                   key={`${violation.type}-${index}`}
-                  className="flex items-start gap-2 rounded-lg border border-hairline bg-white p-2 text-[11px] leading-4 text-foreground shadow-xs"
+                  className="flex items-start gap-2 rounded-lg border border-hairline bg-surface-card p-2 text-[11px] leading-4 text-foreground shadow-xs"
                 >
                   <Badge
                     variant={severityBadgeVariants[violation.severity]}

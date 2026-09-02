@@ -8,6 +8,7 @@ import type {
   DbClient,
   ConversationWithRelations,
   ConversationWithMessages,
+  InboxConversationRecord,
   MessageWithSender,
 } from '@/types';
 
@@ -49,7 +50,7 @@ export async function getConversationById(
 export async function getInboxConversations(
   filters: InboxConversationFilters = {},
   tx: DbClient = prisma,
-): Promise<ConversationWithMessages[]> {
+): Promise<InboxConversationRecord[]> {
   const searchQuery = filters.searchQuery?.trim();
 
   return tx.conversation.findMany({
@@ -78,6 +79,11 @@ export async function getInboxConversations(
         where: { isActive: true },
         include: { senderType: true },
         orderBy: { timestamp: 'desc' },
+        take: 1,
+      },
+      aiDrafts: {
+        where: { isActive: true },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: 1,
       },
     },

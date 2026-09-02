@@ -35,13 +35,19 @@ export function AgentWorkspace() {
     if (!selectedConversationId) return;
     void queryClient.invalidateQueries({ queryKey: ['conversation', selectedConversationId] });
     void queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    void queryClient.invalidateQueries({ queryKey: ['ai-draft', selectedConversationId] });
+    void queryClient.invalidateQueries({ queryKey: ['ai-draft-history', selectedConversationId] });
   }
 
   function handleGenerate() {
     if (!selectedConversationId) return;
-    generateResponse(selectedConversationId, {
+    const requestConversationId = selectedConversationId;
+    generateResponse(requestConversationId, {
       onSuccess: (generatedDraft) => {
+        if (selectedConversationId !== requestConversationId) return;
         setDraft(generatedDraft);
+        void queryClient.invalidateQueries({ queryKey: ['ai-draft', requestConversationId] });
+        void queryClient.invalidateQueries({ queryKey: ['ai-draft-history', requestConversationId] });
         /* Auto-open sidebar when draft arrives */
         if (sidebarCollapsed) {
           setSidebarCollapsed(false);
@@ -64,11 +70,11 @@ export function AgentWorkspace() {
   return (
     <main className="h-dvh max-h-dvh overflow-hidden bg-background text-foreground">
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-hairline bg-white px-4 shadow-xs md:px-5">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-hairline bg-surface-card px-4 shadow-xs md:px-5">
           <div className="flex items-center gap-3">
             <div className="relative grid size-8 place-items-center rounded-full bg-foreground text-sm font-bold text-background shadow-xs">
               V
-              <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-white bg-status-warning" />
+              <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-surface-card bg-status-warning" />
             </div>
             <div>
               <h1 className="text-sm font-semibold tracking-tight text-foreground">

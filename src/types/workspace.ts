@@ -31,6 +31,12 @@ export type ConversationSummary = {
   readonly assignedAgentName: string | null;
   readonly humanApprovalRequired: boolean;
   readonly latestMessage: WorkspaceMessage | null;
+  readonly latestDraft?: {
+    readonly status: string;
+    readonly recommendedStrategyCode: string;
+    readonly selectedStrategyCode: string | null;
+    readonly isOutdated?: boolean;
+  } | null;
   readonly updatedAt: string;
 };
 
@@ -120,15 +126,20 @@ export type RagDraft = {
 
 /** Browser-safe DTO for the Phase 1 multi-draft comparison experience. */
 export type MultiDraftRagDraft = {
+  readonly draftId?: number;
   readonly response: import('./rag').MultiDraftResponse;
   readonly grounding: import('./rag').MultiDraftGroundingResult;
+  readonly triggerMessage?: import('./aiDraft').AiDraftTriggerMessageDto | null;
 };
 
 export type SaveAiResponseInput = {
   readonly conversationId: number;
-  readonly text: string;
-  readonly groundedFactsUsed: readonly string[];
-  readonly ungroundedClaims: readonly string[];
-  readonly confidence: number;
-  readonly suggestedAction: string;
+  readonly draftId: number;
+  readonly selectedStrategyCode: string;
+  readonly text?: string;
+  readonly groundedFactsUsed?: readonly string[];
+  readonly ungroundedClaims?: readonly string[];
+  readonly confidence?: number;
+  readonly suggestedAction?: string;
+  readonly customDraftText?: string | null;
 };
