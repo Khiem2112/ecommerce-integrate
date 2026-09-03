@@ -6,6 +6,7 @@ export * from './useClipboard';
 export * from './useDebounce';
 export * from './useFlashingRow';
 export * from './useOrders';
+export * from './useCustomers';
 export * from './useAiDraft';
 export * from './useConversationDetail';
 export * from './useConversations';

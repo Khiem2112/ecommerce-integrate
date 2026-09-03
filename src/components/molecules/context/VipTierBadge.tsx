@@ -15,17 +15,9 @@ const VIP_VARIANTS: Record<string, BadgeVariant> = {
   standard: 'secondary',
 };
 
-const VIP_ICONS: Record<string, string> = {
-  platinum: '◆',
-  gold: '★',
-  silver: '●',
-  standard: '○',
-};
-
 export function VipTierBadge({ code, name, className }: VipTierBadgeProps) {
   const normalizedCode = code.toLowerCase();
   const variant = VIP_VARIANTS[normalizedCode] ?? 'secondary';
-  const icon = VIP_ICONS[normalizedCode] ?? '○';
 
   return (
     <Badge
@@ -33,7 +25,6 @@ export function VipTierBadge({ code, name, className }: VipTierBadgeProps) {
       size="sm"
       className={className}
     >
-      <span aria-hidden="true" className="mr-0.5 font-bold">{icon}</span>
       {name}
     </Badge>
   );

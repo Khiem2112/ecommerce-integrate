@@ -12,7 +12,6 @@ import type {
   OrderWithHistory,
   OrderFilterParams,
   OrderListResponse,
-  OrderLookupOptions,
 } from '@/types';
 import type {
   OrderFormValues,
@@ -460,55 +459,6 @@ export async function deleteOrderItemService(
     data: { totalValue },
     include: ORDER_FULL_INCLUDE,
   });
-}
-
-/**
- * Fetch lookup options (Platforms, Statuses, Customers, Categories) for dropdowns.
- */
-export async function getOrderLookupOptionsService(
-  tx: DbClient = prisma,
-): Promise<OrderLookupOptions> {
-  const [platforms, statuses, customers, categories] = await Promise.all([
-    tx.platformCatalog.findMany({
-      where: { isActive: true },
-      select: { id: true, code: true, name: true },
-      orderBy: { id: 'asc' },
-    }),
-    tx.orderStatus.findMany({
-      where: { isActive: true },
-      select: { id: true, code: true, name: true, isFinal: true },
-      orderBy: { sortOrder: 'asc' },
-    }),
-    tx.customer.findMany({
-      where: { isActive: true },
-      select: {
-        id: true,
-        platformBuyerId: true,
-        platform: { select: { name: true } },
-        vipTier: { select: { name: true, code: true } },
-      },
-      orderBy: { id: 'asc' },
-      take: 100,
-    }),
-    tx.categoryCatalog.findMany({
-      where: { isActive: true },
-      select: { id: true, code: true, name: true },
-      orderBy: { name: 'asc' },
-    }),
-  ]);
-
-  return {
-    platforms,
-    statuses,
-    customers: customers.map((c) => ({
-      id: c.id,
-      platformBuyerId: c.platformBuyerId,
-      platformName: c.platform.name,
-      vipTierName: c.vipTier.name,
-      vipTierCode: c.vipTier.code,
-    })),
-    categories,
-  };
 }
 
 /** Legacy & cross-service compatibility aliases */

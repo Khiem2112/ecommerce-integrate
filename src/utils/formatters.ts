@@ -68,3 +68,34 @@ export function getVipBadgeVariant(tierCode?: string): 'secondary' | 'purple' | 
       return 'secondary';
   }
 }
+
+/**
+ * Parse frequent categories JSON or Array safely into a list of trimmed strings.
+ */
+export function parseCategoryList(frequentCategories: unknown): readonly string[] {
+  if (!frequentCategories) return [];
+  if (Array.isArray(frequentCategories)) {
+    return frequentCategories
+      .map((c) => (typeof c === 'string' ? c.trim() : ''))
+      .filter((c) => c.length > 0);
+  }
+  if (typeof frequentCategories === 'string') {
+    const trimmed = frequentCategories.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((c) => (typeof c === 'string' ? c.trim() : ''))
+          .filter((c) => c.length > 0);
+      }
+    } catch {
+      // Not JSON, treat as comma-separated
+    }
+    return trimmed
+      .split(',')
+      .map((c) => c.trim())
+      .filter((c) => c.length > 0);
+  }
+  return [];
+}
