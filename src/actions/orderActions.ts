@@ -10,7 +10,10 @@ import {
   softDeleteOrderService,
   addOrderItemService,
   deleteOrderItemService,
-  getOrderLookupOptionsService,
+  getPlatformsService,
+  getOrderStatusesService,
+  getCategoriesService,
+  getCustomerLookupListService,
 } from '@/services';
 import {
   orderFilterSchema,
@@ -254,8 +257,28 @@ export async function deleteOrderItemAction(
  */
 export async function getOrderLookupOptionsAction(): Promise<ActionResponse<OrderLookupOptions>> {
   try {
-    const data = await getOrderLookupOptionsService();
-    return { success: true, data };
+    const [platforms, statuses, categories, customers] = await Promise.all([
+      getPlatformsService(),
+      getOrderStatusesService(),
+      getCategoriesService(),
+      getCustomerLookupListService(),
+    ]);
+
+    return {
+      success: true,
+      data: {
+        platforms,
+        statuses,
+        categories,
+        customers: customers.map((c) => ({
+          id: c.id,
+          platformBuyerId: c.platformBuyerId,
+          platformName: c.platform.name,
+          vipTierName: c.vipTier.name,
+          vipTierCode: c.vipTier.code,
+        })),
+      },
+    };
   } catch (error) {
     console.error('Error in getOrderLookupOptionsAction:', error);
     return {

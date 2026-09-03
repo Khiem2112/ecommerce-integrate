@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/atoms';
 import { Breadcrumb } from '@/components/molecules';
 
-export default function OrdersLayout({
+export default function CustomersLayout({
   children,
 }: {
   readonly children: ReactNode;
@@ -35,13 +35,13 @@ export default function OrdersLayout({
 
         <div className="flex items-center gap-3">
           <Badge variant="secondary" size="sm">
-            Master Data Module
+            Hồ sơ Khách hàng 360°
           </Badge>
           <Link
-            href="/customers"
+            href="/orders"
             className="rounded-md bg-surface-lifted px-2.5 py-1 text-xs font-medium text-foreground hover:bg-surface-card border border-hairline transition"
           >
-            Khách hàng 360°
+            Đơn hàng
           </Link>
           <Link
             href="/"

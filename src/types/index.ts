@@ -35,11 +35,14 @@ export type {
   DbClient,
 } from './common';
 
-// Prisma-derived relation types
 export type {
   CustomerWithRelations,
   CustomerEvidenceRecord,
-  CustomerWithDetails,
+  CustomerFullDetail,
+  CustomerFilterParams,
+  CustomerListResponse,
+  CustomerLookupOptions,
+  CustomerUpdateInput,
 } from './customer';
 
 export type {
