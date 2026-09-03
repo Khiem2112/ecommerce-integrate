@@ -6,27 +6,66 @@ export { CustomerContextPanel } from './context/CustomerContextPanel';
 export { AgentWorkspace } from './workspace/AgentWorkspace';
 
 // Master Data Order Components
-export { ConfirmModal } from './ConfirmModal/ConfirmModal';
+export { ConfirmModal, type ConfirmModalProps } from './ConfirmModal/ConfirmModal';
 export { OrderTable } from './Order/OrderTable';
 export { OrderFilterBar } from './Order/OrderFilterBar';
 export { OrderGeneralTab } from './Order/OrderGeneralTab';
 export { OrderItemsTab } from './Order/OrderItemsTab';
 export { OrderStatusHistoryTab } from './Order/OrderStatusHistoryTab';
 export { OrderShippingFinancialTab } from './Order/OrderShippingFinancialTab';
+export {
+  OrderDetailContent,
+  type OrderDetailContentProps,
+  type OrderTabKey,
+} from './Order/OrderDetailContent';
+export {
+  OrderQuickViewModal,
+  type OrderQuickViewModalProps,
+} from './Order/OrderQuickViewModal';
 export { OrderForm } from './OrderForm/OrderForm';
 
 // Order SubModals
-export { UpdateOrderStatusModal } from './Order/SubModals/UpdateOrderStatusModal';
-export { UpdateOrderGeneralModal } from './Order/SubModals/UpdateOrderGeneralModal';
-export { UpdateOrderShippingModal } from './Order/SubModals/UpdateOrderShippingModal';
-export { AddOrderItemModal } from './Order/SubModals/AddOrderItemModal';
+export {
+  UpdateOrderStatusModal,
+  type UpdateOrderStatusModalProps,
+} from './Order/SubModals/UpdateOrderStatusModal';
+export {
+  UpdateOrderGeneralModal,
+  type UpdateOrderGeneralModalProps,
+} from './Order/SubModals/UpdateOrderGeneralModal';
+export {
+  UpdateOrderShippingModal,
+  type UpdateOrderShippingModalProps,
+} from './Order/SubModals/UpdateOrderShippingModal';
+export {
+  AddOrderItemModal,
+  type AddOrderItemModalProps,
+} from './Order/SubModals/AddOrderItemModal';
 
 // Master Data Customer 360 Components
 export { CustomerFilterBar } from './Customer/CustomerFilterBar';
 export { CustomerTable } from './Customer/CustomerTable';
-export { CustomerDossierHeader } from './Customer/CustomerDossierHeader';
+export {
+  CustomerDossierHeader,
+  type CustomerDossierHeaderProps,
+} from './Customer/CustomerDossierHeader';
 export { CustomerMetricsGrid } from './Customer/CustomerMetricsGrid';
-export { CustomerOrdersTab } from './Customer/CustomerOrdersTab';
+export {
+  CustomerOrdersTab,
+  type CustomerOrdersTabProps,
+} from './Customer/CustomerOrdersTab';
 export { CustomerConversationsTab } from './Customer/CustomerConversationsTab';
 export { CustomerEvidencesTab } from './Customer/CustomerEvidencesTab';
-export { UpdateCustomerModal } from './Customer/UpdateCustomerModal';
+export {
+  CustomerDetailContent,
+  type CustomerDetailContentProps,
+  type CustomerTabKey,
+} from './Customer/CustomerDetailContent';
+export {
+  CustomerQuickViewModal,
+  type CustomerQuickViewModalProps,
+} from './Customer/CustomerQuickViewModal';
+export {
+  UpdateCustomerModal,
+  type UpdateCustomerModalProps,
+} from './Customer/UpdateCustomerModal';

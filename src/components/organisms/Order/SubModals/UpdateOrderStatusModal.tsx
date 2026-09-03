@@ -10,6 +10,10 @@ import {
   Input,
   IconButton,
   Autocomplete,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
   type AutocompleteOption,
 } from '@/components/atoms';
 import { ErrorBanner } from '@/components/molecules';
@@ -70,8 +74,6 @@ export function UpdateOrderStatusModal({
     }
   }, [open, order, reset]);
 
-  if (!open) return null;
-
   const handleClose = () => {
     setErrorMessage(null);
     onClose();
@@ -95,16 +97,17 @@ export function UpdateOrderStatusModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-canvas-deep/50 backdrop-blur-xs p-4 animate-in fade-in duration-200"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="w-full max-w-md rounded-xl border border-hairline bg-surface-card p-6 shadow-elevated">
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
+      <DialogContent hideCloseButton className="max-w-md p-6">
         <div className="flex items-center justify-between border-b border-hairline pb-3">
-          <h3 className="text-sm font-semibold text-foreground">
-            Cập nhật trạng thái đơn hàng #{order.platformOrderId}
-          </h3>
+          <div>
+            <DialogTitle className="text-sm font-semibold text-foreground">
+              Cập nhật trạng thái đơn hàng
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted mt-0.5 font-mono">
+              #{order.platformOrderId}
+            </DialogDescription>
+          </div>
           <IconButton
             variant="ghost"
             size="sm"
@@ -194,7 +197,7 @@ export function UpdateOrderStatusModal({
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

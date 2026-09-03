@@ -1,9 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import { IconButton } from '@/components/atoms';
-import { EvidenceFactList, OrderSummaryCard, VipTierBadge } from '@/components/molecules';
-import { ErrorBanner } from '@/components/molecules/ErrorBanner';
-import { useCustomerContext } from '@/hooks/useCustomerContext';
+import { EvidenceFactList, OrderSummaryCard, VipTierBadge, ErrorBanner } from '@/components/molecules';
+import {
+  CustomerQuickViewModal,
+  OrderQuickViewModal,
+} from '@/components/organisms';
+import { useCustomerContext } from '@/hooks';
+import { formatVND } from '@/utils';
 
 type CustomerContextPanelProps = {
   readonly conversationId: number | null;
@@ -11,20 +16,14 @@ type CustomerContextPanelProps = {
   readonly headerHidden?: boolean;
 };
 
-function formatVnd(value: number): string {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 export function CustomerContextPanel({
   conversationId,
   onCollapse,
   headerHidden = false,
 }: CustomerContextPanelProps) {
   const { data: context, isLoading, error, refetch } = useCustomerContext(conversationId);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
 
   if (conversationId === null) {
     return (
@@ -51,9 +50,9 @@ export function CustomerContextPanel({
   const { customer, unresolvedConversationCount, totalConversationCount } =
     context.dossier;
   const metrics = [
-    { label: 'Total spend', value: formatVnd(customer.totalSpend) },
+    { label: 'Total spend', value: formatVND(customer.totalSpend) },
     { label: 'Orders', value: String(customer.orderCount) },
-    { label: 'Avg. order', value: formatVnd(customer.avgOrderValue) },
+    { label: 'Avg. order', value: formatVND(customer.avgOrderValue) },
     {
       label: 'Last order',
       value:
@@ -97,13 +96,29 @@ export function CustomerContextPanel({
         </header>
       )}
       <div className="space-y-4 p-3.5">
-        <section className="rounded-2xl border border-hairline bg-surface-card p-3.5 shadow-xs">
+        <section
+          role="button"
+          tabIndex={0}
+          onClick={() => setSelectedCustomerId(customer.id)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setSelectedCustomerId(customer.id);
+            }
+          }}
+          className="group relative cursor-pointer rounded-2xl border border-hairline bg-surface-card p-3.5 shadow-xs transition hover:border-primary/40 hover:bg-surface-lifted/40 text-left"
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
-                Customer ID
-              </p>
-              <p className="mt-0.5 truncate text-xs font-semibold text-foreground">
+              <div className="flex items-center gap-1.5">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+                  Customer ID
+                </p>
+                <span className="text-[10px] font-medium text-primary opacity-0 transition group-hover:opacity-100">
+                  Xem hồ sơ ↗
+                </span>
+              </div>
+              <p className="mt-0.5 truncate text-xs font-semibold text-foreground group-hover:text-primary">
                 {customer.platformBuyerId}
               </p>
             </div>
@@ -146,12 +161,28 @@ export function CustomerContextPanel({
           </div>
         </section>
 
-        <OrderSummaryCard order={context.turn.linkedOrder} />
+        <OrderSummaryCard
+          order={context.turn.linkedOrder}
+          onViewDetail={(orderId) => setSelectedOrderId(orderId)}
+        />
         <EvidenceFactList
           facts={context.evidence.facts}
           highConfidenceFactCount={context.evidence.highConfidenceFactCount}
         />
       </div>
+
+      {/* Quick View Modals */}
+      <CustomerQuickViewModal
+        open={Boolean(selectedCustomerId)}
+        customerId={selectedCustomerId}
+        onClose={() => setSelectedCustomerId(null)}
+      />
+
+      <OrderQuickViewModal
+        open={Boolean(selectedOrderId)}
+        orderId={selectedOrderId}
+        onClose={() => setSelectedOrderId(null)}
+      />
     </div>
   );
 }
@@ -173,3 +204,4 @@ function ContextSkeleton() {
     </div>
   );
 }
+

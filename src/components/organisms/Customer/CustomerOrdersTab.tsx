@@ -16,9 +16,10 @@ import type { CustomerFullDetail } from '@/types';
 
 export type CustomerOrdersTabProps = {
   readonly customer: CustomerFullDetail;
+  readonly onViewOrder?: (orderId: number) => void;
 };
 
-export function CustomerOrdersTab({ customer }: CustomerOrdersTabProps) {
+export function CustomerOrdersTab({ customer, onViewOrder }: CustomerOrdersTabProps) {
   const orders = customer.orders ?? [];
 
   if (orders.length === 0) {
@@ -71,12 +72,22 @@ export function CustomerOrdersTab({ customer }: CustomerOrdersTabProps) {
                 <TableRow key={order.id} className="hover:bg-surface-lifted/60 transition-colors">
                   {/* Order ID */}
                   <TableCell className="font-mono text-xs font-semibold text-foreground">
-                    <Link
-                      href={`/orders/${order.id}`}
-                      className="hover:underline hover:text-primary transition"
-                    >
-                      #{order.platformOrderId}
-                    </Link>
+                    {onViewOrder ? (
+                      <button
+                        type="button"
+                        onClick={() => onViewOrder(order.id)}
+                        className="font-mono text-xs font-semibold text-foreground hover:underline hover:text-primary transition cursor-pointer"
+                      >
+                        #{order.platformOrderId}
+                      </button>
+                    ) : (
+                      <Link
+                        href={`/orders/${order.id}`}
+                        className="hover:underline hover:text-primary transition"
+                      >
+                        #{order.platformOrderId}
+                      </Link>
+                    )}
                   </TableCell>
 
                   {/* Platform */}
@@ -120,11 +131,22 @@ export function CustomerOrdersTab({ customer }: CustomerOrdersTabProps) {
 
                   {/* Action */}
                   <TableCell className="text-right">
-                    <Link href={`/orders/${order.id}`}>
-                      <Button variant="outline" size="xs">
+                    {onViewOrder ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="xs"
+                        onClick={() => onViewOrder(order.id)}
+                      >
                         Chi tiết đơn
                       </Button>
-                    </Link>
+                    ) : (
+                      <Link href={`/orders/${order.id}`}>
+                        <Button variant="outline" size="xs">
+                          Chi tiết đơn
+                        </Button>
+                      </Link>
+                    )}
                   </TableCell>
                 </TableRow>
               );

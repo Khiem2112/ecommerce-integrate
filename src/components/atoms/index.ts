@@ -25,6 +25,23 @@ export {
 } from './Combobox/Combobox';
 
 export {
+  Dialog,
+  DialogTrigger,
+  DialogPortal,
+  DialogClose,
+  DialogOverlay,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+  type DialogOverlayProps,
+  type DialogContentProps,
+  type DialogTitleProps,
+  type DialogDescriptionProps,
+} from './Dialog';
+
+export {
   IconButton,
   type IconButtonProps,
   type IconButtonVariant,

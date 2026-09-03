@@ -11,11 +11,13 @@ import { cn } from '@/lib/cn';
 export type CustomerDossierHeaderProps = {
   readonly customer: CustomerFullDetail;
   readonly onEdit: () => void;
+  readonly hideBackLink?: boolean;
 };
 
 export function CustomerDossierHeader({
   customer,
   onEdit,
+  hideBackLink = false,
 }: CustomerDossierHeaderProps) {
   const { copy, hasCopied } = useClipboard({ timeout: 1500 });
   const vipScorePct = Math.min(100, Math.max(0, customer.vipScore));
@@ -133,11 +135,13 @@ export function CustomerDossierHeader({
               Chỉnh sửa hồ sơ
             </Button>
 
-            <Link href="/customers">
-              <Button type="button" variant="outline" size="sm">
-                Quay lại
-              </Button>
-            </Link>
+            {!hideBackLink && (
+              <Link href="/customers">
+                <Button type="button" variant="outline" size="sm">
+                  Quay lại
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </div>

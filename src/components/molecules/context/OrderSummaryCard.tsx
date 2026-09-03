@@ -1,12 +1,14 @@
-import { Badge } from '@/components/atoms';
+import { Badge, IconButton } from '@/components/atoms';
 import { formatVND } from '@/utils';
+import { cn } from '@/lib/cn';
 import type { LinkedOrderContext } from '@/types';
 
 type OrderSummaryCardProps = {
   readonly order: LinkedOrderContext | null;
+  readonly onViewDetail?: (orderId: number) => void;
 };
 
-export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
+export function OrderSummaryCard({ order, onViewDetail }: OrderSummaryCardProps) {
   if (!order) {
     return (
       <section>
@@ -26,17 +28,70 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
         <h3 className="text-xs font-bold uppercase tracking-wider text-muted">
           Linked order
         </h3>
-        <Badge
-          variant="info"
-          size="xs"
-          label={order.currentStatus.name}
-        />
+        <div className="flex items-center gap-1.5">
+          <Badge
+            variant="info"
+            size="xs"
+            label={order.currentStatus.name}
+          />
+          {onViewDetail && (
+            <IconButton
+              size="xs"
+              variant="ghost"
+              ariaLabel="Xem chi tiết đơn hàng"
+              tooltip="Xem chi tiết đơn hàng"
+              onClick={() => onViewDetail(order.id)}
+              className="text-muted hover:text-primary"
+              icon={
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="size-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+              }
+            />
+          )}
+        </div>
       </div>
-      <div className="rounded-2xl border border-hairline bg-surface-card p-3.5 shadow-xs">
+      <div
+        role={onViewDetail ? 'button' : undefined}
+        tabIndex={onViewDetail ? 0 : undefined}
+        onClick={onViewDetail ? () => onViewDetail(order.id) : undefined}
+        onKeyDown={
+          onViewDetail
+            ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onViewDetail(order.id);
+              }
+            }
+            : undefined
+        }
+        className={cn(
+          'group relative rounded-2xl border border-hairline bg-surface-card p-3.5 shadow-xs transition text-left',
+          onViewDetail && 'cursor-pointer hover:border-primary/40 hover:bg-surface-lifted/40',
+        )}
+      >
         <div className="flex items-start justify-between gap-2">
-          <p className="truncate font-mono text-xs font-semibold text-foreground">
-            #{order.platformOrderId}
-          </p>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <p className="truncate font-mono text-xs font-semibold text-foreground group-hover:text-primary">
+              #{order.platformOrderId}
+            </p>
+            {onViewDetail && (
+              <span className="shrink-0 text-[10px] font-medium text-primary opacity-0 transition group-hover:opacity-100">
+                Xem chi tiết ↗
+              </span>
+            )}
+          </div>
           <p className="shrink-0 text-xs font-bold text-foreground">
             {formatVND(order.totalValue)}
           </p>

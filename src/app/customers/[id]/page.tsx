@@ -1,22 +1,10 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
+import { use, useEffect } from 'react';
 import Link from 'next/link';
-import { useCustomer, useBreadcrumb, useModalState } from '@/hooks';
+import { useCustomer, useBreadcrumb } from '@/hooks';
 import { Button } from '@/components/atoms';
-import { ErrorBanner } from '@/components/molecules';
-import {
-  CustomerDossierHeader,
-  CustomerMetricsGrid,
-  CustomerOrdersTab,
-  CustomerConversationsTab,
-  CustomerEvidencesTab,
-  UpdateCustomerModal,
-} from '@/components/organisms';
-import { cn } from '@/lib/cn';
-
-type TabKey = 'metrics' | 'orders' | 'conversations' | 'evidence';
-type ModalKey = 'edit';
+import { CustomerDetailContent } from '@/components/organisms';
 
 export default function CustomerDetailPage({
   params,
@@ -25,9 +13,6 @@ export default function CustomerDetailPage({
 }) {
   const resolvedParams = use(params);
   const customerId = Number(resolvedParams.id);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabKey>('metrics');
-  const { isOpen, open, close } = useModalState<ModalKey>();
 
   const { data: customer, isLoading, error } = useCustomer(customerId);
 
@@ -78,69 +63,5 @@ export default function CustomerDetailPage({
     );
   }
 
-  const tabs: readonly { readonly key: TabKey; readonly label: string; readonly count?: number }[] = [
-    { key: 'metrics', label: 'Chỉ số RFM & Sở thích' },
-    { key: 'orders', label: 'Đơn hàng đã mua', count: customer.orders?.length ?? 0 },
-    { key: 'conversations', label: 'Lịch sử hội thoại', count: customer.conversations?.length ?? 0 },
-    { key: 'evidence', label: 'RAG Evidence Facts', count: customer.evidences?.length ?? 0 },
-  ];
-
-  return (
-    <div className="space-y-6">
-      {errorMessage && (
-        <ErrorBanner
-          message={errorMessage}
-          onDismiss={() => setErrorMessage(null)}
-        />
-      )}
-
-      {/* Hero Dossier Header */}
-      <CustomerDossierHeader
-        customer={customer}
-        onEdit={() => open('edit')}
-      />
-
-      {/* Tabs Navigation */}
-      <div className="border-b border-hairline">
-        <nav className="flex space-x-6">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                'pb-3 text-xs font-semibold transition-all border-b-2 cursor-pointer',
-                activeTab === tab.key
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted hover:text-foreground',
-              )}
-            >
-              {tab.label}
-              {tab.count !== undefined && (
-                <span className="ml-1.5 rounded-full bg-surface-lifted px-1.5 py-0.5 text-xs text-muted">
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Tab Panels */}
-      <div>
-        {activeTab === 'metrics' && <CustomerMetricsGrid customer={customer} />}
-        {activeTab === 'orders' && <CustomerOrdersTab customer={customer} />}
-        {activeTab === 'conversations' && <CustomerConversationsTab customer={customer} />}
-        {activeTab === 'evidence' && <CustomerEvidencesTab customer={customer} />}
-      </div>
-
-      {/* Edit Customer Modal */}
-      <UpdateCustomerModal
-        open={isOpen('edit')}
-        customer={customer}
-        onClose={() => close('edit')}
-        onSaveSuccess={() => close('edit')}
-      />
-    </div>
-  );
+  return <CustomerDetailContent customer={customer} />;
 }

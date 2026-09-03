@@ -1,7 +1,13 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { Button } from '@/components/atoms';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  Button,
+} from '@/components/atoms';
 
 export type ConfirmModalProps = {
   readonly open: boolean;
@@ -26,15 +32,9 @@ export function ConfirmModal({
   onConfirm,
   onClose,
 }: ConfirmModalProps) {
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-canvas-deep/50 backdrop-blur-xs p-4 animate-in fade-in duration-200"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="w-full max-w-md rounded-xl border border-hairline bg-surface-card p-6 shadow-elevated transition-all">
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent hideCloseButton className="max-w-md p-6">
         <div className="flex items-start gap-3">
           {isDestructive && (
             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-semantic-error/10 text-semantic-error">
@@ -44,9 +44,15 @@ export function ConfirmModal({
             </div>
           )}
           <div className="flex-1">
-            <h3 className="text-base font-semibold text-foreground">{title}</h3>
+            <DialogTitle className="text-base font-semibold text-foreground">
+              {title}
+            </DialogTitle>
             {description && (
-              <div className="mt-2 text-xs leading-relaxed text-muted">{description}</div>
+              <DialogDescription asChild>
+                <div className="mt-2 text-xs leading-relaxed text-muted">
+                  {description}
+                </div>
+              </DialogDescription>
             )}
           </div>
         </div>
@@ -71,7 +77,7 @@ export function ConfirmModal({
             {isLoading ? 'Đang xử lý...' : confirmLabel}
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

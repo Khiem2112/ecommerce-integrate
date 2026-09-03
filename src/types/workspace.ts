@@ -45,6 +45,7 @@ export type ConversationDetail = ConversationSummary & {
 };
 
 export type LinkedOrderContext = {
+  readonly id: number;
   readonly platformOrderId: string;
   readonly totalValue: number;
   readonly discountAmount: number;
@@ -75,6 +76,7 @@ export type CustomerContext = {
   };
   readonly dossier: {
     readonly customer: {
+      readonly id: number;
       readonly platformBuyerId: string;
       readonly vipScore: number;
       readonly totalSpend: number;
