@@ -45,6 +45,8 @@ export type ExternalOrder = {
   readonly updatedAt: Date;
   readonly buyer: ExternalCustomer;
   readonly items: readonly ExternalOrderItem[];
+  readonly itemsComplete?: boolean;
+  readonly itemsError?: string;
   readonly rawPayload?: Record<string, unknown>;
 };
 
@@ -90,6 +92,8 @@ export type IntegrationSummary = {
 export type SyncRecordError = {
   readonly externalOrderId: string;
   readonly message: string;
+  readonly entityType?: 'order' | 'order_item' | 'global';
+  readonly errorCode?: string;
 };
 
 export type SyncResult = {
@@ -116,6 +120,15 @@ export type SyncRunLog = {
   readonly startedAt: string;
   readonly completedAt: string;
   readonly durationMs: number;
+};
+
+export type PreflightSyncResult = {
+  readonly totalCount: number;
+  readonly dateRange?: {
+    readonly from?: string;
+    readonly to?: string;
+  };
+  readonly status?: string;
 };
 
 export type ChannelConnector = {

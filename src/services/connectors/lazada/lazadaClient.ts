@@ -45,6 +45,12 @@ export class LazadaSignatureError extends LazadaApiError {
   }
 }
 
+export type RequestOptions = {
+  readonly headers?: Record<string, string>;
+  readonly timeoutMs?: number;
+  readonly maxRetries?: number;
+};
+
 export type LazadaClientConfig = {
   readonly baseUrl?: string;
   readonly appKey?: string;
@@ -127,7 +133,7 @@ export class LazadaClient {
   public async get<T>(
     apiPath: string,
     params: Record<string, unknown> = {},
-    options?: { headers?: Record<string, string> },
+    options?: RequestOptions,
   ): Promise<T> {
     const { signPath, fetchPath } = this.normalizePath(apiPath);
 
@@ -151,13 +157,18 @@ export class LazadaClient {
       url.searchParams.append(k, v);
     }
 
-    return this.executeWithRetry<T>(url.toString(), {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        ...(options?.headers ?? {}),
+    return this.executeWithRetry<T>(
+      url.toString(),
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          ...(options?.headers ?? {}),
+        },
       },
-    });
+      options?.timeoutMs,
+      options?.maxRetries,
+    );
   }
 
   /**
@@ -166,7 +177,7 @@ export class LazadaClient {
   public async post<T>(
     apiPath: string,
     params: Record<string, unknown> = {},
-    options?: { headers?: Record<string, string> },
+    options?: RequestOptions,
   ): Promise<T> {
     const { signPath, fetchPath } = this.normalizePath(apiPath);
 
@@ -191,15 +202,20 @@ export class LazadaClient {
       formBody.append(k, v);
     }
 
-    return this.executeWithRetry<T>(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
-        Accept: 'application/json',
-        ...(options?.headers ?? {}),
+    return this.executeWithRetry<T>(
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+          Accept: 'application/json',
+          ...(options?.headers ?? {}),
+        },
+        body: formBody.toString(),
       },
-      body: formBody.toString(),
-    });
+      options?.timeoutMs,
+      options?.maxRetries,
+    );
   }
 
   /**
@@ -209,7 +225,7 @@ export class LazadaClient {
     method: 'GET' | 'POST',
     apiPath: string,
     params: Record<string, unknown> = {},
-    options?: { headers?: Record<string, string> },
+    options?: RequestOptions,
   ): Promise<T> {
     if (method === 'POST') {
       return this.post<T>(apiPath, params, options);
@@ -220,12 +236,19 @@ export class LazadaClient {
   /**
    * Internal request executor with Exponential Backoff and Error taxonomy.
    */
-  private async executeWithRetry<T>(url: string, requestInit: RequestInit): Promise<T> {
+  private async executeWithRetry<T>(
+    url: string,
+    requestInit: RequestInit,
+    customTimeoutMs?: number,
+    customMaxRetries?: number,
+  ): Promise<T> {
+    const effectiveTimeoutMs = customTimeoutMs ?? this.timeoutMs;
+    const effectiveMaxRetries = customMaxRetries ?? this.maxRetries;
     let lastError: Error | null = null;
 
-    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+    for (let attempt = 0; attempt <= effectiveMaxRetries; attempt++) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+      const timeoutId = setTimeout(() => controller.abort(), effectiveTimeoutMs);
 
       try {
         const response = await fetch(url, {
@@ -236,7 +259,7 @@ export class LazadaClient {
         clearTimeout(timeoutId);
 
         // Handle rate limiting (429)
-        if (response.status === 429 && attempt < this.maxRetries) {
+        if (response.status === 429 && attempt < effectiveMaxRetries) {
           const backoffMs = Math.min(3000, 300 * Math.pow(2, attempt) + Math.random() * 100);
           await new Promise((resolve) => setTimeout(resolve, backoffMs));
           continue;
@@ -275,7 +298,7 @@ export class LazadaClient {
           lastError = err;
         } else if (err instanceof Error) {
           if (err.name === 'AbortError') {
-            lastError = new LazadaNetworkError(`Quá thời gian kết nối sau ${this.timeoutMs}ms (Timeout)`);
+            lastError = new LazadaNetworkError(`Quá thời gian kết nối sau ${effectiveTimeoutMs}ms (Timeout)`);
           } else {
             lastError = new LazadaNetworkError(`Lỗi kết nối mạng: ${err.message}`, err);
           }
@@ -284,7 +307,7 @@ export class LazadaClient {
         }
 
         // Retry on transient network errors
-        if (attempt < this.maxRetries) {
+        if (attempt < effectiveMaxRetries) {
           const backoffMs = Math.min(3000, 200 * Math.pow(2, attempt) + Math.random() * 50);
           await new Promise((resolve) => setTimeout(resolve, backoffMs));
         }

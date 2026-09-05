@@ -75,6 +75,7 @@ export function mapLazadaOrderToExternal(raw: LazadaOrderDTO): ExternalOrder {
   const externalOrderId = String(raw.order_id);
   const status = raw.statuses && raw.statuses.length > 0 ? raw.statuses[0] : 'pending';
   const buyer = mapLazadaBuyerToExternal(raw);
+  const hasItems = Array.isArray(raw.items);
   const items = (raw.items ?? []).map((it) => mapLazadaItemToExternal(it, externalOrderId));
 
   return {
@@ -91,6 +92,7 @@ export function mapLazadaOrderToExternal(raw: LazadaOrderDTO): ExternalOrder {
     updatedAt: raw.updated_at ? new Date(raw.updated_at) : new Date(),
     buyer,
     items,
+    itemsComplete: hasItems,
     rawPayload: raw as unknown as Record<string, unknown>,
   };
 }
@@ -108,11 +110,17 @@ export class LazadaConnector implements ChannelConnector {
 
   /**
    * Health check: Probes the `/orders/get` endpoint with limit=1 to verify connection and signature.
+   * Enforces created_after parameter required by Lazada API and uses fast fail timeout (3000ms, 0 retries).
    */
   public async getConnectionHealth(): Promise<ConnectionHealth> {
     const start = Date.now();
     try {
-      await this.client.get<LazadaOrdersGetResponse>('/orders/get', { limit: 1 });
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      await this.client.get<LazadaOrdersGetResponse>(
+        '/orders/get',
+        { limit: 1, created_after: thirtyDaysAgo },
+        { timeoutMs: 3000, maxRetries: 0 },
+      );
       return {
         status: 'connected',
         latencyMs: Date.now() - start,
@@ -164,6 +172,11 @@ export class LazadaConnector implements ChannelConnector {
 
     if (params.seed) {
       queryParams.seed = params.seed;
+    }
+
+    // Default fallback to past 90 days if neither created_after nor update_after is specified (Lazada requirement)
+    if (!queryParams.created_after && !queryParams.update_after) {
+      queryParams.created_after = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
     }
 
     const rawData = await this.client.get<LazadaOrdersGetResponse>('/orders/get', queryParams);

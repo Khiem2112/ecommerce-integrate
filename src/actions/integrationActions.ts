@@ -13,6 +13,7 @@ import type {
   IntegrationSummary,
   SyncResult,
   SyncRunLog,
+  PreflightSyncResult,
   FetchOrdersParams,
   ExternalOrder,
   SeedProfile,
@@ -20,6 +21,7 @@ import type {
 } from '@/types';
 import {
   syncOrdersFromLazadaService,
+  preflightLazadaSyncService,
   refreshOrderFromLazadaService,
   getIntegrationSummaryService,
   getSyncLogsHistoryService,
@@ -136,6 +138,29 @@ export async function syncLazadaOrdersAction(
 }
 
 /**
+ * Preflight Discovery — probes order count in selected date range.
+ */
+export async function preflightLazadaSyncAction(
+  rawParams: unknown = {},
+): Promise<ActionResponse<PreflightSyncResult>> {
+  try {
+    const parsed = syncParamsSchema.safeParse(rawParams);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message ?? 'Tham số lọc ngày không hợp lệ.',
+      };
+    }
+
+    const result = await preflightLazadaSyncService(parsed.data);
+    return { success: true, data: result };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Không thể thăm dò số lượng đơn hàng.';
+    return { success: false, error: message };
+  }
+}
+
+/**
  * Server Action: Refresh a single order from Lazada authoritative source.
  */
 export async function refreshOrderFromLazadaAction(
@@ -162,7 +187,7 @@ export async function refreshOrderFromLazadaAction(
  */
 export async function getSyncLogsHistoryAction(): Promise<ActionResponse<readonly SyncRunLog[]>> {
   try {
-    const logs = getSyncLogsHistoryService();
+    const logs = await getSyncLogsHistoryService();
     return { success: true, data: logs };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Không thể lấy lịch sử đồng bộ.';

@@ -33,6 +33,7 @@ model PlatformCatalog {
   customers    Customer[]
   orders       Order[]
   conversations Conversation[]
+  syncBatches  SyncBatch[]
 
   @@map("platform_catalog")
 }
@@ -332,22 +333,24 @@ model OrderStatusHistory {
 }
 
 model OrderItem {
-  id          Int      @id @default(autoincrement())
-  orderId     Int
-  order       Order    @relation(fields: [orderId], references: [id])
-  productId   String              // Platform product ID
-  sku         String?             // Seller SKU
-  productName String
-  categoryId  Int?
-  category    CategoryCatalog? @relation(fields: [categoryId], references: [id])
-  quantity    Int
-  unitPrice   Float
-  discount    Float    @default(0)
+  id           Int      @id @default(autoincrement())
+  orderId      Int
+  order        Order    @relation(fields: [orderId], references: [id])
+  externalItemId String?           // Platform order item ID (e.g. Lazada order_item_id)
+  productId    String              // Platform product ID
+  sku          String?             // Seller SKU
+  productName  String
+  categoryId   Int?
+  category     CategoryCatalog? @relation(fields: [categoryId], references: [id])
+  quantity     Int
+  unitPrice    Float
+  discount     Float    @default(0)
   refundAmount Float   @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
 
+  @@unique([orderId, externalItemId])
   @@map("order_item")
 }
 
@@ -541,3 +544,84 @@ model RoutingDecision {
 
   @@map("routing_decision")
 }
+
+// ============================================================
+// SYNC PREVIEW & BATCH PERSISTENCE — Job State & Run Errors
+// ============================================================
+
+/// Tracks a sync or preview batch execution
+model SyncBatch {
+  id                   Int             @id @default(autoincrement())
+  batchCode            String          @unique
+  platformId           Int
+  platform             PlatformCatalog @relation(fields: [platformId], references: [id])
+  operationType        String          @default("apply") // "preview" | "apply"
+  status               String          @default("queued") // "queued" | "running" | "completed" | "partial" | "failed" | "cancelled"
+  scope                Json?           // JSON scope/filter parameters
+  totalOrders          Int             @default(0)
+  createdCount         Int             @default(0)
+  updatedCount         Int             @default(0)
+  unchangedCount       Int             @default(0)
+  failedCount          Int             @default(0)
+  startedAt            DateTime        @default(now())
+  completedAt          DateTime?
+  durationMs           Int?
+  sourcePreviewBatchId Int?
+  sourcePreviewBatch   SyncBatch?      @relation("PreviewToApplyBatch", fields: [sourcePreviewBatchId], references: [id])
+  applyBatches         SyncBatch[]     @relation("PreviewToApplyBatch")
+  errorMessage         String?         @db.Text
+  isActive             Boolean         @default(true)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @default(now()) @updatedAt
+
+  operations           SyncOperation[]
+  errors               SyncRunError[]
+
+  @@index([platformId, createdAt])
+  @@index([status])
+  @@map("sync_batch")
+}
+
+/// Work unit per entity type within a sync batch
+model SyncOperation {
+  id             Int            @id @default(autoincrement())
+  batchId        Int
+  batch          SyncBatch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  entityType     String         // "order" | "order_item"
+  status         String         @default("queued") // "queued" | "running" | "completed" | "partial" | "failed" | "cancelled"
+  totalCount     Int            @default(0)
+  processedCount Int            @default(0)
+  successCount   Int            @default(0)
+  failedCount    Int            @default(0)
+  startedAt      DateTime       @default(now())
+  completedAt    DateTime?
+  errorMessage   String?        @db.Text
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @default(now()) @updatedAt
+
+  errors         SyncRunError[]
+
+  @@index([batchId, entityType])
+  @@map("sync_operation")
+}
+
+/// Detailed error record for a failed order, item, or global execution
+model SyncRunError {
+  id           Int            @id @default(autoincrement())
+  batchId      Int
+  batch        SyncBatch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  operationId  Int?
+  operation    SyncOperation? @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  entityType   String         // "order" | "order_item" | "global"
+  externalId   String?        // externalOrderId or externalItemId
+  errorCode    String?
+  errorMessage String         @db.Text
+  errorDetails Json?
+  createdAt    DateTime       @default(now())
+
+  @@index([batchId])
+  @@index([operationId])
+  @@map("sync_run_error")
+}
+

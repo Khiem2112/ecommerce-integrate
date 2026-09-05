@@ -25,6 +25,17 @@ export {
 } from './Combobox/Combobox';
 
 export {
+  DatePicker,
+  DateRangePicker,
+  formatDateToISO,
+  formatDateDisplay,
+  type DatePickerProps,
+  type DateRangePickerProps,
+  type DateRangeValue,
+  type DateRangePreset,
+} from './DatePicker/DatePicker';
+
+export {
   Dialog,
   DialogTrigger,
   DialogPortal,

@@ -5,13 +5,21 @@
  * 4 Tabs: Tổng quan, Đồng bộ, Thông tin xác thực, Nhật ký
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useBreadcrumb, useIntegrationSummary, useCheckConnectionHealth, useSyncLazadaOrders, useMockSeeds } from '@/hooks';
+import {
+  useBreadcrumb,
+  useIntegrationSummary,
+  useCheckConnectionHealth,
+  useSyncLazadaOrders,
+  usePreflightLazadaSync,
+  useDebounce,
+} from '@/hooks';
 import {
   Badge,
   Button,
   Select,
+  DateRangePicker,
   Table,
   TableHeader,
   TableBody,
@@ -25,16 +33,37 @@ import type { SyncResult, FetchOrdersParams } from '@/types';
 
 type LazadaTabKey = 'overview' | 'sync' | 'credentials' | 'logs';
 
+const formatDateToInput = (d: Date): string => d.toISOString().split('T')[0];
+
+const getPresetDates = (days: number) => {
+  const end = new Date();
+  const start = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  return {
+    from: formatDateToInput(start),
+    to: formatDateToInput(end),
+  };
+};
+
 export default function LazadaIntegrationDetailPage() {
   const { setBreadcrumb } = useBreadcrumb();
   const [activeTab, setActiveTab] = useState<LazadaTabKey>('overview');
 
-  // Sync Form State
+  // Sync Form State (Date Range & Filters)
+  const initialPreset = getPresetDates(30);
+  const [fromDate, setFromDate] = useState<string>(initialPreset.from);
+  const [toDate, setToDate] = useState<string>(initialPreset.to);
   const [statusFilter, setStatusFilter] = useState<string>('');
-  const [pageSize, setPageSize] = useState<number>(50);
-  const [seed, setSeed] = useState<string>('default');
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+
+  // Debounced params for Preflight
+  const syncParams = useMemo<FetchOrdersParams>(() => ({
+    createdAfter: fromDate ? new Date(`${fromDate}T00:00:00Z`) : undefined,
+    createdBefore: toDate ? new Date(`${toDate}T23:59:59.999Z`) : undefined,
+    ...(statusFilter ? { status: statusFilter } : {}),
+  }), [fromDate, toDate, statusFilter]);
+
+  const debouncedParams = useDebounce(syncParams, 400);
 
   useEffect(() => {
     setBreadcrumb([
@@ -47,15 +76,24 @@ export default function LazadaIntegrationDetailPage() {
   const { data: summary, isLoading: isLoadingSummary } = useIntegrationSummary('lazada');
   const { mutateAsync: checkHealth, isPending: isCheckingHealth } = useCheckConnectionHealth('lazada');
   const { mutateAsync: syncOrders, isPending: isSyncing } = useSyncLazadaOrders();
-  const { data: seeds } = useMockSeeds();
+  const { data: preflightData, isLoading: isPreflightLoading } = usePreflightLazadaSync(debouncedParams, activeTab === 'sync');
 
   const handleRunSync = async () => {
     setSyncError(null);
+    if (!fromDate || !toDate) {
+      setSyncError('Vui lòng chọn khoảng thời gian hợp lệ.');
+      return;
+    }
+    if (new Date(fromDate) > new Date(toDate)) {
+      setSyncError('Ngày bắt đầu không được lớn hơn ngày kết thúc.');
+      return;
+    }
+
     try {
       const params: FetchOrdersParams = {
-        pageSize,
+        createdAfter: new Date(`${fromDate}T00:00:00Z`),
+        createdBefore: new Date(`${toDate}T23:59:59.999Z`),
         ...(statusFilter ? { status: statusFilter } : {}),
-        ...(seed ? { seed } : {}),
       };
       const res = await syncOrders(params);
       setSyncResult(res);
@@ -267,31 +305,26 @@ export default function LazadaIntegrationDetailPage() {
             <div>
               <h3 className="text-base font-bold text-foreground">Kích hoạt đồng bộ đơn hàng</h3>
               <p className="text-xs text-muted mt-0.5">
-                Thiết lập bộ lọc và kéo dữ liệu mới nhất từ Lazada vào cơ sở dữ liệu hệ thống.
+                Thiết lập khoảng thời gian và kéo dữ liệu đơn hàng authoritative từ Lazada vào hệ thống.
               </p>
             </div>
 
             <div className="space-y-4 text-xs">
-              {/* Seed Dataset selector */}
-              {seeds && seeds.length > 0 && (
-                <div className="space-y-1.5">
-                  <label htmlFor="seed-tab-select" className="font-semibold text-foreground flex items-center justify-between">
-                    <span>Bộ dữ liệu Mock Server (Seed Dataset)</span>
-                    <Badge variant="teal" size="xs">Mock Mode</Badge>
-                  </label>
-                  <Select
-                    id="seed-tab-select"
-                    value={seed}
-                    onChange={(e) => setSeed(e.target.value)}
-                  >
-                    {seeds.map((s) => (
-                      <option key={s.key} value={s.key}>
-                        {s.name} ({s.orderCount} đơn) — {s.description}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-              )}
+              {/* Date Range Picker */}
+              <div className="space-y-1.5">
+                <label className="font-semibold text-foreground">
+                  Khoảng thời gian đồng bộ
+                </label>
+                <DateRangePicker
+                  from={fromDate}
+                  to={toDate}
+                  onChange={({ from, to }) => {
+                    setFromDate(from);
+                    setToDate(to);
+                  }}
+                  placeholder="Chọn khoảng thời gian…"
+                />
+              </div>
 
               {/* Status Filter */}
               <div className="space-y-1.5">
@@ -313,26 +346,27 @@ export default function LazadaIntegrationDetailPage() {
                 </Select>
               </div>
 
-              {/* Page size limit */}
-              <div className="space-y-1.5">
-                <label htmlFor="limit-tab-select" className="font-semibold text-foreground">
-                  Giới hạn số lượng đơn hàng mỗi đợt
-                </label>
-                <Select
-                  id="limit-tab-select"
-                  value={pageSize}
-                  onChange={(e) => setPageSize(Number(e.target.value))}
-                >
-                  <option value={20}>20 đơn hàng</option>
-                  <option value={50}>50 đơn hàng (Khuyến nghị)</option>
-                  <option value={100}>100 đơn hàng</option>
-                </Select>
+              {/* Preflight Discovery Banner */}
+              <div className="rounded-xl border border-hairline bg-surface-lifted/60 p-3.5 flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <span className="text-[11px] text-muted block">Ước tính số đơn trên sàn Lazada:</span>
+                  {isPreflightLoading ? (
+                    <span className="text-xs text-muted animate-pulse font-medium">Đang thăm dò dữ liệu sàn...</span>
+                  ) : (
+                    <span className="text-sm font-bold font-mono text-foreground">
+                      ~{preflightData?.totalCount ?? 0} đơn hàng
+                    </span>
+                  )}
+                </div>
+                <Badge variant="teal" size="sm">
+                  Khám phá tự động
+                </Badge>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-hairline flex items-center justify-between">
+            <div className="pt-3 border-t border-hairline flex flex-wrap items-center justify-between gap-3">
               <span className="text-[11px] text-muted">
-                Tiến trình chạy tự động qua Server Action & Prisma Transaction
+                Tiến trình đối soát idempotent tự động qua Server Action & Prisma Transaction
               </span>
 
               <Button

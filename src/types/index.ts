@@ -27,6 +27,9 @@ export type {
   MessageType,
   AiDraftResponse,
   AiDraftStrategy,
+  SyncBatch,
+  SyncOperation,
+  SyncRunError,
 } from '@prisma/client';
 
 // Common cross-layer utility types
@@ -129,6 +132,7 @@ export type {
   SyncRecordError,
   SyncResult,
   SyncRunLog,
+  PreflightSyncResult,
   ChannelConnector,
 } from './connector';
 

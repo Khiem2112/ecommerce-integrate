@@ -9,15 +9,17 @@ import {
   getIntegrationSummaryAction,
   checkConnectionHealthAction,
   syncLazadaOrdersAction,
+  preflightLazadaSyncAction,
   refreshOrderFromLazadaAction,
   getSyncLogsHistoryAction,
   getMockSeedsAction,
 } from '@/actions';
-import type { FetchOrdersParams, IntegrationSummary, ConnectionHealth, SyncResult, SeedProfile } from '@/types';
+import type { FetchOrdersParams, IntegrationSummary, ConnectionHealth, SyncResult, PreflightSyncResult, SeedProfile } from '@/types';
 
 export const INTEGRATION_QUERY_KEYS = {
   summary: (platform: string) => ['integrations', 'summary', platform] as const,
   health: (platform: string) => ['integrations', 'health', platform] as const,
+  preflight: (params: FetchOrdersParams) => ['integrations', 'preflight', params] as const,
   history: () => ['integrations', 'history'] as const,
   seeds: () => ['integrations', 'seeds'] as const,
 };
@@ -91,6 +93,24 @@ export function useSyncLazadaOrders() {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
     },
+  });
+}
+
+/**
+ * Phase 1.25 Hook: Preflight query to probe order count in selected date range.
+ */
+export function usePreflightLazadaSync(params: FetchOrdersParams, enabled: boolean = true) {
+  return useQuery({
+    queryKey: INTEGRATION_QUERY_KEYS.preflight(params),
+    queryFn: async (): Promise<PreflightSyncResult> => {
+      const res = await preflightLazadaSyncAction(params);
+      if (!res.success || !res.data) {
+        throw new Error(res.error ?? 'Không thể thăm dò đơn hàng.');
+      }
+      return res.data;
+    },
+    enabled: enabled && Boolean(params.createdAfter || params.createdBefore || params.status),
+    staleTime: 30000,
   });
 }
 

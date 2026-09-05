@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * Modal to configure and execute batch synchronization of orders from Lazada.
+ * Modal to configure and execute batch synchronization of orders from Lazada by Date Range.
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -14,8 +14,10 @@ import {
   DialogFooter,
   Button,
   Select,
+  DateRangePicker,
+  Badge,
 } from '@/components/atoms';
-import { useSyncLazadaOrders, useMockSeeds } from '@/hooks';
+import { useSyncLazadaOrders, usePreflightLazadaSync, useDebounce } from '@/hooks';
 import type { FetchOrdersParams, SyncResult } from '@/types';
 
 export type SyncRunModalProps = {
@@ -24,22 +26,53 @@ export type SyncRunModalProps = {
   readonly onSyncComplete?: (result: SyncResult) => void;
 };
 
+const formatDateToInput = (d: Date): string => d.toISOString().split('T')[0];
+
+const getInitialDates = (days: number) => {
+  const end = new Date();
+  const start = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  return {
+    from: formatDateToInput(start),
+    to: formatDateToInput(end),
+  };
+};
+
 export function SyncRunModal({ open, onClose, onSyncComplete }: SyncRunModalProps) {
+  const initialRange = getInitialDates(30);
+  const [fromDate, setFromDate] = useState<string>(initialRange.from);
+  const [toDate, setToDate] = useState<string>(initialRange.to);
   const [status, setStatus] = useState<string>('');
-  const [pageSize, setPageSize] = useState<number>(50);
-  const [seed, setSeed] = useState<string>('default');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const { data: seeds } = useMockSeeds();
+  // Debounced params for preflight discovery count
+  const syncParams = useMemo<FetchOrdersParams>(() => ({
+    createdAfter: fromDate ? new Date(`${fromDate}T00:00:00Z`) : undefined,
+    createdBefore: toDate ? new Date(`${toDate}T23:59:59.999Z`) : undefined,
+    ...(status ? { status } : {}),
+  }), [fromDate, toDate, status]);
+
+  const debouncedParams = useDebounce(syncParams, 400);
+
+  const { data: preflightData, isLoading: isPreflightLoading } = usePreflightLazadaSync(debouncedParams, open);
   const { mutateAsync: syncOrders, isPending: isSyncing } = useSyncLazadaOrders();
 
   const handleStartSync = async () => {
     setErrorMsg(null);
+    if (!fromDate || !toDate) {
+      setErrorMsg('Vui lòng chọn khoảng thời gian hợp lệ.');
+      return;
+    }
+
+    if (new Date(fromDate) > new Date(toDate)) {
+      setErrorMsg('Ngày bắt đầu không được lớn hơn ngày kết thúc.');
+      return;
+    }
+
     try {
       const params: FetchOrdersParams = {
-        pageSize,
+        createdAfter: new Date(`${fromDate}T00:00:00Z`),
+        createdBefore: new Date(`${toDate}T23:59:59.999Z`),
         ...(status ? { status } : {}),
-        ...(seed ? { seed } : {}),
       };
 
       const result = await syncOrders(params);
@@ -57,15 +90,13 @@ export function SyncRunModal({ open, onClose, onSyncComplete }: SyncRunModalProp
       <DialogContent className="max-w-md p-6 space-y-5">
         <DialogHeader>
           <div className="flex items-center gap-2.5 mb-1">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-surface-lifted border border-hairline text-foreground">
-              <svg aria-hidden="true" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-              </svg>
+            <div className="flex size-7 items-center justify-center rounded-lg bg-channel-lazada-soft border border-channel-lazada-border text-channel-lazada font-bold text-xs shadow-xs">
+              <span>LAZ</span>
             </div>
             <DialogTitle>Đồng Bộ Đơn Hàng Lazada</DialogTitle>
           </div>
           <DialogDescription>
-            Kéo dữ liệu đơn hàng từ máy chủ Lazada / Mock Server và đồng bộ vào kho dữ liệu hệ thống.
+            Đồng bộ đơn hàng từ Lazada vào kho dữ liệu hệ thống theo khoảng thời gian được chọn.
           </DialogDescription>
         </DialogHeader>
 
@@ -76,31 +107,26 @@ export function SyncRunModal({ open, onClose, onSyncComplete }: SyncRunModalProp
         )}
 
         <div className="space-y-4 text-xs">
-          {/* Mock Seed Dataset Selector */}
-          {seeds && seeds.length > 0 && (
-            <div className="space-y-1.5">
-              <label htmlFor="seed-select" className="font-semibold text-foreground flex items-center justify-between">
-                <span>Bộ dữ liệu Mock Test (Seed)</span>
-                <span className="text-[10px] text-muted font-normal">Chế độ Mock Server</span>
-              </label>
-              <Select
-                id="seed-select"
-                value={seed}
-                onChange={(e) => setSeed(e.target.value)}
-              >
-                {seeds.map((s) => (
-                  <option key={s.key} value={s.key}>
-                    {s.name} ({s.orderCount} đơn) — {s.description}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          )}
+          {/* Date Range Picker */}
+          <div className="space-y-1.5">
+            <label className="font-semibold text-foreground">
+              Khoảng thời gian đồng bộ
+            </label>
+            <DateRangePicker
+              from={fromDate}
+              to={toDate}
+              onChange={({ from, to }) => {
+                setFromDate(from);
+                setToDate(to);
+              }}
+              placeholder="Chọn khoảng thời gian…"
+            />
+          </div>
 
           {/* Status Filter */}
           <div className="space-y-1.5">
             <label htmlFor="status-select" className="font-semibold text-foreground">
-              Lọc theo trạng thái đơn sàn
+              Lọc theo trạng thái đơn hàng
             </label>
             <Select
               id="status-select"
@@ -117,20 +143,21 @@ export function SyncRunModal({ open, onClose, onSyncComplete }: SyncRunModalProp
             </Select>
           </div>
 
-          {/* Page Limit */}
-          <div className="space-y-1.5">
-            <label htmlFor="limit-select" className="font-semibold text-foreground">
-              Số lượng đơn tối đa mỗi đợt
-            </label>
-            <Select
-              id="limit-select"
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-            >
-              <option value={20}>20 đơn hàng</option>
-              <option value={50}>50 đơn hàng (Khuyến nghị)</option>
-              <option value={100}>100 đơn hàng</option>
-            </Select>
+          {/* Preflight Discovery Banner */}
+          <div className="rounded-xl border border-hairline bg-surface-lifted/60 p-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted">Ước tính số đơn trên sàn:</span>
+              {isPreflightLoading ? (
+                <span className="text-xs text-muted animate-pulse font-medium">Đang kiểm tra...</span>
+              ) : (
+                <span className="text-xs font-bold font-mono text-foreground">
+                  ~{preflightData?.totalCount ?? 0} đơn hàng
+                </span>
+              )}
+            </div>
+            <Badge variant="teal" size="xs">
+              Khám phá tự động
+            </Badge>
           </div>
         </div>
 
@@ -161,3 +188,4 @@ export function SyncRunModal({ open, onClose, onSyncComplete }: SyncRunModalProp
     </Dialog>
   );
 }
+
