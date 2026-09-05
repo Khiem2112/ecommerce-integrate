@@ -116,3 +116,30 @@ export type {
   RejectAiDraftInput,
 } from './aiDraft';
 
+// Channel Connector & Integration types
+export type {
+  PlatformCode,
+  ExternalOrderItem,
+  ExternalCustomer,
+  ExternalOrder,
+  ExternalOrderPage,
+  FetchOrdersParams,
+  ConnectionHealth,
+  IntegrationSummary,
+  SyncRecordError,
+  SyncResult,
+  SyncRunLog,
+  ChannelConnector,
+} from './connector';
+
+export type {
+  LazadaOrderStatus,
+  LazadaAddressDTO,
+  LazadaOrderItemDTO,
+  LazadaOrderDTO,
+  LazadaApiResponse,
+  LazadaOrdersGetResponse,
+  SeedKey,
+  SeedProfile,
+} from './lazada';
+

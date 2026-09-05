@@ -59,6 +59,17 @@
   --badge-cyan: #0891b2;
   --badge-cyan-text: #155e75;
 
+  /* Marketplace Channel Tokens */
+  --channel-lazada: #0F146D;
+  --channel-lazada-soft: rgba(15, 20, 109, 0.08);
+  --channel-lazada-border: rgba(15, 20, 109, 0.15);
+  --channel-shopify: #5E8E3E;
+  --channel-shopify-soft: rgba(149, 191, 71, 0.1);
+  --channel-shopify-border: rgba(149, 191, 71, 0.2);
+  --channel-tiktok: #0c0a09;
+  --channel-tiktok-soft: rgba(12, 10, 9, 0.08);
+  --channel-tiktok-border: rgba(12, 10, 9, 0.15);
+
   /* Compatibility & Semantic Mappings */
   --background: var(--canvas);
   --foreground: var(--ink);
@@ -123,6 +134,17 @@
   --color-badge-teal-text: var(--badge-teal-text);
   --color-badge-cyan: var(--badge-cyan);
   --color-badge-cyan-text: var(--badge-cyan-text);
+
+  /* Marketplace Channels */
+  --color-channel-lazada: var(--channel-lazada);
+  --color-channel-lazada-soft: var(--channel-lazada-soft);
+  --color-channel-lazada-border: var(--channel-lazada-border);
+  --color-channel-shopify: var(--channel-shopify);
+  --color-channel-shopify-soft: var(--channel-shopify-soft);
+  --color-channel-shopify-border: var(--channel-shopify-border);
+  --color-channel-tiktok: var(--channel-tiktok);
+  --color-channel-tiktok-soft: var(--channel-tiktok-soft);
+  --color-channel-tiktok-border: var(--channel-tiktok-border);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);

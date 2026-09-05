@@ -1,11 +1,15 @@
 'use client';
 
+/**
+ * Settings & Integrations Layout
+ */
+
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/atoms';
 import { Breadcrumb } from '@/components/molecules';
 
-export default function OrdersLayout({
+export default function SettingsLayout({
   children,
 }: {
   readonly children: ReactNode;
@@ -34,14 +38,14 @@ export default function OrdersLayout({
         </div>
 
         <div className="flex items-center gap-3">
-          <Badge variant="secondary" size="sm">
-            Master Data Module
+          <Badge variant="teal" size="sm">
+            Integration Hub
           </Badge>
           <Link
-            href="/settings/integrations"
+            href="/orders"
             className="rounded-md bg-surface-lifted px-2.5 py-1 text-xs font-medium text-foreground hover:bg-surface-card border border-hairline transition"
           >
-            Kênh tích hợp
+            Đơn hàng
           </Link>
           <Link
             href="/customers"

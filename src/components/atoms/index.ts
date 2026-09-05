@@ -54,6 +54,12 @@ export {
 } from './Input/Input';
 
 export {
+  Select,
+  type SelectProps,
+  type SelectSize,
+} from './Select/Select';
+
+export {
   Table,
   TableHeader,
   TableBody,

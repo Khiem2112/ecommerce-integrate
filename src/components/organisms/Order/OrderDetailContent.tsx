@@ -6,9 +6,10 @@ import {
   useDeleteOrder,
   useDeleteOrderItem,
   useModalState,
+  useRefreshOrderFromLazada,
 } from '@/hooks';
 import { Button, Badge } from '@/components/atoms';
-import { ErrorBanner } from '@/components/molecules';
+import { ErrorBanner, SuccessBanner } from '@/components/molecules';
 import { OrderGeneralTab } from './OrderGeneralTab';
 import { OrderItemsTab } from './OrderItemsTab';
 import { OrderStatusHistoryTab } from './OrderStatusHistoryTab';
@@ -46,6 +47,19 @@ export function OrderDetailContent({
 
   const { mutateAsync: deleteItem, isPending: isDeletingItem } = useDeleteOrderItem();
   const { mutateAsync: deleteOrder, isPending: isDeletingOrder } = useDeleteOrder();
+  const { mutateAsync: refreshFromLazada, isPending: isRefreshingLazada } = useRefreshOrderFromLazada();
+  const [refreshSuccessMsg, setRefreshSuccessMsg] = useState<string | null>(null);
+
+  const handleRefreshFromLazada = async () => {
+    setErrorMessage(null);
+    setRefreshSuccessMsg(null);
+    try {
+      const res = await refreshFromLazada(order.platformOrderId);
+      setRefreshSuccessMsg(`Đã làm mới dữ liệu từ Lazada thành công (${res.outcome}).`);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Làm mới từ Lazada thất bại');
+    }
+  };
 
   const handleDeleteConfirm = async () => {
     setErrorMessage(null);
@@ -89,6 +103,13 @@ export function OrderDetailContent({
         />
       )}
 
+      {refreshSuccessMsg && (
+        <SuccessBanner
+          message={refreshSuccessMsg}
+          onDismiss={() => setRefreshSuccessMsg(null)}
+        />
+      )}
+
       {/* Top Banner / Hero Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-hairline bg-surface-card p-5 shadow-card">
         <div>
@@ -113,6 +134,24 @@ export function OrderDetailContent({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Refresh From Marketplace Button */}
+          {order.platform.code === 'lazada' && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              isLoading={isRefreshingLazada}
+              onClick={handleRefreshFromLazada}
+              icon={
+                <svg aria-hidden="true" className="size-3.5 text-status-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+              }
+            >
+              Làm mới từ Lazada
+            </Button>
+          )}
+
           {/* Quick Status Button */}
           <Button
             type="button"

@@ -12,3 +12,4 @@ export * from './useConversationDetail';
 export * from './useConversations';
 export * from './useCustomerContext';
 export * from './useRagGenerate';
+export * from './useIntegrations';

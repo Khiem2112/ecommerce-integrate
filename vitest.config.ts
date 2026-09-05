@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
-    include: ['test/rag/**/*.test.ts'],
+    include: ['test/**/*.test.ts'],
   },
   resolve: {
     alias: {

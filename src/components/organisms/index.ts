@@ -69,3 +69,6 @@ export {
   UpdateCustomerModal,
   type UpdateCustomerModalProps,
 } from './Customer/UpdateCustomerModal';
+
+// Channel Integrations
+export * from './Integrations';
