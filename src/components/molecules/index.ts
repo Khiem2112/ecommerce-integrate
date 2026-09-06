@@ -13,6 +13,13 @@ export { SuccessBanner } from './SuccessBanner';
 export { ConversationRow } from './inbox/ConversationRow';
 export { InboxFilters } from './inbox/InboxFilters';
 
+export {
+  OrderStatusFilter,
+  DEFAULT_ORDER_STATUS_ITEMS,
+  type OrderStatusFilterProps,
+  type OrderStatusItem,
+} from './OrderStatusFilter';
+
 export { EvidenceFactList } from './context/EvidenceFactList';
 export { OrderSummaryCard } from './context/OrderSummaryCard';
 export { VipTierBadge } from './context/VipTierBadge';

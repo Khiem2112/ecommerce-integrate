@@ -4,7 +4,7 @@
  * Modal to configure and execute batch synchronization of orders from Lazada by Date Range.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,10 +13,10 @@ import {
   DialogDescription,
   DialogFooter,
   Button,
-  Select,
-  DateRangePicker,
+  DateTimePicker,
   Badge,
 } from '@/components/atoms';
+import { OrderStatusFilter } from '@/components/molecules';
 import { useSyncLazadaOrders, usePreflightLazadaSync, useDebounce } from '@/hooks';
 import type { FetchOrdersParams, SyncResult } from '@/types';
 
@@ -26,30 +26,41 @@ export type SyncRunModalProps = {
   readonly onSyncComplete?: (result: SyncResult) => void;
 };
 
-const formatDateToInput = (d: Date): string => d.toISOString().split('T')[0];
-
-const getInitialDates = (days: number) => {
+const getInitialDateRange = () => {
   const end = new Date();
-  const start = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-  return {
-    from: formatDateToInput(start),
-    to: formatDateToInput(end),
-  };
+  const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  start.setHours(0, 0, 0, 0);
+  return { start, end };
 };
 
 export function SyncRunModal({ open, onClose, onSyncComplete }: SyncRunModalProps) {
-  const initialRange = getInitialDates(30);
-  const [fromDate, setFromDate] = useState<string>(initialRange.from);
-  const [toDate, setToDate] = useState<string>(initialRange.to);
+  const initialRange = useMemo(() => getInitialDateRange(), []);
+  const [createdAfter, setCreatedAfter] = useState<Date | undefined>(initialRange.start);
+  const [createdBefore, setCreatedBefore] = useState<Date | undefined>(initialRange.end);
   const [status, setStatus] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const handleApplyPreset = useCallback((days: number) => {
+    const end = new Date();
+    if (days === 0) {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      setCreatedAfter(start);
+      setCreatedBefore(end);
+    } else {
+      const start = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      start.setHours(0, 0, 0, 0);
+      setCreatedAfter(start);
+      setCreatedBefore(end);
+    }
+  }, []);
+
   // Debounced params for preflight discovery count
   const syncParams = useMemo<FetchOrdersParams>(() => ({
-    createdAfter: fromDate ? new Date(`${fromDate}T00:00:00Z`) : undefined,
-    createdBefore: toDate ? new Date(`${toDate}T23:59:59.999Z`) : undefined,
+    createdAfter,
+    createdBefore,
     ...(status ? { status } : {}),
-  }), [fromDate, toDate, status]);
+  }), [createdAfter, createdBefore, status]);
 
   const debouncedParams = useDebounce(syncParams, 400);
 
@@ -58,20 +69,20 @@ export function SyncRunModal({ open, onClose, onSyncComplete }: SyncRunModalProp
 
   const handleStartSync = async () => {
     setErrorMsg(null);
-    if (!fromDate || !toDate) {
-      setErrorMsg('Vui lòng chọn khoảng thời gian hợp lệ.');
+    if (!createdAfter || !createdBefore) {
+      setErrorMsg('Vui lòng chọn đầy đủ thời gian bắt đầu và kết thúc.');
       return;
     }
 
-    if (new Date(fromDate) > new Date(toDate)) {
-      setErrorMsg('Ngày bắt đầu không được lớn hơn ngày kết thúc.');
+    if (createdAfter > createdBefore) {
+      setErrorMsg('Thời gian bắt đầu (created_after) không được lớn hơn thời gian kết thúc (created_before).');
       return;
     }
 
     try {
       const params: FetchOrdersParams = {
-        createdAfter: new Date(`${fromDate}T00:00:00Z`),
-        createdBefore: new Date(`${toDate}T23:59:59.999Z`),
+        createdAfter,
+        createdBefore,
         ...(status ? { status } : {}),
       };
 
@@ -87,7 +98,7 @@ export function SyncRunModal({ open, onClose, onSyncComplete }: SyncRunModalProp
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-md p-6 space-y-5">
+      <DialogContent className="max-w-lg p-6 space-y-5">
         <DialogHeader>
           <div className="flex items-center gap-2.5 mb-1">
             <div className="flex size-7 items-center justify-center rounded-lg bg-channel-lazada-soft border border-channel-lazada-border text-channel-lazada font-bold text-xs shadow-xs">
@@ -107,41 +118,74 @@ export function SyncRunModal({ open, onClose, onSyncComplete }: SyncRunModalProp
         )}
 
         <div className="space-y-4 text-xs">
-          {/* Date Range Picker */}
+          {/* Quick Range Presets */}
           <div className="space-y-1.5">
-            <label className="font-semibold text-foreground">
-              Khoảng thời gian đồng bộ
+            <label className="font-semibold text-foreground block">
+              Chọn nhanh khoảng thời gian
             </label>
-            <DateRangePicker
-              from={fromDate}
-              to={toDate}
-              onChange={({ from, to }) => {
-                setFromDate(from);
-                setToDate(to);
-              }}
-              placeholder="Chọn khoảng thời gian…"
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                onClick={() => handleApplyPreset(0)}
+              >
+                Hôm nay
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                onClick={() => handleApplyPreset(7)}
+              >
+                7 ngày qua
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                onClick={() => handleApplyPreset(30)}
+              >
+                30 ngày qua
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                onClick={() => handleApplyPreset(90)}
+              >
+                90 ngày qua
+              </Button>
+            </div>
+          </div>
+
+          {/* 2 DateTimePickers (created_after & created_before) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <DateTimePicker
+              label="Từ thời điểm (created_after)"
+              value={createdAfter}
+              onChange={(d) => setCreatedAfter(d)}
+              placeholder="Chọn ngày & giờ bắt đầu…"
+              maxDate={createdBefore}
+              size="md"
+            />
+            <DateTimePicker
+              label="Đến thời điểm (created_before)"
+              value={createdBefore}
+              onChange={(d) => setCreatedBefore(d)}
+              placeholder="Chọn ngày & giờ kết thúc…"
+              minDate={createdAfter}
+              size="md"
             />
           </div>
 
-          {/* Status Filter */}
-          <div className="space-y-1.5">
-            <label htmlFor="status-select" className="font-semibold text-foreground">
-              Lọc theo trạng thái đơn hàng
-            </label>
-            <Select
-              id="status-select"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="">Tất cả trạng thái</option>
-              <option value="unpaid">Chờ thanh toán (Unpaid)</option>
-              <option value="ready_to_ship">Sẵn sàng giao (Ready to Ship)</option>
-              <option value="shipped">Đang giao hàng (Shipped)</option>
-              <option value="delivered">Đã giao thành công (Delivered)</option>
-              <option value="canceled">Đã hủy (Canceled)</option>
-              <option value="returned">Đổi trả / Hoàn tiền (Returned)</option>
-            </Select>
-          </div>
+          {/* Packaged Status Filter Component */}
+          <OrderStatusFilter
+            value={status}
+            onChange={setStatus}
+            label="Lọc theo trạng thái đơn hàng"
+            size="md"
+          />
 
           {/* Preflight Discovery Banner */}
           <div className="rounded-xl border border-hairline bg-surface-lifted/60 p-3 flex items-center justify-between">
@@ -188,4 +232,3 @@ export function SyncRunModal({ open, onClose, onSyncComplete }: SyncRunModalProp
     </Dialog>
   );
 }
-

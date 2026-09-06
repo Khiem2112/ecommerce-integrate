@@ -28,6 +28,7 @@ import {
   TableCell,
 } from '@/components/atoms';
 import { ConnectionStatus, SyncResultSummary, SyncHistoryTable } from '@/components/organisms';
+import { OrderStatusFilter } from '@/components/molecules';
 import { cn } from '@/lib/cn';
 import type { SyncResult, FetchOrdersParams } from '@/types';
 
@@ -327,24 +328,12 @@ export default function LazadaIntegrationDetailPage() {
               </div>
 
               {/* Status Filter */}
-              <div className="space-y-1.5">
-                <label htmlFor="status-tab-select" className="font-semibold text-foreground">
-                  Trạng thái đơn hàng cần đồng bộ
-                </label>
-                <Select
-                  id="status-tab-select"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <option value="">Tất cả trạng thái</option>
-                  <option value="unpaid">Chờ thanh toán (Unpaid)</option>
-                  <option value="ready_to_ship">Sẵn sàng giao (Ready to Ship)</option>
-                  <option value="shipped">Đang giao hàng (Shipped)</option>
-                  <option value="delivered">Đã giao thành công (Delivered)</option>
-                  <option value="canceled">Đã hủy (Canceled)</option>
-                  <option value="returned">Đổi trả / Hoàn tiền (Returned)</option>
-                </Select>
-              </div>
+              <OrderStatusFilter
+                id="status-tab-select"
+                value={statusFilter}
+                onChange={setStatusFilter}
+                label="Trạng thái đơn hàng cần đồng bộ"
+              />
 
               {/* Preflight Discovery Banner */}
               <div className="rounded-xl border border-hairline bg-surface-lifted/60 p-3.5 flex items-center justify-between">

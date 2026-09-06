@@ -36,6 +36,13 @@ export {
 } from './DatePicker/DatePicker';
 
 export {
+  DateTimePicker,
+  formatDateTimeDisplay,
+  parseDateValue,
+  type DateTimePickerProps,
+} from './DateTimePicker/DateTimePicker';
+
+export {
   Dialog,
   DialogTrigger,
   DialogPortal,
