@@ -14,6 +14,7 @@ import { OrderGeneralTab } from './OrderGeneralTab';
 import { OrderItemsTab } from './OrderItemsTab';
 import { OrderStatusHistoryTab } from './OrderStatusHistoryTab';
 import { OrderShippingFinancialTab } from './OrderShippingFinancialTab';
+import { OrderSyncHistoryTab } from './OrderSyncHistoryTab';
 import { UpdateOrderStatusModal } from './SubModals/UpdateOrderStatusModal';
 import { UpdateOrderGeneralModal } from './SubModals/UpdateOrderGeneralModal';
 import { UpdateOrderShippingModal } from './SubModals/UpdateOrderShippingModal';
@@ -22,7 +23,7 @@ import { ConfirmModal } from '../ConfirmModal/ConfirmModal';
 import { cn } from '@/lib/cn';
 import type { OrderWithHistory, OrderLookupOptions } from '@/types';
 
-export type OrderTabKey = 'general' | 'items' | 'history' | 'shipping';
+export type OrderTabKey = 'general' | 'items' | 'history' | 'shipping' | 'syncAudit';
 type ModalKey = 'status' | 'general' | 'shipping' | 'addItem' | 'delete';
 
 export type OrderDetailContentProps = {
@@ -92,6 +93,9 @@ export function OrderDetailContent({
     { key: 'items', label: 'Sản phẩm', count: order.items.length },
     { key: 'history', label: 'Lịch sử trạng thái', count: order.statusHistory?.length },
     { key: 'shipping', label: 'Vận chuyển & Tài chính' },
+    ...(order.platformOrderId
+      ? [{ key: 'syncAudit' as const, label: 'Đồng bộ sàn' }]
+      : []),
   ];
 
   return (
@@ -238,6 +242,10 @@ export function OrderDetailContent({
             order={order}
             onEditShipping={() => open('shipping')}
           />
+        )}
+
+        {activeTab === 'syncAudit' && (
+          <OrderSyncHistoryTab platformOrderId={order.platformOrderId} />
         )}
       </div>
 

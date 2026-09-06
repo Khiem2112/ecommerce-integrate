@@ -16,8 +16,15 @@ import type {
   ExternalOrder,
   ExternalOrderItem,
   PreflightSyncResult,
+  PendingSyncChange,
+  FieldDiff,
 } from '@/types';
 import * as connectorFactory from './connectorFactory';
+import {
+  computeOrderHeaderDiff,
+  computeOrderItemDiff,
+  bulkCreateSyncChanges,
+} from './syncChangeService';
 
 /**
  * Normalizes external status code from marketplace to internal OrderStatus code.
@@ -118,24 +125,31 @@ async function ensureMasterCatalogs(tx: DbClient): Promise<{
   };
 }
 
+type ItemReconcileResult = {
+  readonly modified: boolean;
+  readonly changeType: 'created' | 'updated' | 'unchanged';
+  readonly diff: Record<string, FieldDiff> | null;
+  readonly internalId: number | null;
+};
+
 /**
  * Reconciles a single order item against the local database snapshot.
  * Creates a new item or updates changed authoritative fields.
- * Returns true if the database was modified (created or updated).
+ * Returns modification status along with field-level diff for SyncChange audit.
  */
 async function reconcileSingleOrderItem(
   orderId: number,
   incoming: ExternalOrderItem,
   existing: OrderItem | undefined,
   tx: DbClient,
-): Promise<boolean> {
+): Promise<ItemReconcileResult> {
   const targetQuantity = incoming.quantity ?? 1;
   const targetSku = incoming.sku ? incoming.sku.trim() : null;
   const calculatedDiscount = Math.max(0, (incoming.unitPrice ?? 0) - (incoming.paidPrice ?? 0));
 
   if (!existing) {
-    // New line item added to existing order
-    await tx.orderItem.create({
+    // New line item — all fields are new, record as created
+    const created = await tx.orderItem.create({
       data: {
         orderId,
         externalItemId: incoming.externalItemId,
@@ -148,18 +162,18 @@ async function reconcileSingleOrderItem(
         isActive: true,
       },
     });
-    return true;
+    return {
+      modified: true,
+      changeType: 'created',
+      diff: null,
+      internalId: created.id,
+    };
   }
 
-  // Check for authoritative changes on existing item
-  const isQuantityDiff = existing.quantity !== targetQuantity;
-  const isPriceDiff = Math.abs(existing.unitPrice - incoming.unitPrice) > 0.01;
-  const isDiscountDiff = Math.abs(existing.discount - calculatedDiscount) > 0.01;
-  const isNameDiff = existing.productName !== incoming.name;
-  const isSkuDiff = (existing.sku ?? '') !== (targetSku ?? '');
-  const isReactivated = !existing.isActive;
+  // Compute field-level diff for existing item
+  const diff = computeOrderItemDiff(existing, incoming);
 
-  if (isQuantityDiff || isPriceDiff || isDiscountDiff || isNameDiff || isSkuDiff || isReactivated) {
+  if (diff) {
     await tx.orderItem.update({
       where: { id: existing.id },
       data: {
@@ -172,15 +186,15 @@ async function reconcileSingleOrderItem(
         updatedAt: new Date(),
       },
     });
-    return true;
+    return { modified: true, changeType: 'updated', diff, internalId: existing.id };
   }
 
-  return false;
+  return { modified: false, changeType: 'unchanged', diff: null, internalId: existing.id };
 }
 
 /**
  * Reconciles all items of an order, including additions, updates, and safe inactivation of disappeared items.
- * Returns true if any item was added, updated, or inactivated.
+ * Returns whether items changed and collects PendingSyncChange entries for audit.
  */
 async function reconcileOrderItems(
   orderId: number,
@@ -190,7 +204,8 @@ async function reconcileOrderItems(
   itemsError: string | undefined,
   externalOrderId: string,
   tx: DbClient,
-): Promise<boolean> {
+): Promise<{ readonly itemsChanged: boolean; readonly itemPendingChanges: PendingSyncChange[] }> {
+  const itemPendingChanges: PendingSyncChange[] = [];
   let itemsChanged = false;
   const existingItemMap = new Map<string, OrderItem>();
 
@@ -205,9 +220,18 @@ async function reconcileOrderItems(
   for (const incoming of incomingItems) {
     incomingExternalItemIds.add(incoming.externalItemId);
     const existing = existingItemMap.get(incoming.externalItemId);
-    const hasModified = await reconcileSingleOrderItem(orderId, incoming, existing, tx);
-    if (hasModified) {
+    const result = await reconcileSingleOrderItem(orderId, incoming, existing, tx);
+
+    if (result.modified) {
       itemsChanged = true;
+      itemPendingChanges.push({
+        entityType: 'order_item',
+        changeType: result.changeType as 'created' | 'updated',
+        entityId: incoming.externalItemId,
+        internalId: result.internalId,
+        parentEntityId: externalOrderId,
+        changes: result.diff,
+      });
     }
   }
 
@@ -223,18 +247,34 @@ async function reconcileOrderItems(
           },
         });
         itemsChanged = true;
+        itemPendingChanges.push({
+          entityType: 'order_item',
+          changeType: 'inactivated',
+          entityId: existing.externalItemId,
+          internalId: existing.id,
+          parentEntityId: externalOrderId,
+          changes: { isActive: { before: true, after: false } },
+        });
       }
     }
   } else if (itemsError) {
     throw new Error(`Dữ liệu sản phẩm của đơn hàng [${externalOrderId}] bị lỗi từ API: ${itemsError}`);
   }
 
-  return itemsChanged;
+  return { itemsChanged, itemPendingChanges };
 }
+
+type ReconcileResult = {
+  readonly outcome: 'created' | 'updated' | 'unchanged';
+  readonly itemsProcessed: number;
+  readonly pendingChanges: readonly PendingSyncChange[];
+  readonly orderId: number;
+};
 
 /**
  * Reconciles a single external order and its items idempotently inside a short database transaction.
  * Uses (platformId, platformOrderId) for Order identity and (orderId, externalItemId) for OrderItem identity.
+ * Returns field-level pending changes for SyncChange audit recording.
  */
 async function reconcileSingleExternalOrder(
   externalOrder: ExternalOrder,
@@ -242,10 +282,7 @@ async function reconcileSingleExternalOrder(
   defaultTierId: number,
   statusMap: Map<string, number>,
   tx: DbClient,
-): Promise<{
-  readonly outcome: 'created' | 'updated' | 'unchanged';
-  readonly itemsProcessed: number;
-}> {
+): Promise<ReconcileResult> {
   // Validate item external identity strictly without SKU fallback
   for (const item of externalOrder.items) {
     if (!item.externalItemId || item.externalItemId.trim() === '') {
@@ -255,6 +292,7 @@ async function reconcileSingleExternalOrder(
     }
   }
 
+  const pendingChanges: PendingSyncChange[] = [];
   const buyerIdStr = externalOrder.buyer.externalBuyerId;
 
   // Find or create customer
@@ -297,7 +335,7 @@ async function reconcileSingleExternalOrder(
 
   if (!existingOrder) {
     // Create new order with authoritative fields and initial items
-    await tx.order.create({
+    const newOrder = await tx.order.create({
       data: {
         platformId,
         platformOrderId: externalOrder.externalOrderId,
@@ -329,20 +367,39 @@ async function reconcileSingleExternalOrder(
           },
         },
       },
+      include: { items: true },
     });
 
-    return { outcome: 'created', itemsProcessed: externalOrder.items.length };
+    // Record order creation as SyncChange
+    pendingChanges.push({
+      entityType: 'order',
+      changeType: 'created',
+      entityId: externalOrder.externalOrderId,
+      internalId: newOrder.id,
+      parentEntityId: null,
+      changes: null,
+    });
+
+    // Record each created item as SyncChange
+    for (const createdItem of newOrder.items ?? []) {
+      pendingChanges.push({
+        entityType: 'order_item',
+        changeType: 'created',
+        entityId: createdItem.externalItemId ?? createdItem.productId,
+        internalId: createdItem.id,
+        parentEntityId: externalOrder.externalOrderId,
+        changes: null,
+      });
+    }
+
+    return { outcome: 'created', itemsProcessed: externalOrder.items.length, pendingChanges, orderId: newOrder.id };
   }
 
-  // Reconcile existing order header
+  // Compute order header diff before persisting
+  const orderHeaderDiff = computeOrderHeaderDiff(existingOrder, externalOrder, targetStatusId, statusMap);
   const isStatusChanged = existingOrder.currentStatusId !== targetStatusId;
-  const isValueDifferent =
-    Math.abs(existingOrder.totalValue - externalOrder.totalAmount) > 0.01 ||
-    Math.abs(existingOrder.shippingFee - externalOrder.shippingFee) > 0.01 ||
-    Math.abs(existingOrder.discountAmount - externalOrder.voucherDiscount) > 0.01;
 
-  if (isStatusChanged || isValueDifferent) {
-    // Update existing order
+  if (orderHeaderDiff) {
     await tx.order.update({
       where: { id: existingOrder.id },
       data: {
@@ -353,22 +410,31 @@ async function reconcileSingleExternalOrder(
         updatedAt: new Date(),
         ...(isStatusChanged
           ? {
-              statusHistory: {
-                create: {
-                  statusId: targetStatusId,
-                  changedBy: 'lazada_sync',
-                  note: `Cập nhật trạng thái từ Lazada: ${externalOrder.status}`,
-                },
+            statusHistory: {
+              create: {
+                statusId: targetStatusId,
+                changedBy: 'lazada_sync',
+                note: `Cập nhật trạng thái từ Lazada: ${externalOrder.status}`,
               },
-            }
+            },
+          }
           : {}),
       },
     });
+
+    pendingChanges.push({
+      entityType: 'order',
+      changeType: 'updated',
+      entityId: externalOrder.externalOrderId,
+      internalId: existingOrder.id,
+      parentEntityId: null,
+      changes: orderHeaderDiff,
+    });
   }
 
-  // Reconcile order items
+  // Reconcile order items with diff tracking
   const isResponseComplete = externalOrder.itemsComplete !== false && !externalOrder.itemsError;
-  const itemsChanged = await reconcileOrderItems(
+  const { itemsChanged, itemPendingChanges } = await reconcileOrderItems(
     existingOrder.id,
     externalOrder.items,
     existingOrder.items,
@@ -378,8 +444,10 @@ async function reconcileSingleExternalOrder(
     tx,
   );
 
-  const outcome = isStatusChanged || isValueDifferent || itemsChanged ? 'updated' : 'unchanged';
-  return { outcome, itemsProcessed: externalOrder.items.length };
+  pendingChanges.push(...itemPendingChanges);
+
+  const outcome = orderHeaderDiff || itemsChanged ? 'updated' : 'unchanged';
+  return { outcome, itemsProcessed: externalOrder.items.length, pendingChanges, orderId: existingOrder.id };
 }
 
 /**
@@ -422,20 +490,13 @@ export async function syncOrdersFromLazadaService(
     },
   });
 
-  // Initialize persistent SyncOperation records
+  // Initialize root order SyncOperation (parentEntityType = null)
   const orderOperation = await tx.syncOperation.create({
     data: {
       batchId: syncBatch.id,
       entityType: 'order',
-      status: 'running',
-      startedAt,
-    },
-  });
-
-  const orderItemOperation = await tx.syncOperation.create({
-    data: {
-      batchId: syncBatch.id,
-      entityType: 'order_item',
+      parentEntityType: null,
+      parentEntityId: null,
       status: 'running',
       startedAt,
     },
@@ -449,10 +510,13 @@ export async function syncOrdersFromLazadaService(
   let itemsSuccessCount = 0;
   let itemsFailedCount = 0;
 
+  // Track per-order item operations for SyncChange grouping
+  const itemOperationMap = new Map<string, number>();
+
   try {
     // External network call executed strictly outside database transaction
     const connector = connectorFactory.getChannelConnector('lazada');
-    
+
     // Fetch orders across pages in the requested date range (up to 200 orders per sync batch)
     let page = params.page ?? 1;
     const pageSize = Math.min(100, Math.max(10, params.pageSize ?? 50));
@@ -479,9 +543,8 @@ export async function syncOrdersFromLazadaService(
     }
 
     const totalOrders = allOrders.length;
-    const totalItems = allOrders.reduce((acc, o) => acc + (o.items?.length ?? 0), 0);
 
-    // Update batch and operation total expectations
+    // Update batch total expectations
     await tx.syncBatch.update({
       where: { id: syncBatch.id },
       data: { totalOrders },
@@ -492,15 +555,26 @@ export async function syncOrdersFromLazadaService(
       data: { totalCount: totalOrders },
     });
 
-    await tx.syncOperation.update({
-      where: { id: orderItemOperation.id },
-      data: { totalCount: totalItems },
-    });
+    // Create per-order item SyncOperations (parentEntityType = 'order', parentEntityId = externalOrderId)
+    for (const order of allOrders) {
+      const itemOp = await tx.syncOperation.create({
+        data: {
+          batchId: syncBatch.id,
+          entityType: 'order_item',
+          parentEntityType: 'order',
+          parentEntityId: order.externalOrderId,
+          status: 'queued',
+          totalCount: order.items?.length ?? 0,
+          startedAt,
+        },
+      });
+      itemOperationMap.set(order.externalOrderId, itemOp.id);
+    }
 
     // Reconcile each external order within its own short transaction
     for (const order of allOrders) {
       try {
-        const { outcome, itemsProcessed } = await runWithTx(tx, async (scopedTx) => {
+        const result = await runWithTx(tx, async (scopedTx) => {
           return reconcileSingleExternalOrder(
             order,
             catalogs.platformId,
@@ -510,11 +584,60 @@ export async function syncOrdersFromLazadaService(
           );
         });
 
-        if (outcome === 'created') createdCount++;
-        else if (outcome === 'updated') updatedCount++;
+        if (result.outcome === 'created') createdCount++;
+        else if (result.outcome === 'updated') updatedCount++;
         else unchangedCount++;
 
-        itemsSuccessCount += itemsProcessed;
+        itemsSuccessCount += result.itemsProcessed;
+
+        // Persist SyncChange records grouped by their operation
+        if (result.pendingChanges.length > 0) {
+          const orderChanges = result.pendingChanges.filter((c) => c.entityType === 'order');
+          const itemChanges = result.pendingChanges.filter((c) => c.entityType === 'order_item');
+
+          // Order-level changes → order operation
+          if (orderChanges.length > 0) {
+            await bulkCreateSyncChanges(
+              orderChanges.map((c) => ({
+                operationId: orderOperation.id,
+                changeType: c.changeType,
+                entityId: c.entityId,
+                internalId: c.internalId,
+                changes: c.changes,
+              })),
+              tx,
+            );
+          }
+
+          // Item-level changes → per-order item operation
+          const itemOpId = itemOperationMap.get(order.externalOrderId);
+          if (itemChanges.length > 0 && itemOpId) {
+            await bulkCreateSyncChanges(
+              itemChanges.map((c) => ({
+                operationId: itemOpId,
+                changeType: c.changeType,
+                entityId: c.entityId,
+                internalId: c.internalId,
+                changes: c.changes,
+              })),
+              tx,
+            );
+          }
+        }
+
+        // Finalize per-order item operation
+        const itemOpId = itemOperationMap.get(order.externalOrderId);
+        if (itemOpId) {
+          await tx.syncOperation.update({
+            where: { id: itemOpId },
+            data: {
+              status: 'completed',
+              processedCount: result.itemsProcessed,
+              successCount: result.itemsProcessed,
+              completedAt: new Date(),
+            },
+          });
+        }
       } catch (err: unknown) {
         failedCount++;
         const itemCount = order.items?.length ?? 0;
@@ -537,6 +660,20 @@ export async function syncOrdersFromLazadaService(
             errorMessage: message,
           },
         });
+
+        // Mark per-order item operation as failed
+        const itemOpId = itemOperationMap.get(order.externalOrderId);
+        if (itemOpId) {
+          await tx.syncOperation.update({
+            where: { id: itemOpId },
+            data: {
+              status: 'failed',
+              failedCount: itemCount,
+              completedAt: new Date(),
+              errorMessage: message,
+            },
+          });
+        }
       }
     }
 
@@ -573,19 +710,6 @@ export async function syncOrdersFromLazadaService(
         processedCount: totalOrders,
         successCount: createdCount + updatedCount + unchangedCount,
         failedCount,
-        completedAt,
-      },
-    });
-
-    // Finalize order_item SyncOperation in MySQL
-    const itemOpStatus = itemsFailedCount === 0 ? 'completed' : itemsSuccessCount > 0 ? 'partial' : 'failed';
-    await tx.syncOperation.update({
-      where: { id: orderItemOperation.id },
-      data: {
-        status: itemOpStatus,
-        processedCount: itemsSuccessCount + itemsFailedCount,
-        successCount: itemsSuccessCount,
-        failedCount: itemsFailedCount,
         completedAt,
       },
     });
@@ -636,16 +760,6 @@ export async function syncOrdersFromLazadaService(
 
     await tx.syncOperation.update({
       where: { id: orderOperation.id },
-      data: {
-        status: 'failed',
-        failedCount: 1,
-        completedAt,
-        errorMessage: message,
-      },
-    });
-
-    await tx.syncOperation.update({
-      where: { id: orderItemOperation.id },
       data: {
         status: 'failed',
         failedCount: 1,

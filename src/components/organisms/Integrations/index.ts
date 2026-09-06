@@ -7,3 +7,4 @@ export * from './IntegrationCard';
 export * from './SyncRunModal';
 export * from './SyncResultSummary';
 export * from './SyncHistoryTable';
+export * from './SyncBatchDetailView';

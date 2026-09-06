@@ -89,48 +89,6 @@ export type IntegrationSummary = {
   readonly errorMessage?: string;
 };
 
-export type SyncRecordError = {
-  readonly externalOrderId: string;
-  readonly message: string;
-  readonly entityType?: 'order' | 'order_item' | 'global';
-  readonly errorCode?: string;
-};
-
-export type SyncResult = {
-  readonly syncId: string;
-  readonly status: 'completed' | 'partial' | 'failed';
-  readonly created: number;
-  readonly updated: number;
-  readonly unchanged: number;
-  readonly failed: number;
-  readonly errors?: readonly SyncRecordError[];
-  readonly startedAt: string;
-  readonly completedAt?: string;
-};
-
-export type SyncRunLog = {
-  readonly syncId: string;
-  readonly platform: 'lazada' | 'shopify' | 'tiktok_shop';
-  readonly status: 'completed' | 'partial' | 'failed';
-  readonly created: number;
-  readonly updated: number;
-  readonly unchanged: number;
-  readonly failed: number;
-  readonly errors?: readonly SyncRecordError[];
-  readonly startedAt: string;
-  readonly completedAt: string;
-  readonly durationMs: number;
-};
-
-export type PreflightSyncResult = {
-  readonly totalCount: number;
-  readonly dateRange?: {
-    readonly from?: string;
-    readonly to?: string;
-  };
-  readonly status?: string;
-};
-
 export type ChannelConnector = {
   getConnectionHealth(): Promise<ConnectionHealth>;
   fetchOrders(params: FetchOrdersParams): Promise<ExternalOrderPage>;

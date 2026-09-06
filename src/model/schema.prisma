@@ -584,25 +584,29 @@ model SyncBatch {
 
 /// Work unit per entity type within a sync batch
 model SyncOperation {
-  id             Int            @id @default(autoincrement())
-  batchId        Int
-  batch          SyncBatch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  entityType     String         // "order" | "order_item"
-  status         String         @default("queued") // "queued" | "running" | "completed" | "partial" | "failed" | "cancelled"
-  totalCount     Int            @default(0)
-  processedCount Int            @default(0)
-  successCount   Int            @default(0)
-  failedCount    Int            @default(0)
-  startedAt      DateTime       @default(now())
-  completedAt    DateTime?
-  errorMessage   String?        @db.Text
-  isActive       Boolean        @default(true)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @default(now()) @updatedAt
+  id               Int            @id @default(autoincrement())
+  batchId          Int
+  batch            SyncBatch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  entityType       String         // "order" | "order_item"
+  parentEntityType String?        // null for root (order), "order" for order_item
+  parentEntityId   String?        // externalOrderId when entityType = "order_item"
+  status           String         @default("queued") // "queued" | "running" | "completed" | "partial" | "failed" | "cancelled"
+  totalCount       Int            @default(0)
+  processedCount   Int            @default(0)
+  successCount     Int            @default(0)
+  failedCount      Int            @default(0)
+  startedAt        DateTime       @default(now())
+  completedAt      DateTime?
+  errorMessage     String?        @db.Text
+  isActive         Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @default(now()) @updatedAt
 
-  errors         SyncRunError[]
+  errors           SyncRunError[]
+  changes          SyncChange[]
 
   @@index([batchId, entityType])
+  @@index([batchId, parentEntityType, parentEntityId])
   @@map("sync_operation")
 }
 
@@ -623,5 +627,21 @@ model SyncRunError {
   @@index([batchId])
   @@index([operationId])
   @@map("sync_run_error")
+}
+
+/// Audit log of actual changes persisted by a sync apply operation
+model SyncChange {
+  id            Int            @id @default(autoincrement())
+  operationId   Int
+  operation     SyncOperation  @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  changeType    String         // "created" | "updated" | "inactivated"
+  entityId      String         // canonical external ID: externalOrderId or externalItemId
+  internalId    Int?           // local Order.id or OrderItem.id for quick navigation
+  changes       Json?          // { fieldName: { before, after } } — only changed fields
+  createdAt     DateTime       @default(now())
+
+  @@index([operationId])
+  @@index([entityId])
+  @@map("sync_change")
 }
 

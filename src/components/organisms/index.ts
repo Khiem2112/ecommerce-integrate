@@ -14,6 +14,10 @@ export { OrderItemsTab } from './Order/OrderItemsTab';
 export { OrderStatusHistoryTab } from './Order/OrderStatusHistoryTab';
 export { OrderShippingFinancialTab } from './Order/OrderShippingFinancialTab';
 export {
+  OrderSyncHistoryTab,
+  type OrderSyncHistoryTabProps,
+} from './Order/OrderSyncHistoryTab';
+export {
   OrderDetailContent,
   type OrderDetailContentProps,
   type OrderTabKey,

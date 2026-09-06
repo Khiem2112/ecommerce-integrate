@@ -27,9 +27,6 @@ export type {
   MessageType,
   AiDraftResponse,
   AiDraftStrategy,
-  SyncBatch,
-  SyncOperation,
-  SyncRunError,
 } from '@prisma/client';
 
 // Common cross-layer utility types
@@ -129,10 +126,6 @@ export type {
   FetchOrdersParams,
   ConnectionHealth,
   IntegrationSummary,
-  SyncRecordError,
-  SyncResult,
-  SyncRunLog,
-  PreflightSyncResult,
   ChannelConnector,
 } from './connector';
 
@@ -146,4 +139,30 @@ export type {
   SeedKey,
   SeedProfile,
 } from './lazada';
+
+// Synchronization, Prisma Models & Audit History types
+export type {
+  SyncBatch,
+  SyncOperation,
+  SyncRunError,
+  SyncChange,
+  SyncBatchWithRelations,
+  SyncBatchWithOperations,
+  SyncOperationWithRelations,
+  SyncChangeModel,
+  SyncRunErrorModel,
+  SyncRecordError,
+  SyncResult,
+  SyncRunLog,
+  PreflightSyncResult,
+  SyncChangeType,
+  SyncChangeEntityType,
+  FieldDiff,
+  SyncChangeRecord,
+  SyncOrderChangeGroup,
+  SyncChangeSummary,
+  SyncChangeQueryParams,
+  PendingSyncChange,
+} from './sync';
+
 

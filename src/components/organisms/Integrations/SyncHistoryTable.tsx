@@ -5,6 +5,7 @@
  */
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import {
   Badge,
   Button,
@@ -93,19 +94,29 @@ export function SyncHistoryTable() {
                       {log.failed > 0 && <span className="text-semantic-error font-bold">!{log.failed}</span>}
                     </div>
                   </TableCell>
-                  <TableCell className="text-right">
-                    {hasErrors ? (
-                      <Button
-                        variant="ghost"
-                        size="xs"
-                        onClick={() => setExpandedSyncId(isExpanded ? null : log.syncId)}
-                        className="text-[11px]"
-                      >
-                        {isExpanded ? 'Ẩn lỗi' : `Xem (${log.errors?.length})`}
-                      </Button>
-                    ) : (
-                      <span className="text-[11px] text-muted">—</span>
-                    )}
+                  <TableCell className="text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Link href={`/settings/integrations/lazada/syncs/${log.syncId}`}>
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          className="text-[11px] h-6.5 px-2.5"
+                        >
+                          Chi tiết
+                        </Button>
+                      </Link>
+
+                      {hasErrors && (
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          onClick={() => setExpandedSyncId(isExpanded ? null : log.syncId)}
+                          className="text-[11px] text-semantic-error hover:bg-semantic-error/10 h-6.5 px-2"
+                        >
+                          {isExpanded ? 'Ẩn lỗi' : `Lỗi (${log.errors?.length})`}
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
 

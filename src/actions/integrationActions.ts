@@ -5,8 +5,14 @@
  * Handles input validation, service coordination, and cache revalidation.
  */
 
-import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import {
+  platformSchema,
+  syncParamsSchema,
+  refreshOrderSchema,
+  batchCodeSchema,
+  syncChangeQuerySchema,
+} from '@/forms';
 import type {
   ActionResponse,
   ConnectionHealth,
@@ -18,6 +24,8 @@ import type {
   ExternalOrder,
   SeedProfile,
   PlatformCode,
+  SyncChangeSummary,
+  SyncChangeRecord,
 } from '@/types';
 import {
   syncOrdersFromLazadaService,
@@ -27,27 +35,9 @@ import {
   getSyncLogsHistoryService,
   getMockSeedsService,
   getChannelConnector,
+  getSyncChangeSummaryByBatch,
+  querySyncChangesByEntity,
 } from '@/services';
-
-const platformSchema = z.enum(['lazada', 'shopify', 'tiktok_shop', 'mock']).default('lazada');
-
-const syncParamsSchema = z.object({
-  page: z.number().int().min(1).optional(),
-  pageSize: z.number().int().min(1).max(100).optional(),
-  status: z.string().optional(),
-  createdAfter: z.coerce.date().optional(),
-  createdBefore: z.coerce.date().optional(),
-  updateAfter: z.coerce.date().optional(),
-  updateBefore: z.coerce.date().optional(),
-  seed: z.string().optional(),
-});
-
-const refreshOrderSchema = z.union([
-  z.string().min(1, 'Mã đơn hàng không được để trống').transform((val) => ({ externalOrderId: val })),
-  z.object({
-    externalOrderId: z.string().min(1, 'Mã đơn hàng không được để trống'),
-  }),
-]);
 
 /**
  * Server Action: Retrieve overall integration summary for a platform card.
@@ -204,6 +194,52 @@ export async function getMockSeedsAction(): Promise<ActionResponse<readonly Seed
     return { success: true, data: seeds };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Không thể tải danh sách mock seeds.';
+    return { success: false, error: message };
+  }
+}
+
+
+/**
+ * Server Action: Query sync change summary grouped by order for a batch.
+ */
+export async function getSyncChangeSummaryAction(
+  batchCode: unknown,
+): Promise<ActionResponse<SyncChangeSummary>> {
+  try {
+    const parsed = batchCodeSchema.safeParse(batchCode);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Mã đợt không hợp lệ.' };
+    }
+
+    const summary = await getSyncChangeSummaryByBatch(parsed.data);
+    if (!summary) {
+      return { success: false, error: 'Không tìm thấy đợt đồng bộ.' };
+    }
+
+    return { success: true, data: summary };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Không thể tải chi tiết thay đổi.';
+    return { success: false, error: message };
+  }
+}
+
+
+/**
+ * Server Action: Query sync changes by entity with pagination.
+ */
+export async function getSyncChangesByEntityAction(
+  rawParams: unknown,
+): Promise<ActionResponse<{ readonly changes: readonly SyncChangeRecord[]; readonly total: number }>> {
+  try {
+    const parsed = syncChangeQuerySchema.safeParse(rawParams);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Tham số truy vấn không hợp lệ.' };
+    }
+
+    const result = await querySyncChangesByEntity(parsed.data);
+    return { success: true, data: result };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Không thể truy vấn lịch sử thay đổi.';
     return { success: false, error: message };
   }
 }
