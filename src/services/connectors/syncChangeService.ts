@@ -104,6 +104,44 @@ export function computeOrderItemDiff(
 }
 
 /**
+ * Builds initial field snapshot for a newly created authoritative order header.
+ * All fields have before: null and after: initial authoritative value.
+ */
+export function buildOrderCreatedSnapshot(
+  order: ExternalOrder,
+  targetStatusId: number,
+  statusMap: Map<string, number>,
+): Record<string, FieldDiff> {
+  const statusCode = findStatusCode(targetStatusId, statusMap);
+  return {
+    status: { before: null, after: statusCode },
+    totalValue: { before: null, after: order.totalAmount },
+    shippingFee: { before: null, after: order.shippingFee },
+    discountAmount: { before: null, after: order.voucherDiscount },
+  };
+}
+
+/**
+ * Builds initial field snapshot for a newly created authoritative order item.
+ * All fields have before: null and after: initial authoritative value.
+ */
+export function buildOrderItemCreatedSnapshot(
+  incoming: ExternalOrderItem,
+): Record<string, FieldDiff> {
+  const targetQuantity = incoming.quantity ?? 1;
+  const targetSku = incoming.sku ? incoming.sku.trim() : null;
+  const calculatedDiscount = Math.max(0, (incoming.unitPrice ?? 0) - (incoming.paidPrice ?? 0));
+
+  return {
+    productName: { before: null, after: incoming.name ?? 'Sản phẩm Lazada' },
+    sku: { before: null, after: targetSku },
+    quantity: { before: null, after: targetQuantity },
+    unitPrice: { before: null, after: incoming.unitPrice ?? 0 },
+    discount: { before: null, after: calculatedDiscount },
+  };
+}
+
+/**
  * Bulk inserts SyncChange records within the provided transaction.
  */
 export async function bulkCreateSyncChanges(

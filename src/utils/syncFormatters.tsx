@@ -23,7 +23,7 @@ export const SYNC_FIELD_LABELS: Record<string, string> = {
  */
 export function formatSyncFieldValue(key: string, val: unknown): React.ReactNode {
   if (val === null || val === undefined) {
-    return <span className="text-muted italic">trống</span>;
+    return <span className="text-muted/60 font-mono">—</span>;
   }
 
   if (typeof val === 'boolean') {

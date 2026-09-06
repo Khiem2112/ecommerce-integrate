@@ -117,7 +117,11 @@ export function SyncOrderChangeCard({
           {hasHeaderDiffs && orderChange?.changes ? (
             <SyncFieldDiffTable
               diffs={orderChange.changes}
-              title="Thay đổi thông tin đơn hàng (Header Diff)"
+              title={
+                orderChange.changeType === 'created'
+                  ? 'Thông tin đơn hàng khởi tạo (Snapshot)'
+                  : 'Thay đổi thông tin đơn hàng (Header Diff)'
+              }
             />
           ) : orderChange?.changeType === 'created' ? (
             <div className="rounded-lg bg-status-success/10 border border-status-success/20 p-3 text-xs text-status-success font-medium flex items-center gap-2">

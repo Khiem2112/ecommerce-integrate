@@ -184,7 +184,7 @@ export function useMockSeeds() {
 }
 
 /**
- * Phase 1.5 Hook: Fetch change summary grouped by order for a sync batch.
+ * Fetch change summary grouped by order for a sync batch.
  */
 export function useSyncChangeSummary(batchCode: string | null, enabled: boolean = true) {
   return useQuery({
@@ -205,7 +205,7 @@ export function useSyncChangeSummary(batchCode: string | null, enabled: boolean 
 }
 
 /**
- * Phase 1.5 Hook: Query sync changes by entity (e.g. order) with pagination.
+ * Query sync changes by entity (e.g. order) with pagination.
  */
 export function useSyncChangesByEntity(params: SyncChangeQueryParams, enabled: boolean = true) {
   return useQuery({

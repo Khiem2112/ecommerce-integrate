@@ -67,7 +67,13 @@ export function SyncFieldDiffTable({
                 <TableCell className={cn('font-medium text-foreground', isSmall && 'py-1.5 text-[11px]')}>
                   {SYNC_FIELD_LABELS[fieldKey] ?? fieldKey}
                 </TableCell>
-                <TableCell className={cn('text-muted line-through decoration-muted/40', isSmall && 'py-1.5 text-[11px]')}>
+                <TableCell
+                  className={cn(
+                    'text-muted',
+                    diff.before !== null && diff.before !== undefined && 'line-through decoration-muted/40',
+                    isSmall && 'py-1.5 text-[11px]',
+                  )}
+                >
                   {formatSyncFieldValue(fieldKey, diff.before)}
                 </TableCell>
                 <TableCell className={cn('text-status-success font-semibold', isSmall && 'py-1.5 text-[11px]')}>

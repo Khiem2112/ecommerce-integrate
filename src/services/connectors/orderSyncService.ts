@@ -24,6 +24,8 @@ import {
   computeOrderHeaderDiff,
   computeOrderItemDiff,
   bulkCreateSyncChanges,
+  buildOrderCreatedSnapshot,
+  buildOrderItemCreatedSnapshot,
 } from './syncChangeService';
 
 /**
@@ -165,7 +167,7 @@ async function reconcileSingleOrderItem(
     return {
       modified: true,
       changeType: 'created',
-      diff: null,
+      diff: buildOrderItemCreatedSnapshot(incoming),
       internalId: created.id,
     };
   }
@@ -377,18 +379,21 @@ async function reconcileSingleExternalOrder(
       entityId: externalOrder.externalOrderId,
       internalId: newOrder.id,
       parentEntityId: null,
-      changes: null,
+      changes: buildOrderCreatedSnapshot(externalOrder, targetStatusId, statusMap),
     });
 
     // Record each created item as SyncChange
     for (const createdItem of newOrder.items ?? []) {
+      const incomingItem = externalOrder.items.find(
+        (it) => it.externalItemId === createdItem.externalItemId,
+      );
       pendingChanges.push({
         entityType: 'order_item',
         changeType: 'created',
         entityId: createdItem.externalItemId ?? createdItem.productId,
         internalId: createdItem.id,
         parentEntityId: externalOrder.externalOrderId,
-        changes: null,
+        changes: incomingItem ? buildOrderItemCreatedSnapshot(incomingItem) : null,
       });
     }
 
