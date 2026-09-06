@@ -19,6 +19,7 @@ import type {
   PendingSyncChange,
   FieldDiff,
 } from '@/types';
+import { MAX_ORDERS_TO_SYNC } from '@/constants';
 import * as connectorFactory from './connectorFactory';
 import {
   computeOrderHeaderDiff,
@@ -526,11 +527,11 @@ export async function syncOrdersFromLazadaService(
     let page = params.page ?? 1;
     const pageSize = Math.min(100, Math.max(10, params.pageSize ?? 50));
     const allOrders: ExternalOrder[] = [];
-    const MAX_ORDERS_TO_SYNC = 200;
 
     while (allOrders.length < MAX_ORDERS_TO_SYNC) {
       const pageResult = await connector.fetchOrders({
         ...params,
+        includeItems: true,
         page,
         pageSize,
       });
@@ -545,6 +546,26 @@ export async function syncOrdersFromLazadaService(
         break;
       }
       page++;
+    }
+
+    // Ensure line items are fetched for any orders where items are still missing
+    const ordersNeedingItems = allOrders.filter(
+      (o) => !o.itemsComplete || (o.items.length === 0 && !o.itemsError),
+    );
+    if (ordersNeedingItems.length > 0 && typeof connector.fetchMultipleOrderItems === 'function') {
+      const missingOrderIds = ordersNeedingItems.map((o) => o.externalOrderId);
+      const itemsMap = await connector.fetchMultipleOrderItems(missingOrderIds);
+      for (let i = 0; i < allOrders.length; i++) {
+        const order = allOrders[i];
+        const fetched = itemsMap.get(order.externalOrderId);
+        if (fetched !== undefined) {
+          allOrders[i] = {
+            ...order,
+            items: fetched,
+            itemsComplete: true,
+          };
+        }
+      }
     }
 
     const totalOrders = allOrders.length;

@@ -5,7 +5,6 @@
  * Handles input validation, service coordination, and cache revalidation.
  */
 
-import { revalidatePath } from 'next/cache';
 import {
   platformSchema,
   syncParamsSchema,
@@ -116,10 +115,6 @@ export async function syncLazadaOrdersAction(
     const params: FetchOrdersParams = parsed.data;
     const result = await syncOrdersFromLazadaService(params);
 
-    revalidatePath('/orders');
-    revalidatePath('/settings/integrations');
-    revalidatePath('/settings/integrations/lazada');
-
     return { success: true, data: result };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Đồng bộ đơn hàng thất bại.';
@@ -164,7 +159,6 @@ export async function refreshOrderFromLazadaAction(
 
     const result = await refreshOrderFromLazadaService(parsed.data.externalOrderId);
 
-    revalidatePath('/orders');
     return { success: true, data: result };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Không thể làm mới đơn hàng từ Lazada.';

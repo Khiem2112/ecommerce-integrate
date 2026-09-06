@@ -4,6 +4,7 @@
  */
 
 import { LazadaClient } from './lazadaClient';
+import { LAZADA_ORDER_ITEMS_BATCH_CHUNK_SIZE } from '@/constants';
 import type {
   ChannelConnector,
   ConnectionHealth,
@@ -14,6 +15,7 @@ import type {
   FetchOrdersParams,
   LazadaOrderDTO,
   LazadaOrderItemDTO,
+  LazadaOrderItemsBatchItem,
   LazadaOrdersGetResponse,
 } from '@/types';
 
@@ -75,7 +77,7 @@ export function mapLazadaOrderToExternal(raw: LazadaOrderDTO): ExternalOrder {
   const externalOrderId = String(raw.order_id);
   const status = raw.statuses && raw.statuses.length > 0 ? raw.statuses[0] : 'pending';
   const buyer = mapLazadaBuyerToExternal(raw);
-  const hasItems = Array.isArray(raw.items);
+  const hasItems = Array.isArray(raw.items) && raw.items.length > 0;
   const items = (raw.items ?? []).map((it) => mapLazadaItemToExternal(it, externalOrderId));
 
   return {
@@ -138,7 +140,101 @@ export class LazadaConnector implements ChannelConnector {
   }
 
   /**
+   * Fetch line items for a single order via GET /order/items/get
+   */
+  public async fetchOrderItems(externalOrderId: string): Promise<readonly ExternalOrderItem[]> {
+    const rawData = await this.client.get<unknown>('/order/items/get', {
+      order_id: externalOrderId,
+    });
+
+    let rawItems: readonly LazadaOrderItemDTO[] = [];
+    if (Array.isArray(rawData)) {
+      rawItems = rawData as readonly LazadaOrderItemDTO[];
+    } else if (rawData && typeof rawData === 'object') {
+      const wrapped = rawData as { readonly order_items?: readonly LazadaOrderItemDTO[]; readonly items?: readonly LazadaOrderItemDTO[] };
+      rawItems = wrapped.order_items ?? wrapped.items ?? [];
+    }
+
+    return rawItems.map((it) => mapLazadaItemToExternal(it, externalOrderId));
+  }
+
+  /**
+   * Fetch line items for multiple orders in batches of up to 50 via GET /orders/items/get
+   * Automatically chunks order IDs and falls back gracefully to individual fetches if batch fails.
+   */
+  public async fetchMultipleOrderItems(
+    externalOrderIds: readonly string[],
+  ): Promise<Map<string, readonly ExternalOrderItem[]>> {
+    const resultMap = new Map<string, readonly ExternalOrderItem[]>();
+    if (externalOrderIds.length === 0) {
+      return resultMap;
+    }
+
+    // Lazada limits /orders/items/get to a maximum of 50 orders per request
+    const CHUNK_SIZE = LAZADA_ORDER_ITEMS_BATCH_CHUNK_SIZE;
+    const chunks: string[][] = [];
+    for (let i = 0; i < externalOrderIds.length; i += CHUNK_SIZE) {
+      chunks.push(externalOrderIds.slice(i, i + CHUNK_SIZE));
+    }
+
+    for (const chunk of chunks) {
+      try {
+        const batchResponse = await this.client.get<unknown>('/orders/items/get', {
+          order_ids: chunk.map((id) => Number(id) || id),
+        });
+
+        let itemsList: readonly LazadaOrderItemsBatchItem[] = [];
+        if (Array.isArray(batchResponse)) {
+          itemsList = batchResponse as readonly LazadaOrderItemsBatchItem[];
+        } else if (batchResponse && typeof batchResponse === 'object') {
+          const wrapped = batchResponse as { readonly order_items?: readonly LazadaOrderItemsBatchItem[] };
+          if (Array.isArray(wrapped.order_items)) {
+            itemsList = wrapped.order_items;
+          }
+        }
+
+        const returnedOrderIds = new Set<string>();
+
+        for (const orderEntry of itemsList) {
+          const orderIdStr = String(orderEntry.order_id);
+          returnedOrderIds.add(orderIdStr);
+          const rawItems = orderEntry.order_items ?? [];
+          resultMap.set(
+            orderIdStr,
+            rawItems.map((it: LazadaOrderItemDTO) => mapLazadaItemToExternal(it, orderIdStr)),
+          );
+        }
+
+        // For any orders in chunk that were omitted from batch response, fetch individually
+        for (const orderId of chunk) {
+          if (!returnedOrderIds.has(orderId)) {
+            try {
+              const singleItems = await this.fetchOrderItems(orderId);
+              resultMap.set(orderId, singleItems);
+            } catch {
+              resultMap.set(orderId, []);
+            }
+          }
+        }
+      } catch {
+        // Fallback: fetch individually for each order in the chunk if batch call fails
+        for (const orderId of chunk) {
+          try {
+            const singleItems = await this.fetchOrderItems(orderId);
+            resultMap.set(orderId, singleItems);
+          } catch {
+            resultMap.set(orderId, []);
+          }
+        }
+      }
+    }
+
+    return resultMap;
+  }
+
+  /**
    * Fetch paginated orders from Lazada API.
+   * If includeItems is true, automatically queries items for all retrieved orders via /orders/items/get.
    */
   public async fetchOrders(params: FetchOrdersParams = {}): Promise<ExternalOrderPage> {
     const page = Math.max(1, params.page ?? 1);
@@ -181,8 +277,26 @@ export class LazadaConnector implements ChannelConnector {
 
     const rawData = await this.client.get<LazadaOrdersGetResponse>('/orders/get', queryParams);
     const rawOrders = rawData.orders ?? [];
-    const orders = rawOrders.map(mapLazadaOrderToExternal);
+    let orders = rawOrders.map(mapLazadaOrderToExternal);
     const totalCount = rawData.countTotal ?? orders.length;
+
+    // Enrich with items if requested via /orders/items/get
+    if (params.includeItems && orders.length > 0) {
+      const orderIds = orders.map((o) => o.externalOrderId);
+      const itemsMap = await this.fetchMultipleOrderItems(orderIds);
+
+      orders = orders.map((order) => {
+        const fetchedItems = itemsMap.get(order.externalOrderId);
+        if (fetchedItems !== undefined) {
+          return {
+            ...order,
+            items: fetchedItems,
+            itemsComplete: true,
+          };
+        }
+        return order;
+      });
+    }
 
     return {
       orders,
@@ -194,13 +308,29 @@ export class LazadaConnector implements ChannelConnector {
   }
 
   /**
-   * Fetch single order detail from Lazada API.
+   * Fetch single order detail from Lazada API with line items enriched via /order/items/get.
    */
   public async fetchOrderDetail(externalOrderId: string): Promise<ExternalOrder> {
     const orderData = await this.client.get<LazadaOrderDTO>('/order/get', {
       order_id: externalOrderId,
     });
-    return mapLazadaOrderToExternal(orderData);
+    const baseOrder = mapLazadaOrderToExternal(orderData);
+
+    try {
+      const items = await this.fetchOrderItems(externalOrderId);
+      return {
+        ...baseOrder,
+        items,
+        itemsComplete: true,
+      };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Không thể lấy thông tin sản phẩm đơn hàng';
+      return {
+        ...baseOrder,
+        itemsComplete: false,
+        itemsError: message,
+      };
+    }
   }
 
   /**

@@ -67,6 +67,7 @@ export type FetchOrdersParams = {
   readonly updateAfter?: Date;
   readonly updateBefore?: Date;
   readonly seed?: string;
+  readonly includeItems?: boolean;
 };
 
 export type ConnectionHealth = {
@@ -94,4 +95,6 @@ export type ChannelConnector = {
   fetchOrders(params: FetchOrdersParams): Promise<ExternalOrderPage>;
   fetchOrderDetail(externalOrderId: string): Promise<ExternalOrder>;
   fetchCustomer(externalBuyerId: string): Promise<ExternalCustomer | null>;
+  fetchOrderItems?(externalOrderId: string): Promise<readonly ExternalOrderItem[]>;
+  fetchMultipleOrderItems?(externalOrderIds: readonly string[]): Promise<Map<string, readonly ExternalOrderItem[]>>;
 };

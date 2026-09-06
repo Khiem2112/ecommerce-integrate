@@ -133,6 +133,8 @@ export type {
   LazadaOrderStatus,
   LazadaAddressDTO,
   LazadaOrderItemDTO,
+  LazadaOrderItemsBatchItem,
+  LazadaOrdersItemsGetResponse,
   LazadaOrderDTO,
   LazadaApiResponse,
   LazadaOrdersGetResponse,

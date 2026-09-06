@@ -84,6 +84,13 @@ export type LazadaApiResponse<T> = {
   readonly data?: T;
 };
 
+export type LazadaOrderItemsBatchItem = {
+  readonly order_id: number;
+  readonly order_items: readonly LazadaOrderItemDTO[];
+};
+
+export type LazadaOrdersItemsGetResponse = readonly LazadaOrderItemsBatchItem[];
+
 export type LazadaOrdersGetResponse = {
   readonly count: number;
   readonly countTotal: number;
