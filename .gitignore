@@ -16,3 +16,10 @@ src/generated/
 .impeccable/critique/
 /plan/
 .agents/reviews/
+.github/
+.cache/
+.impeccable/
+ideas/
+plan/
+scripts/
+tsconfig.tsbuildinfo
