@@ -3,16 +3,22 @@
  * Derives from Prisma-generated types via `prisma generate`.
  */
 
-import type { Prisma } from '@prisma/client';
+import type { Prisma, PlatformCatalog } from '@prisma/client';
 import type { PaginationMeta } from './order';
 
-/** Customer with VIP tier and platform relations included */
+/** Customer with VIP tier and connection relations included */
 export type CustomerWithRelations = Prisma.CustomerGetPayload<{
   include: {
     vipTier: true;
-    platform: true;
+    connection: {
+      include: {
+        platform: true;
+      };
+    };
   };
 }> & {
+  platformId: number;
+  platform: PlatformCatalog;
   _count?: {
     orders: number;
     conversations: number;
@@ -24,34 +30,66 @@ export type CustomerWithRelations = Prisma.CustomerGetPayload<{
 export type CustomerEvidenceRecord = Prisma.CustomerEvidenceGetPayload<object>;
 
 /** Full customer 360 profile with orders, conversations, and evidences */
-export type CustomerFullDetail = Prisma.CustomerGetPayload<{
-  include: {
-    vipTier: true;
-    platform: true;
-    orders: {
+export type CustomerFullDetail = Omit<
+  Prisma.CustomerGetPayload<{
+    include: {
+      vipTier: true;
+      connection: {
+        include: {
+          platform: true;
+        };
+      };
+      orders: {
+        include: {
+          currentStatus: true;
+          connection: {
+            include: {
+              platform: true;
+            };
+          };
+          items: {
+            include: { category: true };
+          };
+        };
+        orderBy: { createdAt: 'desc' };
+      };
+      conversations: {
+        include: {
+          status: true;
+          intent: true;
+          assignedAgent: true;
+          escalationStatus: true;
+        };
+        orderBy: { startedAt: 'desc' };
+      };
+      evidences: {
+        orderBy: { lastObserved: 'desc' };
+      };
+    };
+  }>,
+  'orders'
+> & {
+  platformId: number;
+  platform: PlatformCatalog;
+  orders: Array<
+    Prisma.OrderGetPayload<{
       include: {
         currentStatus: true;
-        platform: true;
+        connection: {
+          include: {
+            platform: true;
+          };
+        };
         items: {
           include: { category: true };
         };
       };
-      orderBy: { createdAt: 'desc' };
-    };
-    conversations: {
-      include: {
-        status: true;
-        intent: true;
-        assignedAgent: true;
-        escalationStatus: true;
-      };
-      orderBy: { startedAt: 'desc' };
-    };
-    evidences: {
-      orderBy: { lastObserved: 'desc' };
-    };
-  };
-}>;
+    }> & {
+      platformId: number;
+      platform: PlatformCatalog;
+    }
+  >;
+};
 
 /** Filter parameters for querying customer directory */
 export type CustomerFilterParams = {

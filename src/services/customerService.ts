@@ -14,11 +14,16 @@ import type {
   CustomerListResponse,
   CustomerUpdateInput,
 } from '@/types';
+import { withPlatform, withPlatforms } from '@/utils';
 
 /** Shared Prisma include for standard customer queries */
 const CUSTOMER_INCLUDE = {
   vipTier: true,
-  platform: true,
+  connection: {
+    include: {
+      platform: true,
+    },
+  },
   _count: {
     select: {
       orders: true,
@@ -31,12 +36,20 @@ const CUSTOMER_INCLUDE = {
 /** Full detail include for Customer 360 Dossier */
 const CUSTOMER_360_INCLUDE = {
   vipTier: true,
-  platform: true,
+  connection: {
+    include: {
+      platform: true,
+    },
+  },
   orders: {
     where: { isActive: true },
     include: {
       currentStatus: true,
-      platform: true,
+      connection: {
+        include: {
+          platform: true,
+        },
+      },
       items: {
         where: { isActive: true },
         include: { category: true },
@@ -60,6 +73,14 @@ const CUSTOMER_360_INCLUDE = {
   },
 } as const;
 
+/** Maps full 360 Customer with connection relations to DTO with platform attached */
+function mapCustomerDetailDto(customer: any): CustomerFullDetail {
+  return {
+    ...withPlatform(customer),
+    orders: withPlatforms(customer.orders || []),
+  };
+}
+
 /**
  * Fetch full customer with VIP tier and platform (Existing helper for workspace/copilot).
  */
@@ -67,13 +88,12 @@ export async function getCustomerById(
   id: number,
   tx: DbClient = prisma,
 ): Promise<CustomerWithRelations | null> {
-  return tx.customer.findFirst({
+  const customer = await tx.customer.findFirst({
     where: { id, isActive: true },
-    include: {
-      vipTier: true,
-      platform: true,
-    },
+    include: CUSTOMER_INCLUDE,
   });
+
+  return customer ? (withPlatform(customer) as unknown as CustomerWithRelations) : null;
 }
 
 /** Fetch evidence-backed facts for a customer (Layer 3 memory) */
@@ -108,7 +128,7 @@ export async function getCustomersPaginatedService(
   };
 
   if (filters.platformId) {
-    whereClause.platformId = filters.platformId;
+    whereClause.connection = { platformId: filters.platformId };
   }
 
   if (filters.vipTierId) {
@@ -148,7 +168,7 @@ export async function getCustomersPaginatedService(
   const totalPages = Math.ceil(total / pageSize);
 
   return {
-    items: items as unknown as readonly CustomerWithRelations[],
+    items: withPlatforms(items) as unknown as readonly CustomerWithRelations[],
     pagination: {
       page,
       pageSize,
@@ -165,10 +185,12 @@ export async function getCustomerDetailService(
   id: number,
   tx: DbClient = prisma,
 ): Promise<CustomerFullDetail | null> {
-  return tx.customer.findFirst({
+  const customer = await tx.customer.findFirst({
     where: { id, isActive: true },
     include: CUSTOMER_360_INCLUDE,
-  }) as Promise<CustomerFullDetail | null>;
+  });
+
+  return customer ? mapCustomerDetailDto(customer) : null;
 }
 
 /**
@@ -224,7 +246,7 @@ export async function updateCustomerService(
     include: CUSTOMER_INCLUDE,
   });
 
-  return updated as unknown as CustomerWithRelations;
+  return withPlatform(updated) as unknown as CustomerWithRelations;
 }
 
 /**
@@ -241,16 +263,29 @@ export async function getCustomerLookupListService(
     readonly vipTier: { readonly name: string; readonly code: string };
   }[]
 > {
-  return tx.customer.findMany({
+  const customers = await tx.customer.findMany({
     where: { isActive: true },
     select: {
       id: true,
       platformBuyerId: true,
-      platform: { select: { name: true } },
+      connection: {
+        select: {
+          platform: {
+            select: { name: true },
+          },
+        },
+      },
       vipTier: { select: { name: true, code: true } },
     },
     orderBy: { id: 'asc' },
     take: limit,
   });
+
+  return customers.map((c) => ({
+    id: c.id,
+    platformBuyerId: c.platformBuyerId,
+    platform: { name: c.connection.platform.name },
+    vipTier: c.vipTier,
+  }));
 }
 

@@ -21,6 +21,7 @@ import type {
 } from '@/types';
 import { MAX_ORDERS_TO_SYNC } from '@/constants';
 import * as connectorFactory from './connectorFactory';
+import { ensurePlatformConnectionService } from '@/services/platformConnectionService';
 import {
   computeOrderHeaderDiff,
   computeOrderItemDiff,
@@ -63,6 +64,7 @@ function normalizeLazadaStatus(externalStatus: string): string {
  */
 async function ensureMasterCatalogs(tx: DbClient): Promise<{
   readonly platformId: number;
+  readonly connectionId: number;
   readonly defaultTierId: number;
   readonly statusMap: Map<string, number>;
 }> {
@@ -121,8 +123,11 @@ async function ensureMasterCatalogs(tx: DbClient): Promise<{
     }
   }
 
+  const connection = await ensurePlatformConnectionService(platform.id, tx);
+
   return {
     platformId: platform.id,
+    connectionId: connection.id,
     defaultTierId: defaultTier.id,
     statusMap,
   };
@@ -276,12 +281,13 @@ type ReconcileResult = {
 
 /**
  * Reconciles a single external order and its items idempotently inside a short database transaction.
- * Uses (platformId, platformOrderId) for Order identity and (orderId, externalItemId) for OrderItem identity.
+ * Uses (connectionId, platformOrderId) for Order identity and (orderId, externalItemId) for OrderItem identity.
  * Returns field-level pending changes for SyncChange audit recording.
  */
 async function reconcileSingleExternalOrder(
   externalOrder: ExternalOrder,
   platformId: number,
+  connectionId: number,
   defaultTierId: number,
   statusMap: Map<string, number>,
   tx: DbClient,
@@ -301,8 +307,8 @@ async function reconcileSingleExternalOrder(
   // Find or create customer
   let customer = await tx.customer.findUnique({
     where: {
-      platformId_platformBuyerId: {
-        platformId,
+      connectionId_platformBuyerId: {
+        connectionId,
         platformBuyerId: buyerIdStr,
       },
     },
@@ -311,7 +317,7 @@ async function reconcileSingleExternalOrder(
   if (!customer) {
     customer = await tx.customer.create({
       data: {
-        platformId,
+        connectionId,
         platformBuyerId: buyerIdStr,
         vipTierId: defaultTierId,
         vipScore: 20,
@@ -326,8 +332,8 @@ async function reconcileSingleExternalOrder(
   // Check existing order
   const existingOrder = await tx.order.findUnique({
     where: {
-      platformId_platformOrderId: {
-        platformId,
+      connectionId_platformOrderId: {
+        connectionId,
         platformOrderId: externalOrder.externalOrderId,
       },
     },
@@ -340,7 +346,7 @@ async function reconcileSingleExternalOrder(
     // Create new order with authoritative fields and initial items
     const newOrder = await tx.order.create({
       data: {
-        platformId,
+        connectionId,
         platformOrderId: externalOrder.externalOrderId,
         customerId: customer.id,
         currentStatusId: targetStatusId,
@@ -487,7 +493,7 @@ export async function syncOrdersFromLazadaService(
   const syncBatch = await tx.syncBatch.create({
     data: {
       batchCode: syncId,
-      platformId: catalogs.platformId,
+      connectionId: catalogs.connectionId,
       operationType: 'apply',
       status: 'running',
       scope: (params as Prisma.InputJsonValue) ?? Prisma.JsonNull,
@@ -604,6 +610,7 @@ export async function syncOrdersFromLazadaService(
           return reconcileSingleExternalOrder(
             order,
             catalogs.platformId,
+            catalogs.connectionId,
             catalogs.defaultTierId,
             catalogs.statusMap,
             scopedTx,
@@ -728,6 +735,13 @@ export async function syncOrdersFromLazadaService(
       },
     });
 
+    if (finalStatus === 'completed' || finalStatus === 'partial') {
+      await tx.platformConnection.update({
+        where: { id: catalogs.connectionId },
+        data: { lastSyncedAt: completedAt },
+      });
+    }
+
     // Finalize order SyncOperation in MySQL
     await tx.syncOperation.update({
       where: { id: orderOperation.id },
@@ -826,6 +840,7 @@ export async function refreshOrderFromLazadaService(
     const result = await reconcileSingleExternalOrder(
       externalOrder,
       catalogs.platformId,
+      catalogs.connectionId,
       catalogs.defaultTierId,
       catalogs.statusMap,
       scopedTx,
@@ -882,37 +897,47 @@ export async function getIntegrationSummaryService(
   let failedRecords = 0;
 
   if (platformRecord) {
-    totalOrders = await tx.order.count({
-      where: { platformId: platformRecord.id, isActive: true },
+    const connection = await tx.platformConnection.findUnique({
+      where: { platformId: platformRecord.id },
     });
 
-    try {
-      // Query most recent completed or partial sync batch from MySQL
-      const latestBatch = await tx.syncBatch.findFirst({
-        where: {
-          platformId: platformRecord.id,
-          status: { in: ['completed', 'partial'] },
-        },
-        orderBy: { completedAt: 'desc' },
+    if (connection) {
+      totalOrders = await tx.order.count({
+        where: { connectionId: connection.id, isActive: true },
       });
 
-      if (latestBatch?.completedAt) {
-        lastSyncedAt = latestBatch.completedAt.toISOString();
+      if (connection.lastSyncedAt) {
+        lastSyncedAt = connection.lastSyncedAt.toISOString();
       }
 
-      // Query most recent sync batch to get failed records count
-      const recentBatch = await tx.syncBatch.findFirst({
-        where: { platformId: platformRecord.id },
-        orderBy: { createdAt: 'desc' },
-      });
+      try {
+        // Query most recent completed or partial sync batch from MySQL
+        const latestBatch = await tx.syncBatch.findFirst({
+          where: {
+            connectionId: connection.id,
+            status: { in: ['completed', 'partial'] },
+          },
+          orderBy: { completedAt: 'desc' },
+        });
 
-      if (recentBatch && recentBatch.status !== 'completed') {
-        failedRecords = recentBatch.failedCount;
+        if (!lastSyncedAt && latestBatch?.completedAt) {
+          lastSyncedAt = latestBatch.completedAt.toISOString();
+        }
+
+        // Query most recent sync batch to get failed records count
+        const recentBatch = await tx.syncBatch.findFirst({
+          where: { connectionId: connection.id },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        if (recentBatch && recentBatch.status !== 'completed') {
+          failedRecords = recentBatch.failedCount;
+        }
+      } catch {
+        // Fallback cleanly if syncBatch table has no records or during migration
+        lastSyncedAt = undefined;
+        failedRecords = 0;
       }
-    } catch {
-      // Fallback cleanly if syncBatch table has no records or during migration
-      lastSyncedAt = undefined;
-      failedRecords = 0;
     }
   }
 
@@ -944,7 +969,11 @@ export async function getSyncLogsHistoryService(
       take: 50,
       orderBy: { createdAt: 'desc' },
       include: {
-        platform: true,
+        connection: {
+          include: {
+            platform: true,
+          },
+        },
         errors: {
           orderBy: { createdAt: 'asc' },
         },
@@ -953,7 +982,7 @@ export async function getSyncLogsHistoryService(
 
     return batches.map((batch) => ({
       syncId: batch.batchCode,
-      platform: (batch.platform?.code ?? 'lazada') as 'lazada' | 'shopify' | 'tiktok_shop',
+      platform: (batch.connection.platform.code ?? 'lazada') as 'lazada' | 'shopify' | 'tiktok_shop',
       status: batch.status as 'completed' | 'partial' | 'failed',
       created: batch.createdCount,
       updated: batch.updatedCount,

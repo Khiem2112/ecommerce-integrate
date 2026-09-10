@@ -11,6 +11,7 @@ import type {
   InboxConversationRecord,
   MessageWithSender,
 } from '@/types';
+import { withPlatform, withPlatforms } from '@/utils';
 
 export type InboxConversationFilters = {
   readonly statusCode?: string;
@@ -24,15 +25,21 @@ const CONVERSATION_INCLUDE = {
   assignedAgent: true,
   status: true,
   escalationStatus: true,
-  platform: true,
+  connection: {
+    include: {
+      platform: true,
+    },
+  },
 } as const;
+
+
 
 /** Fetch a single conversation by ID with messages */
 export async function getConversationById(
   id: number,
   tx: DbClient = prisma,
 ): Promise<ConversationWithMessages | null> {
-  return tx.conversation.findUnique({
+  const conv = await tx.conversation.findUnique({
     where: { id },
     include: {
       ...CONVERSATION_INCLUDE,
@@ -44,6 +51,8 @@ export async function getConversationById(
       },
     },
   });
+
+  return conv ? (withPlatform(conv) as unknown as ConversationWithMessages) : null;
 }
 
 /** Fetch inbox conversations with their customer and newest active message */
@@ -53,7 +62,7 @@ export async function getInboxConversations(
 ): Promise<InboxConversationRecord[]> {
   const searchQuery = filters.searchQuery?.trim();
 
-  return tx.conversation.findMany({
+  const conversations = await tx.conversation.findMany({
     where: {
       isActive: true,
       ...(filters.statusCode && filters.statusCode !== 'all'
@@ -89,6 +98,8 @@ export async function getInboxConversations(
     },
     orderBy: { updatedAt: 'desc' },
   });
+
+  return withPlatforms(conversations) as unknown as InboxConversationRecord[];
 }
 
 /** Persist a seller or AI-agent reply and return it with sender information */
@@ -158,11 +169,12 @@ export async function getConversationsByCustomerId(
   customerId: number,
   tx: DbClient = prisma,
 ): Promise<ConversationWithRelations[]> {
-  return tx.conversation.findMany({
+  const conversations = await tx.conversation.findMany({
     where: { customerId, isActive: true },
     include: CONVERSATION_INCLUDE,
     orderBy: { startedAt: 'desc' },
   });
+  return withPlatforms(conversations) as unknown as ConversationWithRelations[];
 }
 
 /** Fetch unresolved (non-final status) conversations for a customer */
@@ -170,7 +182,7 @@ export async function getUnresolvedConversations(
   customerId: number,
   tx: DbClient = prisma,
 ): Promise<ConversationWithRelations[]> {
-  return tx.conversation.findMany({
+  const conversations = await tx.conversation.findMany({
     where: {
       customerId,
       isActive: true,
@@ -179,6 +191,7 @@ export async function getUnresolvedConversations(
     include: CONVERSATION_INCLUDE,
     orderBy: { startedAt: 'desc' },
   });
+  return withPlatforms(conversations) as unknown as ConversationWithRelations[];
 }
 
 /** Fetch the most recent N messages for a conversation (chronological) */

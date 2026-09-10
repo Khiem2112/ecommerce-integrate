@@ -18,15 +18,25 @@ import type {
   OrderUpdateInput,
   OrderItemFormValues,
 } from '@/forms';
+import { ensurePlatformConnectionService } from '@/services/platformConnectionService';
+import { withOrderPlatform } from '@/utils';
 
 /** Shared Prisma include for standard order queries */
 const ORDER_INCLUDE = {
   currentStatus: true,
-  platform: true,
+  connection: {
+    include: {
+      platform: true,
+    },
+  },
   customer: {
     include: {
       vipTier: true,
-      platform: true,
+      connection: {
+        include: {
+          platform: true,
+        },
+      },
     },
   },
   items: {
@@ -44,6 +54,8 @@ const ORDER_FULL_INCLUDE = {
     orderBy: { changedAt: 'desc' as const },
   },
 } as const;
+
+
 
 /** Helper to transform Prisma unique constraint / known errors into descriptive domain messages */
 function handlePrismaKnownError(error: unknown, defaultMessage: string): never {
@@ -72,7 +84,7 @@ export async function getOrdersPaginatedService(
   };
 
   if (filters.platformId) {
-    whereClause.platformId = filters.platformId;
+    whereClause.connection = { platformId: filters.platformId };
   }
 
   if (filters.statusId) {
@@ -103,7 +115,7 @@ export async function getOrdersPaginatedService(
   ]);
 
   return {
-    items,
+    items: items.map(withOrderPlatform) as unknown as readonly OrderWithRelations[],
     pagination: {
       page,
       pageSize,
@@ -120,10 +132,11 @@ export async function getOrderByIdService(
   orderId: number,
   tx: DbClient = prisma,
 ): Promise<OrderWithHistory | null> {
-  return tx.order.findUnique({
+  const order = await tx.order.findUnique({
     where: { id: orderId },
     include: ORDER_FULL_INCLUDE,
   });
+  return order ? (withOrderPlatform(order) as unknown as OrderWithHistory) : null;
 }
 
 /**
@@ -170,9 +183,11 @@ export async function createOrderService(
     const discountAmount = values.discountAmount || 0;
     const totalValue = Math.max(0, itemsSubtotal - discountAmount + shippingFee);
 
+    const connection = await ensurePlatformConnectionService(values.platformId, tx);
+
     const newOrder = await tx.order.create({
       data: {
-        platformId: values.platformId,
+        connectionId: connection.id,
         platformOrderId: values.platformOrderId,
         customerId: values.customerId,
         currentStatusId: values.currentStatusId,
@@ -205,7 +220,7 @@ export async function createOrderService(
       include: ORDER_FULL_INCLUDE,
     });
 
-    return newOrder;
+    return withOrderPlatform(newOrder) as unknown as OrderWithHistory;
   } catch (error) {
     return handlePrismaKnownError(error, 'Không thể tạo đơn hàng.');
   }
@@ -232,7 +247,6 @@ export async function updateOrderService(
     }
 
     const updateData: Prisma.OrderUpdateInput = {
-      ...(values.platformId !== undefined && { platform: { connect: { id: values.platformId } } }),
       ...(values.platformOrderId !== undefined && { platformOrderId: values.platformOrderId }),
       ...(values.customerId !== undefined && { customer: { connect: { id: values.customerId } } }),
       ...(values.currency !== undefined && { currency: values.currency }),
@@ -252,6 +266,11 @@ export async function updateOrderService(
         cancelledAt: values.cancelledAt ? new Date(values.cancelledAt) : null,
       }),
     };
+
+    if (values.platformId !== undefined) {
+      const connection = await ensurePlatformConnectionService(values.platformId, tx);
+      updateData.connection = { connect: { id: connection.id } };
+    }
 
     // Handle status transition
     if (values.currentStatusId !== undefined && values.currentStatusId !== existingOrder.currentStatusId) {
@@ -341,11 +360,12 @@ export async function updateOrderService(
     const effectiveDiscount = values.discountAmount !== undefined ? values.discountAmount : existingOrder.discountAmount;
     updateData.totalValue = Math.max(0, itemsSubtotal - effectiveDiscount + effectiveShipping);
 
-    return await tx.order.update({
+    const updatedOrder = await tx.order.update({
       where: { id: values.id },
       data: updateData,
       include: ORDER_FULL_INCLUDE,
     });
+    return withOrderPlatform(updatedOrder) as unknown as OrderWithHistory;
   } catch (error) {
     return handlePrismaKnownError(error, 'Không thể cập nhật đơn hàng.');
   }
@@ -413,11 +433,12 @@ export async function addOrderItemService(
     itemsSubtotal - currentOrder.discountAmount + currentOrder.shippingFee,
   );
 
-  return tx.order.update({
+  const updated = await tx.order.update({
     where: { id: orderId },
     data: { totalValue },
     include: ORDER_FULL_INCLUDE,
   });
+  return withOrderPlatform(updated) as unknown as OrderWithHistory;
 }
 
 /**
@@ -454,11 +475,12 @@ export async function deleteOrderItemService(
     itemsSubtotal - currentOrder.discountAmount + currentOrder.shippingFee,
   );
 
-  return tx.order.update({
+  const updated = await tx.order.update({
     where: { id: orderId },
     data: { totalValue },
     include: ORDER_FULL_INCLUDE,
   });
+  return withOrderPlatform(updated) as unknown as OrderWithHistory;
 }
 
 /** Legacy & cross-service compatibility aliases */
@@ -468,11 +490,12 @@ export async function getOrdersByCustomerId(
   customerId: number,
   tx: DbClient = prisma,
 ): Promise<OrderWithRelations[]> {
-  return tx.order.findMany({
+  const orders = await tx.order.findMany({
     where: { customerId, isActive: true },
     include: ORDER_INCLUDE,
     orderBy: { createdAt: 'desc' },
   });
+  return orders.map(withOrderPlatform) as unknown as OrderWithRelations[];
 }
 
 export async function getRecentOrders(
@@ -480,10 +503,11 @@ export async function getRecentOrders(
   limit: number = 5,
   tx: DbClient = prisma,
 ): Promise<OrderWithRelations[]> {
-  return tx.order.findMany({
+  const orders = await tx.order.findMany({
     where: { customerId, isActive: true },
     include: ORDER_INCLUDE,
     orderBy: { createdAt: 'desc' },
     take: limit,
   });
+  return orders.map(withOrderPlatform) as unknown as OrderWithRelations[];
 }

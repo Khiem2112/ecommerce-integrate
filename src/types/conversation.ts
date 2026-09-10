@@ -3,7 +3,7 @@
  * Derives from Prisma-generated types via `prisma generate`.
  */
 
-import type { Prisma, MessageType } from '@prisma/client';
+import type { Prisma, MessageType, PlatformCatalog } from '@prisma/client';
 
 /** Message with sender type relation */
 type MessageWithSender = Prisma.MessageGetPayload<{
@@ -17,9 +17,11 @@ type ConversationWithRelations = Prisma.ConversationGetPayload<{
     assignedAgent: true;
     status: true;
     escalationStatus: true;
-    platform: true;
+    connection: { include: { platform: true } };
   };
-}>;
+}> & {
+  platform: PlatformCatalog;
+};
 
 /** Conversation with full message thread and customer inbox information */
 type ConversationWithMessages = Prisma.ConversationGetPayload<{
@@ -28,11 +30,13 @@ type ConversationWithMessages = Prisma.ConversationGetPayload<{
     assignedAgent: true;
     status: true;
     escalationStatus: true;
-    platform: true;
+    connection: { include: { platform: true } };
     customer: { include: { vipTier: true } };
     messages: { include: { senderType: true } };
   };
-}>;
+}> & {
+  platform: PlatformCatalog;
+};
 
 /** Inbox conversation record with latest message and latest active ai draft */
 type InboxConversationRecord = Prisma.ConversationGetPayload<{
@@ -41,12 +45,14 @@ type InboxConversationRecord = Prisma.ConversationGetPayload<{
     assignedAgent: true;
     status: true;
     escalationStatus: true;
-    platform: true;
+    connection: { include: { platform: true } };
     customer: { include: { vipTier: true } };
     messages: { include: { senderType: true } };
     aiDrafts: true;
   };
-}>;
+}> & {
+  platform: PlatformCatalog;
+};
 
 export type {
   MessageWithSender,

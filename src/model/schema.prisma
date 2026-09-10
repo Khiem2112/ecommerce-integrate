@@ -30,12 +30,29 @@ model PlatformCatalog {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  customers    Customer[]
-  orders       Order[]
-  conversations Conversation[]
-  syncBatches  SyncBatch[]
+  connections   PlatformConnection[]
 
   @@map("platform_catalog")
+}
+
+/// One connected shop per platform (MVP: unique on platformId)
+model PlatformConnection {
+  id             Int      @id @default(autoincrement())
+  platformId     Int      @unique
+  platform       PlatformCatalog @relation(fields: [platformId], references: [id])
+  externalShopId String?         // Seller/shop id on the platform when known
+  shopName       String?
+  lastSyncedAt   DateTime?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  customers     Customer[]
+  orders        Order[]
+  conversations Conversation[]
+  syncBatches   SyncBatch[]
+
+  @@map("platform_connection")
 }
 
 /// VIP tier classifications
@@ -227,8 +244,8 @@ enum MessageType {
 
 model Customer {
   id                 Int      @id @default(autoincrement())
-  platformId         Int
-  platform           PlatformCatalog @relation(fields: [platformId], references: [id])
+  connectionId       Int
+  connection         PlatformConnection @relation(fields: [connectionId], references: [id])
   platformBuyerId    String          // Lazada buyer_id, Shopee buyer_user_id, etc.
   vipTierId          Int
   vipTier            VipTierCatalog  @relation(fields: [vipTierId], references: [id])
@@ -257,7 +274,8 @@ model Customer {
   conversations Conversation[]
   evidences     CustomerEvidence[]
 
-  @@unique([platformId, platformBuyerId])
+  @@unique([connectionId, platformBuyerId])
+  @@index([connectionId])
   @@map("customer")
 }
 
@@ -279,8 +297,8 @@ model CustomerEvidence {
 
 model Order {
   id               Int      @id @default(autoincrement())
-  platformId       Int
-  platform         PlatformCatalog @relation(fields: [platformId], references: [id])
+  connectionId     Int
+  connection       PlatformConnection @relation(fields: [connectionId], references: [id])
   platformOrderId  String          // Lazada order_id, etc.
   customerId       Int
   customer         Customer @relation(fields: [customerId], references: [id])
@@ -311,7 +329,8 @@ model Order {
   statusHistory  OrderStatusHistory[]
   conversations  Conversation[]
 
-  @@unique([platformId, platformOrderId])
+  @@unique([connectionId, platformOrderId])
+  @@index([connectionId])
   @@map("order")
 }
 
@@ -356,8 +375,8 @@ model OrderItem {
 
 model Conversation {
   id                  Int      @id @default(autoincrement())
-  platformId          Int
-  platform            PlatformCatalog @relation(fields: [platformId], references: [id])
+  connectionId        Int
+  connection          PlatformConnection @relation(fields: [connectionId], references: [id])
   platformSessionId   String?         // Lazada session_id
   customerId          Int
   customer            Customer @relation(fields: [customerId], references: [id])
@@ -395,6 +414,7 @@ model Conversation {
   routingDecisions   RoutingDecision[]
   aiDrafts           AiDraftResponse[]
 
+  @@index([connectionId])
   @@map("conversation")
 }
 
@@ -553,8 +573,8 @@ model RoutingDecision {
 model SyncBatch {
   id                   Int             @id @default(autoincrement())
   batchCode            String          @unique
-  platformId           Int
-  platform             PlatformCatalog @relation(fields: [platformId], references: [id])
+  connectionId         Int
+  connection           PlatformConnection @relation(fields: [connectionId], references: [id])
   operationType        String          @default("apply") // "preview" | "apply"
   status               String          @default("queued") // "queued" | "running" | "completed" | "partial" | "failed" | "cancelled"
   scope                Json?           // JSON scope/filter parameters
@@ -577,7 +597,7 @@ model SyncBatch {
   operations           SyncOperation[]
   errors               SyncRunError[]
 
-  @@index([platformId, createdAt])
+  @@index([connectionId, createdAt])
   @@index([status])
   @@map("sync_batch")
 }

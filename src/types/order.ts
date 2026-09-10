@@ -3,41 +3,67 @@
  * Derives from Prisma-generated types via `prisma generate`.
  */
 
-import type { Prisma } from '@prisma/client';
+import type { Prisma, PlatformCatalog } from '@prisma/client';
 
-/** Order with current status, platform, and items (each with category) */
+/** Order with current status, connection, and items (each with category) */
 export type OrderWithRelations = Prisma.OrderGetPayload<{
   include: {
     currentStatus: true;
-    platform: true;
+    connection: {
+      include: {
+        platform: true;
+      };
+    };
     items: { include: { category: true } };
   };
 }> & {
+  platformId: number;
+  platform: PlatformCatalog;
   customer?: Prisma.CustomerGetPayload<{
     include: {
       vipTier: true;
-      platform: true;
+      connection: {
+        include: {
+          platform: true;
+        };
+      };
     };
-  }>;
+  }> & {
+    platformId?: number;
+    platform?: PlatformCatalog;
+  };
 };
 
-/** Order with full status transition history, items, customer, and platform */
+/** Order with full status transition history, items, customer, and connection */
 export type OrderWithHistory = Prisma.OrderGetPayload<{
   include: {
     currentStatus: true;
-    platform: true;
+    connection: {
+      include: {
+        platform: true;
+      };
+    };
     items: { include: { category: true } };
     statusHistory: {
       include: { status: true };
     };
   };
 }> & {
+  platformId: number;
+  platform: PlatformCatalog;
   customer?: Prisma.CustomerGetPayload<{
     include: {
       vipTier: true;
-      platform: true;
+      connection: {
+        include: {
+          platform: true;
+        };
+      };
     };
-  }>;
+  }> & {
+    platformId?: number;
+    platform?: PlatformCatalog;
+  };
 };
 
 /** Single order item with category */
