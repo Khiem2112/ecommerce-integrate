@@ -165,6 +165,11 @@ export type {
   SyncChangeSummary,
   SyncChangeQueryParams,
   PendingSyncChange,
+  OrderPreviewStatus,
+  OrderPreviewRow,
+  OrderPreviewPage,
+  OrderPreviewItemRow,
 } from './sync';
+
 
 

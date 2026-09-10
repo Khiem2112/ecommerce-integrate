@@ -13,12 +13,14 @@ import {
   useCheckConnectionHealth,
   useSyncLazadaOrders,
   usePreflightLazadaSync,
+  useOrderPreview,
+  useClearOrderPreviewCache,
   useDebounce,
 } from '@/hooks';
+
 import {
   Badge,
   Button,
-  Select,
   DateRangePicker,
   Table,
   TableHeader,
@@ -27,7 +29,13 @@ import {
   TableHead,
   TableCell,
 } from '@/components/atoms';
-import { ConnectionStatus, SyncResultSummary, SyncHistoryTable } from '@/components/organisms';
+import {
+  ConnectionStatus,
+  SyncResultSummary,
+  SyncHistoryTable,
+  SyncPreviewTable,
+} from '@/components/organisms';
+
 import { OrderStatusFilter } from '@/components/molecules';
 import { cn } from '@/lib/cn';
 import type { SyncResult, FetchOrdersParams } from '@/types';
@@ -74,10 +82,58 @@ export default function LazadaIntegrationDetailPage() {
     ]);
   }, [setBreadcrumb]);
 
-  const { data: summary, isLoading: isLoadingSummary } = useIntegrationSummary('lazada');
+  const { data: summary } = useIntegrationSummary('lazada');
   const { mutateAsync: checkHealth, isPending: isCheckingHealth } = useCheckConnectionHealth('lazada');
   const { mutateAsync: syncOrders, isPending: isSyncing } = useSyncLazadaOrders();
   const { data: preflightData, isLoading: isPreflightLoading } = usePreflightLazadaSync(debouncedParams, activeTab === 'sync');
+
+  // Preview State & Hook
+  const [previewPage, setPreviewPage] = useState<number>(1);
+  const [previewPageSize, setPreviewPageSize] = useState<number>(10);
+  const [isPreviewTriggered, setIsPreviewTriggered] = useState<boolean>(false);
+
+  const previewParams = useMemo<FetchOrdersParams>(() => ({
+    createdAfter: fromDate ? new Date(`${fromDate}T00:00:00Z`) : undefined,
+    createdBefore: toDate ? new Date(`${toDate}T23:59:59.999Z`) : undefined,
+    ...(statusFilter ? { status: statusFilter } : {}),
+    page: previewPage,
+    pageSize: previewPageSize,
+  }), [fromDate, toDate, statusFilter, previewPage, previewPageSize]);
+
+  const {
+    data: previewData,
+    isLoading: isPreviewLoading,
+    isFetching: isPreviewFetching,
+    refetch: refetchPreview,
+  } = useOrderPreview('lazada', previewParams, {
+    enabled: isPreviewTriggered && activeTab === 'sync',
+  });
+
+  const clearPreviewMutation = useClearOrderPreviewCache();
+
+
+  const handleTriggerPreview = () => {
+    setSyncError(null);
+    if (!fromDate || !toDate) {
+      setSyncError('Vui lòng chọn khoảng thời gian hợp lệ để xem trước.');
+      return;
+    }
+    if (new Date(fromDate) > new Date(toDate)) {
+      setSyncError('Ngày bắt đầu không được lớn hơn ngày kết thúc.');
+      return;
+    }
+    setPreviewPage(1);
+    setIsPreviewTriggered(true);
+  };
+
+  const handleForceRefreshPreview = async () => {
+    try {
+      await clearPreviewMutation.mutateAsync();
+      await refetchPreview();
+    } catch (err: unknown) {
+      setSyncError(err instanceof Error ? err.message : 'Làm mới xem trước thất bại.');
+    }
+  };
 
   const handleRunSync = async () => {
     setSyncError(null);
@@ -98,10 +154,12 @@ export default function LazadaIntegrationDetailPage() {
       };
       const res = await syncOrders(params);
       setSyncResult(res);
+      await clearPreviewMutation.mutateAsync();
     } catch (err: unknown) {
       setSyncError(err instanceof Error ? err.message : 'Đồng bộ thất bại');
     }
   };
+
 
   const isMock = summary?.environment === 'mock';
 
@@ -355,24 +413,70 @@ export default function LazadaIntegrationDetailPage() {
 
             <div className="pt-3 border-t border-hairline flex flex-wrap items-center justify-between gap-3">
               <span className="text-[11px] text-muted">
-                Tiến trình đối soát idempotent tự động qua Server Action & Prisma Transaction
+                Đối soát an toàn: xem trước không ghi DB, nạp dữ liệu có audit log SyncChange
               </span>
 
-              <Button
-                variant="primary"
-                size="md"
-                isLoading={isSyncing}
-                onClick={handleRunSync}
-                icon={
-                  <svg aria-hidden="true" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                  </svg>
-                }
-              >
-                {isSyncing ? 'Đang thực hiện đồng bộ...' : 'Bắt đầu đồng bộ ngay'}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="md"
+                  isLoading={isPreviewLoading || isPreviewFetching}
+                  onClick={handleTriggerPreview}
+                  icon={
+                    <svg aria-hidden="true" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                  }
+                >
+                  {isPreviewLoading ? 'Đang tải xem trước...' : 'Xem trước đơn hàng'}
+                </Button>
+
+                <Button
+                  variant="primary"
+                  size="md"
+                  isLoading={isSyncing}
+                  onClick={handleRunSync}
+                  icon={
+                    <svg aria-hidden="true" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                  }
+                >
+                  {isSyncing ? 'Đang thực hiện đồng bộ...' : 'Bắt đầu đồng bộ ngay'}
+                </Button>
+              </div>
             </div>
           </div>
+
+          {/* Quick Preview Table Section */}
+          {isPreviewTriggered && (
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-base font-bold text-foreground">Bản xem trước đơn hàng Lazada (Quick Preview)</h3>
+                <p className="text-xs text-muted mt-0.5">
+                  Kiểm tra đối soát trước khi đồng bộ. Dữ liệu được lưu trong bộ nhớ đệm IndexedDB để bảo vệ hạn mức 10.000 req/ngày của Lazada.
+                </p>
+              </div>
+
+              <SyncPreviewTable
+                platform="lazada"
+                platformName="Lazada"
+                data={previewData}
+                isLoading={isPreviewLoading}
+
+                isFetching={isPreviewFetching}
+                page={previewPage}
+                pageSize={previewPageSize}
+                onPageChange={setPreviewPage}
+                onPageSizeChange={(sz) => {
+                  setPreviewPageSize(sz);
+                  setPreviewPage(1);
+                }}
+                onForceRefresh={handleForceRefreshPreview}
+              />
+            </div>
+          )}
         </div>
       )}
 

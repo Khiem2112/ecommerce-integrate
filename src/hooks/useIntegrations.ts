@@ -15,6 +15,8 @@ import {
   getMockSeedsAction,
   getSyncChangeSummaryAction,
   getSyncChangesByEntityAction,
+  getPreviewOrdersPageAction,
+  getPreviewOrderItemsAction,
 } from '@/actions';
 import type {
   FetchOrdersParams,
@@ -26,17 +28,31 @@ import type {
   SyncChangeSummary,
   SyncChangeQueryParams,
   SyncChangeRecord,
+  OrderPreviewPage,
+  OrderPreviewItemRow,
 } from '@/types';
+import {
+  generatePreviewCacheKey,
+  getPreviewPage,
+  savePreviewPage,
+  getOrderItemsPreview,
+  saveOrderItemsPreview,
+  clearAllPreviews,
+} from '@/services/client';
 
 export const INTEGRATION_QUERY_KEYS = {
   summary: (platform: string) => ['integrations', 'summary', platform] as const,
   health: (platform: string) => ['integrations', 'health', platform] as const,
   preflight: (params: FetchOrdersParams) => ['integrations', 'preflight', params] as const,
+  previewOrders: (platform: string, params: FetchOrdersParams) => ['integrations', 'preview', platform, params] as const,
+  previewItems: (platform: string, externalOrderId: string) => ['integrations', 'previewItems', platform, externalOrderId] as const,
   history: () => ['integrations', 'history'] as const,
   seeds: () => ['integrations', 'seeds'] as const,
   changeSummary: (batchCode: string) => ['integrations', 'changeSummary', batchCode] as const,
   changesByEntity: (params: SyncChangeQueryParams) => ['integrations', 'changesByEntity', params] as const,
 };
+
+
 
 /**
  * Hook to query current integration summary and status.
@@ -221,4 +237,91 @@ export function useSyncChangesByEntity(params: SyncChangeQueryParams, enabled: b
     staleTime: 30000,
   });
 }
+
+/**
+ * Hook to retrieve an uncommitted preview page with client-side IndexedDB caching.
+ * Protects channel rate limits by returning cached pages unless a force-refresh is requested.
+ */
+export function useOrderPreview(
+  platform: string = 'lazada',
+  params: FetchOrdersParams = {},
+  options: { enabled?: boolean; forceRefresh?: boolean } = {},
+) {
+  const { enabled = false, forceRefresh = false } = options;
+  const cacheKey = generatePreviewCacheKey({ platform, ...params });
+
+  return useQuery({
+    queryKey: [...INTEGRATION_QUERY_KEYS.previewOrders(platform, params), { forceRefresh }],
+    queryFn: async (): Promise<OrderPreviewPage> => {
+      if (!forceRefresh) {
+        const cached = await getPreviewPage(cacheKey);
+        if (cached) {
+          return cached;
+        }
+      }
+
+      const res = await getPreviewOrdersPageAction(platform, params);
+      if (!res.success || !res.data) {
+        throw new Error(res.error ?? 'Không thể tải bản xem trước đơn hàng.');
+      }
+
+      await savePreviewPage(cacheKey, res.data, 120);
+      return res.data;
+    },
+    enabled,
+    staleTime: 60000,
+  });
+}
+
+/**
+ * Hook to lazy-load un-synced line items with browser-level caching.
+ */
+export function useOrderItemsPreview(
+  platform: string = 'lazada',
+  externalOrderId: string = '',
+  enabled: boolean = false,
+) {
+  return useQuery({
+    queryKey: INTEGRATION_QUERY_KEYS.previewItems(platform, externalOrderId),
+    queryFn: async (): Promise<readonly OrderPreviewItemRow[]> => {
+      const cached = await getOrderItemsPreview(platform, externalOrderId);
+      if (cached && cached.length > 0) {
+        return cached;
+      }
+
+      const res = await getPreviewOrderItemsAction(platform, externalOrderId);
+      if (!res.success || !res.data) {
+        throw new Error(res.error ?? 'Không thể tải chi tiết sản phẩm.');
+      }
+
+      await saveOrderItemsPreview(platform, externalOrderId, res.data, 120);
+      return res.data;
+    },
+    enabled: enabled && Boolean(externalOrderId),
+    staleTime: 120000,
+  });
+}
+
+/**
+ * Clears local browser preview cache and invalidates active preview queries.
+ */
+export function useClearOrderPreviewCache() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      await clearAllPreviews();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['integrations', 'preview'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['integrations', 'previewItems'],
+      });
+    },
+  });
+}
+
+
 

@@ -165,3 +165,59 @@ export type PreflightSyncResult = {
   };
   readonly status?: string;
 };
+
+// ============================================================================
+// Quick Preview Types (Client-facing DTOs)
+// ============================================================================
+
+export type OrderPreviewStatus = 'new' | 'existing_changed' | 'existing_unchanged';
+
+export type OrderPreviewRow = {
+  readonly externalOrderId: string;
+  readonly orderNumber: string;
+  readonly platform: string;
+  readonly status: string;
+  readonly totalAmount: number;
+  readonly shippingFee: number;
+  readonly voucherDiscount: number;
+  readonly paymentMethod: string;
+  readonly remarks?: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly previewStatus: OrderPreviewStatus;
+  readonly buyer: {
+    readonly externalBuyerId: string;
+    readonly firstName: string;
+    readonly lastName: string;
+    readonly phone?: string;
+    readonly email?: string;
+  };
+  readonly itemCount?: number;
+  readonly diffSummary?: Record<string, FieldDiff> | null;
+};
+
+export type OrderPreviewPage = {
+  readonly rows: readonly OrderPreviewRow[];
+  readonly totalCount: number;
+  readonly page: number;
+  readonly pageSize: number;
+  readonly hasMore: boolean;
+  readonly cachedAt?: string;
+};
+
+export type OrderPreviewItemRow = {
+  readonly externalItemId: string;
+  readonly externalOrderId: string;
+  readonly name: string;
+  readonly sku: string;
+  readonly unitPrice: number;
+  readonly paidPrice: number;
+  readonly quantity: number;
+  readonly shippingFee: number;
+  readonly status: string;
+  readonly trackingCode?: string;
+  readonly shippingProvider?: string;
+  readonly productImage?: string;
+  readonly cancelReason?: string;
+};
+

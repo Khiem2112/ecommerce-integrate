@@ -16,9 +16,13 @@ import type {
   ExternalOrder,
   ExternalOrderItem,
   PreflightSyncResult,
+  OrderPreviewPage,
+  OrderPreviewRow,
+  OrderPreviewItemRow,
   PendingSyncChange,
   FieldDiff,
 } from '@/types';
+
 import { MAX_ORDERS_TO_SYNC } from '@/constants';
 import * as connectorFactory from './connectorFactory';
 import { ensurePlatformConnectionService } from '@/services/platformConnectionService';
@@ -517,8 +521,6 @@ export async function syncOrdersFromLazadaService(
   let updatedCount = 0;
   let unchangedCount = 0;
   let failedCount = 0;
-  let itemsSuccessCount = 0;
-  let itemsFailedCount = 0;
 
   // Track per-order item operations for SyncChange grouping
   const itemOperationMap = new Map<string, number>();
@@ -619,8 +621,6 @@ export async function syncOrdersFromLazadaService(
         else if (result.outcome === 'updated') updatedCount++;
         else unchangedCount++;
 
-        itemsSuccessCount += result.itemsProcessed;
-
         // Persist SyncChange records grouped by their operation
         if (result.pendingChanges.length > 0) {
           const orderChanges = result.pendingChanges.filter((c) => c.entityType === 'order');
@@ -672,7 +672,6 @@ export async function syncOrdersFromLazadaService(
       } catch (err: unknown) {
         failedCount++;
         const itemCount = order.items?.length ?? 0;
-        itemsFailedCount += itemCount;
 
         const message = err instanceof Error ? err.message : 'Lỗi không xác định khi lưu đơn hàng';
         errors.push({
@@ -872,6 +871,153 @@ export async function preflightLazadaSyncService(
     status: params.status,
   };
 }
+
+/**
+ * Fetches a paginated preview window of orders from the specified channel connector
+ * and computes field-level differences in-memory against local database records.
+ * Non-mutating read-only service: does NOT write or create database entities.
+ */
+export async function getPreviewOrdersPageService(
+  platform: string = 'lazada',
+  params: FetchOrdersParams = {},
+  tx: DbClient = prisma,
+): Promise<OrderPreviewPage> {
+  const connector = connectorFactory.getChannelConnector(platform);
+  const page = params.page ?? 1;
+  const pageSize = params.pageSize ?? 10;
+
+  const result = await connector.fetchOrders({
+    ...params,
+    includeItems: false,
+    page,
+    pageSize,
+  });
+
+  // Bulk-fetch local connection and order status mappings for entity reconciliation
+  const platformRecord = await tx.platformCatalog.findUnique({
+    where: { code: platform },
+  });
+
+  const connection = platformRecord
+    ? await tx.platformConnection.findUnique({
+        where: { platformId: platformRecord.id },
+      })
+    : null;
+
+  const statusRecords = await tx.orderStatus.findMany();
+  const statusMap = new Map<string, number>();
+  for (const record of statusRecords) {
+    statusMap.set(record.code, record.id);
+  }
+
+  const orderNumbers = result.orders.map((o) => o.orderNumber);
+
+  // Bulk-query existing order snapshots to eliminate N+1 roundtrips during diff computation
+  const existingOrders =
+    connection && orderNumbers.length > 0
+      ? await tx.order.findMany({
+          where: {
+            connectionId: connection.id,
+            platformOrderId: { in: orderNumbers },
+            isActive: true,
+          },
+          select: {
+            platformOrderId: true,
+            currentStatusId: true,
+            totalValue: true,
+            shippingFee: true,
+            discountAmount: true,
+          },
+        })
+      : [];
+
+  const existingMap = new Map(existingOrders.map((o) => [o.platformOrderId, o]));
+
+  const rows: OrderPreviewRow[] = result.orders.map((order) => {
+    const existing = existingMap.get(order.orderNumber);
+
+    let previewStatus: 'new' | 'existing_changed' | 'existing_unchanged' = 'new';
+    let diffSummary: Record<string, FieldDiff> | null = null;
+
+    if (existing) {
+      const normalizedCode = normalizeLazadaStatus(order.status);
+      const targetStatusId = statusMap.get(normalizedCode) ?? existing.currentStatusId;
+      const diff = computeOrderHeaderDiff(existing, order, targetStatusId, statusMap);
+
+      if (diff) {
+        previewStatus = 'existing_changed';
+        diffSummary = diff;
+      } else {
+        previewStatus = 'existing_unchanged';
+      }
+    }
+
+    return {
+      externalOrderId: order.externalOrderId,
+      orderNumber: order.orderNumber,
+      platform: order.platform,
+      status: order.status,
+      totalAmount: order.totalAmount,
+      shippingFee: order.shippingFee,
+      voucherDiscount: order.voucherDiscount,
+      paymentMethod: order.paymentMethod,
+      remarks: order.remarks,
+      createdAt: order.createdAt instanceof Date ? order.createdAt.toISOString() : String(order.createdAt),
+      updatedAt: order.updatedAt instanceof Date ? order.updatedAt.toISOString() : String(order.updatedAt),
+      previewStatus,
+      buyer: {
+        externalBuyerId: order.buyer.externalBuyerId,
+        firstName: order.buyer.firstName,
+        lastName: order.buyer.lastName,
+        phone: order.buyer.phone,
+        email: order.buyer.email,
+      },
+      itemCount: order.items?.length,
+      diffSummary,
+    };
+  });
+
+  return {
+    rows,
+    totalCount: result.totalCount,
+    page: result.page,
+    pageSize: result.pageSize,
+    hasMore: result.hasMore,
+  };
+}
+
+/**
+ * Retrieves un-synced line items for a specific order on-demand to support lazy inspection.
+ * Bypasses database persistence to minimize storage overhead during read-only evaluation.
+ */
+export async function getPreviewOrderItemsService(
+  platform: string = 'lazada',
+  externalOrderId: string,
+): Promise<readonly OrderPreviewItemRow[]> {
+  const connector = connectorFactory.getChannelConnector(platform);
+  if (!connector.fetchOrderItems) {
+    return [];
+  }
+  const items = await connector.fetchOrderItems(externalOrderId);
+
+  return items.map((item) => ({
+    externalItemId: item.externalItemId,
+    externalOrderId: item.externalOrderId,
+    name: item.name,
+    sku: item.sku,
+    unitPrice: item.unitPrice,
+    paidPrice: item.paidPrice,
+    quantity: item.quantity,
+    shippingFee: item.shippingFee,
+    status: item.status,
+    trackingCode: item.trackingCode,
+    shippingProvider: item.shippingProvider,
+    productImage: item.productImage,
+    cancelReason: item.cancelReason,
+  }));
+}
+
+
 
 /**
  * Retrieve summary data for platform integration cards and status overview directly from MySQL.

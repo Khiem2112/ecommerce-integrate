@@ -25,11 +25,16 @@ import type {
   PlatformCode,
   SyncChangeSummary,
   SyncChangeRecord,
+  OrderPreviewPage,
+  OrderPreviewItemRow,
 } from '@/types';
 import {
   syncOrdersFromLazadaService,
   preflightLazadaSyncService,
+  getPreviewOrdersPageService,
+  getPreviewOrderItemsService,
   refreshOrderFromLazadaService,
+
   getIntegrationSummaryService,
   getSyncLogsHistoryService,
   getMockSeedsService,
@@ -37,6 +42,7 @@ import {
   getSyncChangeSummaryByBatch,
   querySyncChangesByEntity,
 } from '@/services';
+
 
 /**
  * Server Action: Retrieve overall integration summary for a platform card.
@@ -144,6 +150,66 @@ export async function preflightLazadaSyncAction(
     return { success: false, error: message };
   }
 }
+
+/**
+ * Evaluates an uncommitted order preview page for the specified marketplace platform.
+ * Enforces schema validation on incoming date and pagination bounds before delegating to the connector service.
+ */
+export async function getPreviewOrdersPageAction(
+  platform: unknown = 'lazada',
+  rawParams: unknown = {},
+): Promise<ActionResponse<OrderPreviewPage>> {
+  try {
+    const platformResult = platformSchema.safeParse(platform);
+    if (!platformResult.success) {
+      return { success: false, error: 'Kênh sàn không hợp lệ.' };
+    }
+
+    const parsed = syncParamsSchema.safeParse(rawParams);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message ?? 'Tham số xem trước không hợp lệ.',
+      };
+    }
+
+    const result = await getPreviewOrdersPageService(platformResult.data, parsed.data);
+    return { success: true, data: result };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Không thể tải bản xem trước đơn hàng.';
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Fetches line items for an uncommitted order row to support on-demand table expansion.
+ */
+export async function getPreviewOrderItemsAction(
+  platform: unknown = 'lazada',
+  externalOrderId: unknown = '',
+): Promise<ActionResponse<readonly OrderPreviewItemRow[]>> {
+  try {
+    const platformResult = platformSchema.safeParse(platform);
+    if (!platformResult.success) {
+      return { success: false, error: 'Kênh sàn không hợp lệ.' };
+    }
+
+    if (typeof externalOrderId !== 'string' || !externalOrderId.trim()) {
+      return {
+        success: false,
+        error: 'Mã đơn hàng không hợp lệ.',
+      };
+    }
+
+    const items = await getPreviewOrderItemsService(platformResult.data, externalOrderId.trim());
+    return { success: true, data: items };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Không thể tải chi tiết sản phẩm của đơn hàng.';
+    return { success: false, error: message };
+  }
+}
+
+
 
 /**
  * Server Action: Refresh a single order from Lazada authoritative source.
