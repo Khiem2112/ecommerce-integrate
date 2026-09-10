@@ -222,8 +222,8 @@ export async function saveAiResponseAction(
         tx,
       );
 
-      const created = await tx.message.findUnique({
-        where: { id: appliedMessageId },
+      const created = await tx.message.findFirst({
+        where: { id: appliedMessageId, isActive: true },
         include: { senderType: true },
       });
 

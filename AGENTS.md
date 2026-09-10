@@ -15,6 +15,7 @@ Use:
 - `.agents/skills/typescript/SKILL.md`
 - `.agents/skills/business-logic/SKILL.md` when domain behavior is involved
 - `.agents/skills/checklist/SKILL.md` for review or delivery
+- `.agents/skills/db-conventions/SKILL.md` when adding or modifying Prisma models
 
 Do not load UI/UX skills unless the task also changes user-facing behavior.
 
@@ -54,6 +55,15 @@ Use:
 - `.agents/skills/ui-ux-pro-max/SKILL.md` when design intelligence/search is needed
 
 Check `design-system/<project>/MASTER.md` and its relevant page override before creating new system-wide tokens. Do not persist a design system for an ordinary one-page feature unless a documented persist trigger applies.
+
+### Database / Prisma schema
+
+When the task adds, modifies, or reviews Prisma models (`schema.prisma`), writes
+migrations, or generates seed/fixture data:
+
+- `.agents/skills/db-conventions/SKILL.md` — **always load first** for any DB schema work
+- `.agents/skills/convention/SKILL.md`
+- `.agents/skills/business-logic/SKILL.md` when the schema change encodes domain rules
 
 ### Ambiguous Requirements & QA
 

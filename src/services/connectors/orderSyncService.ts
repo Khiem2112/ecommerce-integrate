@@ -191,7 +191,6 @@ async function reconcileSingleOrderItem(
         productName: incoming.name,
         sku: targetSku,
         isActive: true,
-        updatedAt: new Date(),
       },
     });
     return { modified: true, changeType: 'updated', diff, internalId: existing.id };
@@ -251,7 +250,6 @@ async function reconcileOrderItems(
           where: { id: existing.id },
           data: {
             isActive: false,
-            updatedAt: new Date(),
           },
         });
         itemsChanged = true;
@@ -338,7 +336,9 @@ async function reconcileSingleExternalOrder(
       },
     },
     include: {
-      items: true,
+      items: {
+        where: { isActive: true },
+      },
     },
   });
 
@@ -355,7 +355,6 @@ async function reconcileSingleExternalOrder(
         discountAmount: externalOrder.voucherDiscount,
         currency: 'VND',
         createdAt: externalOrder.createdAt,
-        updatedAt: externalOrder.updatedAt,
         items: {
           create: externalOrder.items.map((item) => ({
             externalItemId: item.externalItemId,
@@ -419,7 +418,6 @@ async function reconcileSingleExternalOrder(
         totalValue: externalOrder.totalAmount,
         shippingFee: externalOrder.shippingFee,
         discountAmount: externalOrder.voucherDiscount,
-        updatedAt: new Date(),
         ...(isStatusChanged
           ? {
             statusHistory: {

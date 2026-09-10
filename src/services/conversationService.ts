@@ -137,10 +137,6 @@ export async function createConversationMessage(
     include: { senderType: true },
   });
 
-  await tx.conversation.update({
-    where: { id: input.conversationId },
-    data: { updatedAt: new Date() },
-  });
 
   return message;
 }
