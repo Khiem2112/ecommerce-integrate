@@ -358,7 +358,7 @@ model OrderItem {
   externalItemId String?           // Platform order item ID (e.g. Lazada order_item_id)
   productId    String              // Platform product ID
   sku          String?             // Seller SKU
-  productName  String
+  productName  String   @db.VarChar(500)
   categoryId   Int?
   category     CategoryCatalog? @relation(fields: [categoryId], references: [id])
   quantity     Int
