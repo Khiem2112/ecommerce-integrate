@@ -19,6 +19,20 @@ Use:
 
 Do not load UI/UX skills unless the task also changes user-facing behavior.
 
+### Product Context And Operational Flow Planning
+
+For a new or materially changed user-facing operational journey, establish the product flow before coding:
+
+1. Read `PRODUCT.md` to ground the work in OmniCart's merchant-operations scope; it is not a storefront.
+2. Read `.agents/skills/ecommerce-operations-flow/SKILL.md` and the applicable domain rules.
+3. Consult `jpoindexter/ux-flow-skills` selectively only as a generic pattern source for branches, loading, empty, error, and recovery states. It must not design the product flow, override local context, or create local files.
+4. Consult `rampstackco/claude-skills` only when optional UX research or information-architecture guidance is still needed after project context and existing patterns are reviewed.
+5. Write or update an implementation-neutral specification in `docs/flows/<feature-name>.md` using `docs/flows/TEMPLATE.md`.
+6. Obtain explicit approval recorded in that specification before implementing the material flow change.
+7. After approval, follow the existing React, Next.js, component, domain, and design-system rules. The flow phase does not decide visual language.
+8. Use `.agents/skills/impeccable/SKILL.md` only afterward when a visual-quality, accessibility, responsive, or polish pass is requested.
+
+Do not require a new flow specification for a behavior-preserving bug fix or a small visual-only refinement. When a feature changes operational states, decisions, consequences, recovery, or acceptance criteria, update and re-approve its flow specification before coding.
 ### React or UI implementation
 
 Before creating or visually changing a user-facing feature:
