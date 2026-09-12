@@ -27,6 +27,7 @@ import type {
   SyncChangeRecord,
   OrderPreviewPage,
   OrderPreviewItemRow,
+  SyncBatchProgress,
 } from '@/types';
 import {
   syncOrdersFromLazadaService,
@@ -34,14 +35,20 @@ import {
   getPreviewOrdersPageService,
   getPreviewOrderItemsService,
   refreshOrderFromLazadaService,
-
   getIntegrationSummaryService,
   getSyncLogsHistoryService,
   getMockSeedsService,
   getChannelConnector,
   getSyncChangeSummaryByBatch,
   querySyncChangesByEntity,
+  enqueueSyncBatchService,
+  getBatchProgressService,
+  getActiveBatchForPlatformService,
+  cancelSyncBatchService,
+  dispatchSyncWorkerAsync,
 } from '@/services';
+import { ensurePlatformConnectionService } from '@/services/platformConnectionService';
+import { prisma } from '@/lib/prisma';
 
 
 /**
@@ -124,6 +131,134 @@ export async function syncLazadaOrdersAction(
     return { success: true, data: result };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Đồng bộ đơn hàng thất bại.';
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Server Action: Enqueues background synchronization and returns immediately (< 100ms).
+ */
+export async function startQueuedSyncOrdersAction(
+  platform: unknown = 'lazada',
+  rawParams: unknown = {},
+): Promise<ActionResponse<{ readonly syncId: string; readonly batchCode: string; readonly status: 'queued' }>> {
+  try {
+    const platformParsed = platformSchema.safeParse(platform);
+    if (!platformParsed.success) {
+      return { success: false, error: 'Kênh sàn không hợp lệ.' };
+    }
+
+    const parsed = syncParamsSchema.safeParse(rawParams);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message ?? 'Tham số đồng bộ không hợp lệ.',
+      };
+    }
+
+    const platformRecord = await prisma.platformCatalog.findUnique({
+      where: { code: platformParsed.data },
+    });
+    if (!platformRecord) {
+      return { success: false, error: 'Không tìm thấy kênh sàn trên hệ thống.' };
+    }
+
+    const connection = await ensurePlatformConnectionService(platformRecord.id, prisma);
+
+    // Preflight check to estimate total count
+    let estimatedTotal = 0;
+    try {
+      const preflight = await preflightLazadaSyncService(parsed.data);
+      estimatedTotal = preflight.totalCount;
+    } catch {
+      // Non-critical fallback
+    }
+
+    // Enqueue batch in MySQL
+    const { batchCode } = await enqueueSyncBatchService(
+      connection.id,
+      parsed.data,
+      estimatedTotal,
+      prisma,
+    );
+
+    // Asynchronously dispatch worker in background
+    dispatchSyncWorkerAsync();
+
+    return {
+      success: true,
+      data: {
+        syncId: batchCode,
+        batchCode,
+        status: 'queued',
+      },
+    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Không thể khởi động tiến trình đồng bộ nền.';
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Server Action: Polls current progress and live feed of a SyncBatch.
+ */
+export async function getSyncBatchProgressAction(
+  batchCode: unknown,
+): Promise<ActionResponse<SyncBatchProgress>> {
+  try {
+    const parsed = batchCodeSchema.safeParse(batchCode);
+    if (!parsed.success) {
+      return { success: false, error: 'Mã đợt đồng bộ không hợp lệ.' };
+    }
+
+    const progress = await getBatchProgressService(parsed.data, prisma);
+    if (!progress) {
+      return { success: false, error: 'Không tìm thấy thông tin tiến trình đợt đồng bộ.' };
+    }
+
+    return { success: true, data: progress };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Không thể lấy thông tin tiến trình.';
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Server Action: Detects whether an active sync batch is queued or running for a platform.
+ */
+export async function getActiveSyncBatchAction(
+  platform: unknown = 'lazada',
+): Promise<ActionResponse<SyncBatchProgress | null>> {
+  try {
+    const platformParsed = platformSchema.safeParse(platform);
+    if (!platformParsed.success) {
+      return { success: false, error: 'Kênh sàn không hợp lệ.' };
+    }
+
+    const active = await getActiveBatchForPlatformService(platformParsed.data, prisma);
+    return { success: true, data: active };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Không thể kiểm tra trạng thái đồng bộ.';
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Server Action: Cancels an active or queued sync batch.
+ */
+export async function cancelSyncBatchAction(
+  batchCode: unknown,
+): Promise<ActionResponse<{ readonly cancelled: boolean }>> {
+  try {
+    const parsed = batchCodeSchema.safeParse(batchCode);
+    if (!parsed.success) {
+      return { success: false, error: 'Mã đợt đồng bộ không hợp lệ.' };
+    }
+
+    const ok = await cancelSyncBatchService(parsed.data, prisma);
+    return { success: true, data: { cancelled: ok } };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Không thể hủy đợt đồng bộ.';
     return { success: false, error: message };
   }
 }

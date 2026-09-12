@@ -3,7 +3,7 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/atoms';
-import { Breadcrumb } from '@/components/molecules';
+import { Breadcrumb, GlobalSyncIndicator } from '@/components/molecules';
 
 export default function CustomersLayout({
   children,
@@ -34,6 +34,7 @@ export default function CustomersLayout({
         </div>
 
         <div className="flex items-center gap-3">
+          <GlobalSyncIndicator />
           <Badge variant="secondary" size="sm">
             Hồ sơ Khách hàng 360°
           </Badge>

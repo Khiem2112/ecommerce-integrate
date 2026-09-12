@@ -31,8 +31,8 @@ export function mapLazadaBuyerToExternal(raw: LazadaOrderDTO): ExternalCustomer 
   const city = raw.address_shipping?.city;
   const fullAddress = raw.address_shipping
     ? [raw.address_shipping.address1, raw.address_shipping.address2, raw.address_shipping.city, raw.address_shipping.country]
-        .filter(Boolean)
-        .join(', ')
+      .filter(Boolean)
+      .join(', ')
     : undefined;
 
   return {

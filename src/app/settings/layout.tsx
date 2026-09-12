@@ -7,7 +7,7 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/atoms';
-import { Breadcrumb } from '@/components/molecules';
+import { Breadcrumb, GlobalSyncIndicator } from '@/components/molecules';
 
 export default function SettingsLayout({
   children,
@@ -38,6 +38,7 @@ export default function SettingsLayout({
         </div>
 
         <div className="flex items-center gap-3">
+          <GlobalSyncIndicator />
           <Badge variant="teal" size="sm">
             Integration Hub
           </Badge>

@@ -9,4 +9,5 @@ export * from './SyncResultSummary';
 export * from './SyncHistoryTable';
 export * from './SyncBatchDetailView';
 export * from './SyncPreviewTable';
+export * from './SyncProgressDrawer';
 

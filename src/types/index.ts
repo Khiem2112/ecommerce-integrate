@@ -157,6 +157,8 @@ export type {
   SyncResult,
   SyncRunLog,
   PreflightSyncResult,
+  SyncBatchProgress,
+  SyncedOrderFeedItem,
   SyncChangeType,
   SyncChangeEntityType,
   FieldDiff,

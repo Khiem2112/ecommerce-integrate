@@ -23,5 +23,6 @@ export {
 export { EvidenceFactList } from './context/EvidenceFactList';
 export { OrderSummaryCard } from './context/OrderSummaryCard';
 export { VipTierBadge } from './context/VipTierBadge';
+export { GlobalSyncIndicator } from './GlobalSyncIndicator';
 
 export * from './Sync';

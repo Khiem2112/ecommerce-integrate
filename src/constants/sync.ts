@@ -10,7 +10,7 @@ export const LAZADA_ORDER_ITEMS_BATCH_CHUNK_SIZE = 50;
 /**
  * Maximum number of orders to synchronize in a single apply sync batch.
  */
-export const MAX_ORDERS_TO_SYNC = 200;
+export const MAX_ORDERS_TO_SYNC = 400;
 
 /**
  * Default page size when querying orders from marketplace connectors.

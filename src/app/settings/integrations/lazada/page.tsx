@@ -7,11 +7,15 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { useSetAtom } from 'jotai';
+import { openSyncDrawerAtom } from '@/atoms';
 import {
   useBreadcrumb,
   useIntegrationSummary,
   useCheckConnectionHealth,
   useSyncLazadaOrders,
+  useStartQueuedSync,
+  useActiveSyncBatch,
   usePreflightLazadaSync,
   useOrderPreview,
   useClearOrderPreviewCache,
@@ -34,6 +38,7 @@ import {
   SyncResultSummary,
   SyncHistoryTable,
   SyncPreviewTable,
+  SyncProgressDrawer,
 } from '@/components/organisms';
 
 import { OrderStatusFilter } from '@/components/molecules';
@@ -85,12 +90,18 @@ export default function LazadaIntegrationDetailPage() {
   const { data: summary } = useIntegrationSummary('lazada');
   const { mutateAsync: checkHealth, isPending: isCheckingHealth } = useCheckConnectionHealth('lazada');
   const { mutateAsync: syncOrders, isPending: isSyncing } = useSyncLazadaOrders();
+  const { mutateAsync: startQueuedSync, isPending: isStartingSync } = useStartQueuedSync();
+  const { data: activeBatch } = useActiveSyncBatch('lazada');
   const { data: preflightData, isLoading: isPreflightLoading } = usePreflightLazadaSync(debouncedParams, activeTab === 'sync');
+
+  // Drawer Live Progress State (Jotai Global)
+  const openSyncDrawer = useSetAtom(openSyncDrawerAtom);
 
   // Preview State & Hook
   const [previewPage, setPreviewPage] = useState<number>(1);
   const [previewPageSize, setPreviewPageSize] = useState<number>(10);
   const [isPreviewTriggered, setIsPreviewTriggered] = useState<boolean>(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   const previewParams = useMemo<FetchOrdersParams>(() => ({
     createdAfter: fromDate ? new Date(`${fromDate}T00:00:00Z`) : undefined,
@@ -105,15 +116,37 @@ export default function LazadaIntegrationDetailPage() {
     isLoading: isPreviewLoading,
     isFetching: isPreviewFetching,
     refetch: refetchPreview,
+    error: previewQueryError,
   } = useOrderPreview('lazada', previewParams, {
     enabled: isPreviewTriggered && activeTab === 'sync',
   });
 
   const clearPreviewMutation = useClearOrderPreviewCache();
 
+  // Sync preview error state from React Query
+  useEffect(() => {
+    if (previewQueryError) {
+      const message = previewQueryError instanceof Error
+        ? previewQueryError.message
+        : 'Tải bản xem trước thất bại.';
+      setPreviewError(message);
+      setSyncError(message);
+    } else {
+      setPreviewError(null);
+    }
+  }, [previewQueryError]);
+
+  // Clear preview error when user changes filters (new preview will be triggered)
+  useEffect(() => {
+    if (isPreviewTriggered) {
+      setPreviewError(null);
+      setSyncError(null);
+    }
+  }, [fromDate, toDate, statusFilter, isPreviewTriggered]);
 
   const handleTriggerPreview = () => {
     setSyncError(null);
+    setPreviewError(null);
     if (!fromDate || !toDate) {
       setSyncError('Vui lòng chọn khoảng thời gian hợp lệ để xem trước.');
       return;
@@ -127,11 +160,15 @@ export default function LazadaIntegrationDetailPage() {
   };
 
   const handleForceRefreshPreview = async () => {
+    setSyncError(null);
+    setPreviewError(null);
     try {
       await clearPreviewMutation.mutateAsync();
       await refetchPreview();
     } catch (err: unknown) {
-      setSyncError(err instanceof Error ? err.message : 'Làm mới xem trước thất bại.');
+      const msg = err instanceof Error ? err.message : 'Làm mới xem trước thất bại.';
+      setSyncError(msg);
+      setPreviewError(msg);
     }
   };
 
@@ -152,11 +189,11 @@ export default function LazadaIntegrationDetailPage() {
         createdBefore: new Date(`${toDate}T23:59:59.999Z`),
         ...(statusFilter ? { status: statusFilter } : {}),
       };
-      const res = await syncOrders(params);
-      setSyncResult(res);
+      const res = await startQueuedSync({ platform: 'lazada', params });
+      openSyncDrawer({ batchCode: res.batchCode, platformName: 'Lazada Open Platform' });
       await clearPreviewMutation.mutateAsync();
     } catch (err: unknown) {
-      setSyncError(err instanceof Error ? err.message : 'Đồng bộ thất bại');
+      setSyncError(err instanceof Error ? err.message : 'Khởi động đồng bộ nền thất bại.');
     }
   };
 
@@ -346,6 +383,40 @@ export default function LazadaIntegrationDetailPage() {
       {/* Tab 2: Synchronization */}
       {activeTab === 'sync' && (
         <div className="space-y-6 max-w-2xl">
+          {/* Active Background Sync Banner */}
+          {activeBatch && (activeBatch.status === 'running' || activeBatch.status === 'queued') && (
+            <div className="rounded-xl border border-teal-500/30 bg-teal-500/10 p-4 shadow-card flex items-center justify-between gap-4 animate-in fade-in">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex size-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full size-2 bg-teal-500" />
+                  </span>
+                  <span className="text-xs font-bold text-teal-800 dark:text-teal-200">
+                    Đang có một đợt đồng bộ ngầm đang diễn ra
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted">
+                  Tiến trình: <span className="font-semibold text-foreground">{activeBatch.processedOrders} / {activeBatch.totalOrders} đơn ({activeBatch.progressPercentage}%)</span> · Mã đợt: <span className="font-mono">#{activeBatch.batchCode.slice(-12)}</span>
+                </p>
+              </div>
+
+              <Button
+                variant="primary"
+                size="xs"
+                onClick={() => {
+                  openSyncDrawer({
+                    batchCode: activeBatch.batchCode,
+                    platformName: 'Lazada Open Platform',
+                  });
+                }}
+                className="text-xs shrink-0"
+              >
+                Mở Drawer xem trực tiếp
+              </Button>
+            </div>
+          )}
+
           {syncResult && (
             <SyncResultSummary
               result={syncResult}
@@ -435,7 +506,7 @@ export default function LazadaIntegrationDetailPage() {
                 <Button
                   variant="primary"
                   size="md"
-                  isLoading={isSyncing}
+                  isLoading={isStartingSync}
                   onClick={handleRunSync}
                   icon={
                     <svg aria-hidden="true" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -443,7 +514,7 @@ export default function LazadaIntegrationDetailPage() {
                     </svg>
                   }
                 >
-                  {isSyncing ? 'Đang thực hiện đồng bộ...' : 'Bắt đầu đồng bộ ngay'}
+                  {isStartingSync ? 'Đang khởi chạy...' : 'Bắt đầu đồng bộ ngay'}
                 </Button>
               </div>
             </div>
@@ -459,12 +530,28 @@ export default function LazadaIntegrationDetailPage() {
                 </p>
               </div>
 
+              {previewError && !isPreviewLoading && (
+                <div className="rounded-xl border border-semantic-error/30 bg-semantic-error/10 p-4 text-xs text-semantic-error space-y-2">
+                  <div className="flex items-start gap-2">
+                    <svg aria-hidden="true" className="size-4 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                    </svg>
+                    <div>
+                      <span className="font-semibold">Không thể tải bản xem trước:</span>
+                      <p className="mt-1">{previewError}</p>
+                    </div>
+                  </div>
+                  <p className="text-[11px] opacity-70 ml-6">
+                    Kiểm tra: 1) Access Token Lazada còn hạn không, 2) Khoảng thời gian có đơn hàng không, 3) Click "Làm mới" để thử lại.
+                  </p>
+                </div>
+              )}
+
               <SyncPreviewTable
                 platform="lazada"
                 platformName="Lazada"
-                data={previewData}
+                data={previewError ? undefined : previewData}
                 isLoading={isPreviewLoading}
-
                 isFetching={isPreviewFetching}
                 page={previewPage}
                 pageSize={previewPageSize}
@@ -543,6 +630,9 @@ export default function LazadaIntegrationDetailPage() {
           <SyncHistoryTable />
         </div>
       )}
+
+      {/* Slide-over Right Progress Drawer (Controlled via Jotai Global State) */}
+      <SyncProgressDrawer />
     </div>
   );
 }

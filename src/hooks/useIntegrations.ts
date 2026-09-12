@@ -9,6 +9,10 @@ import {
   getIntegrationSummaryAction,
   checkConnectionHealthAction,
   syncLazadaOrdersAction,
+  startQueuedSyncOrdersAction,
+  getSyncBatchProgressAction,
+  getActiveSyncBatchAction,
+  cancelSyncBatchAction,
   preflightLazadaSyncAction,
   refreshOrderFromLazadaAction,
   getSyncLogsHistoryAction,
@@ -30,6 +34,7 @@ import type {
   SyncChangeRecord,
   OrderPreviewPage,
   OrderPreviewItemRow,
+  SyncBatchProgress,
 } from '@/types';
 import {
   generatePreviewCacheKey,
@@ -50,6 +55,8 @@ export const INTEGRATION_QUERY_KEYS = {
   seeds: () => ['integrations', 'seeds'] as const,
   changeSummary: (batchCode: string) => ['integrations', 'changeSummary', batchCode] as const,
   changesByEntity: (params: SyncChangeQueryParams) => ['integrations', 'changesByEntity', params] as const,
+  activeBatch: (platform: string) => ['integrations', 'activeBatch', platform] as const,
+  batchProgress: (batchCode: string) => ['integrations', 'batchProgress', batchCode] as const,
 };
 
 
@@ -121,6 +128,108 @@ export function useSyncLazadaOrders() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['integrations'] });
+    },
+  });
+}
+
+/**
+ * Hook to enqueue background synchronization and receive syncId immediately (< 100ms).
+ */
+export function useStartQueuedSync() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      platform = 'lazada',
+      params = {},
+    }: {
+      platform?: string;
+      params?: FetchOrdersParams;
+    }): Promise<{ syncId: string; batchCode: string; status: 'queued' }> => {
+      const res = await startQueuedSyncOrdersAction(platform, params);
+      if (!res.success || !res.data) {
+        throw new Error(res.error ?? 'Không thể khởi chạy đồng bộ nền.');
+      }
+      return res.data;
+    },
+    onSuccess: (data, variables) => {
+      const platform = variables.platform ?? 'lazada';
+      queryClient.invalidateQueries({ queryKey: INTEGRATION_QUERY_KEYS.activeBatch(platform) });
+      queryClient.invalidateQueries({ queryKey: INTEGRATION_QUERY_KEYS.batchProgress(data.batchCode) });
+    },
+  });
+}
+
+/**
+ * Hook to check if there is an active running/queued sync batch for a platform.
+ */
+export function useActiveSyncBatch(platform: string = 'lazada') {
+  return useQuery({
+    queryKey: INTEGRATION_QUERY_KEYS.activeBatch(platform),
+    queryFn: async (): Promise<SyncBatchProgress | null> => {
+      const res = await getActiveSyncBatchAction(platform);
+      if (!res.success) {
+        return null;
+      }
+      return res.data ?? null;
+    },
+    staleTime: 5000,
+  });
+}
+
+/**
+ * Hook to poll progress and live feed of an active or recent sync batch.
+ * Automatically polls every 1.5s when queued or running, stops when finished.
+ */
+export function useSyncBatchProgress(batchCode: string | null, enabled: boolean = true) {
+  const queryClient = useQueryClient();
+
+  return useQuery({
+    queryKey: INTEGRATION_QUERY_KEYS.batchProgress(batchCode ?? ''),
+    queryFn: async (): Promise<SyncBatchProgress | null> => {
+      if (!batchCode) return null;
+      const res = await getSyncBatchProgressAction(batchCode);
+      if (!res.success || !res.data) {
+        throw new Error(res.error ?? 'Không thể lấy tiến trình đồng bộ.');
+      }
+
+      // If completed or failed, invalidate relevant queries
+      if (res.data.status === 'completed' || res.data.status === 'partial') {
+        queryClient.invalidateQueries({ queryKey: ['orders'] });
+        queryClient.invalidateQueries({ queryKey: ['customers'] });
+        queryClient.invalidateQueries({ queryKey: ['integrations'] });
+      }
+
+      return res.data;
+    },
+    enabled: enabled && Boolean(batchCode),
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (status === 'queued' || status === 'running') {
+        return 1500;
+      }
+      return false;
+    },
+  });
+}
+
+/**
+ * Hook to cancel an active sync batch.
+ */
+export function useCancelSyncBatch() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (batchCode: string): Promise<boolean> => {
+      const res = await cancelSyncBatchAction(batchCode);
+      if (!res.success) {
+        throw new Error(res.error ?? 'Không thể hủy đợt đồng bộ.');
+      }
+      return res.data?.cancelled ?? false;
+    },
+    onSuccess: (_, batchCode) => {
+      queryClient.invalidateQueries({ queryKey: INTEGRATION_QUERY_KEYS.batchProgress(batchCode) });
       queryClient.invalidateQueries({ queryKey: ['integrations'] });
     },
   });

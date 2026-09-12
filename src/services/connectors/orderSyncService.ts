@@ -66,7 +66,7 @@ function normalizeLazadaStatus(externalStatus: string): string {
 /**
  * Ensures platform, statuses, and default VIP tier exist in database.
  */
-async function ensureMasterCatalogs(tx: DbClient): Promise<{
+export async function ensureMasterCatalogs(tx: DbClient): Promise<{
   readonly platformId: number;
   readonly connectionId: number;
   readonly defaultTierId: number;
@@ -286,7 +286,7 @@ type ReconcileResult = {
  * Uses (connectionId, platformOrderId) for Order identity and (orderId, externalItemId) for OrderItem identity.
  * Returns field-level pending changes for SyncChange audit recording.
  */
-async function reconcileSingleExternalOrder(
+export async function reconcileSingleExternalOrder(
   externalOrder: ExternalOrder,
   platformId: number,
   connectionId: number,
@@ -468,7 +468,7 @@ async function reconcileSingleExternalOrder(
  * Executes a callback inside an atomic transaction when a full Prisma client is provided,
  * or runs directly on the scoped transaction client.
  */
-async function runWithTx<T>(
+export async function runWithTx<T>(
   client: DbClient,
   fn: (txClient: DbClient) => Promise<T>,
 ): Promise<T> {
@@ -910,7 +910,7 @@ export async function getPreviewOrdersPageService(
     statusMap.set(record.code, record.id);
   }
 
-  const orderNumbers = result.orders.map((o) => o.orderNumber);
+  const orderNumbers = result.orders.map((o) => String(o.orderNumber));
 
   // Bulk-query existing order snapshots to eliminate N+1 roundtrips during diff computation
   const existingOrders =

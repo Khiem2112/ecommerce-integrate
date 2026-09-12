@@ -589,6 +589,10 @@ model SyncBatch {
   sourcePreviewBatchId Int?
   sourcePreviewBatch   SyncBatch?      @relation("PreviewToApplyBatch", fields: [sourcePreviewBatchId], references: [id])
   applyBatches         SyncBatch[]     @relation("PreviewToApplyBatch")
+  workerId             String?
+  heartbeatAt          DateTime?
+  attemptCount         Int             @default(0)
+  lastError            String?         @db.Text
   errorMessage         String?         @db.Text
   isActive             Boolean         @default(true)
   createdAt            DateTime        @default(now())

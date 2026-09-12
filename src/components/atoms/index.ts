@@ -87,3 +87,23 @@ export {
   TableCell,
   TableCaption,
 } from './Table/Table';
+
+export {
+  ProgressBar,
+  type ProgressBarProps,
+  type ProgressBarVariant,
+  type ProgressBarSize,
+} from './ProgressBar/ProgressBar';
+
+export {
+  Chip,
+  type ChipProps,
+  type ChipVariant,
+  type ChipSize,
+} from './Chip/Chip';
+
+export {
+  StatusBadge,
+  type StatusBadgeProps,
+  type StatusBadgeType,
+} from './StatusBadge/StatusBadge';

@@ -166,6 +166,40 @@ export type PreflightSyncResult = {
   readonly status?: string;
 };
 
+export type SyncedOrderFeedItem = {
+  readonly externalOrderId: string;
+  readonly orderNumber: string;
+  readonly buyerName: string;
+  readonly status: string;
+  readonly totalAmount: number;
+  readonly outcome: 'created' | 'updated' | 'unchanged' | 'failed';
+  readonly processedAt: string;
+  readonly items: readonly {
+    readonly name: string;
+    readonly sku: string | null;
+    readonly quantity: number;
+    readonly unitPrice: number;
+  }[];
+};
+
+export type SyncBatchProgress = {
+  readonly batchId: number;
+  readonly batchCode: string;
+  readonly status: 'queued' | 'running' | 'completed' | 'partial' | 'failed' | 'cancelled';
+  readonly totalOrders: number;
+  readonly processedOrders: number;
+  readonly createdCount: number;
+  readonly updatedCount: number;
+  readonly unchangedCount: number;
+  readonly failedCount: number;
+  readonly progressPercentage: number;
+  readonly startedAt: string;
+  readonly completedAt?: string;
+  readonly durationMs?: number;
+  readonly errorMessage?: string;
+  readonly recentOrders?: readonly SyncedOrderFeedItem[];
+};
+
 // ============================================================================
 // Quick Preview Types (Client-facing DTOs)
 // ============================================================================

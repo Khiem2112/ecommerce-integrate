@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { selectedConversationIdAtom, sidebarCollapsedAtom } from '@/atoms/workspaceAtoms';
 import { Badge } from '@/components/atoms';
+import { GlobalSyncIndicator } from '@/components/molecules';
 import { ChatPanel } from '@/components/organisms/chat/ChatPanel';
 import { ContextSidebar } from '@/components/organisms/context/ContextSidebar';
 import { ConversationInbox } from '@/components/organisms/inbox/ConversationInbox';
@@ -105,6 +106,7 @@ export function AgentWorkspace() {
               </svg>
               <span>Đơn hàng</span>
             </Link>
+            <GlobalSyncIndicator />
             <Badge
               variant="success"
               size="sm"
