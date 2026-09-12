@@ -18,6 +18,18 @@ export async function enqueueSyncBatchService(
   estimatedTotal = 0,
   tx: DbClient = prisma,
 ): Promise<{ readonly batchId: number; readonly batchCode: string }> {
+  const activeBatch = await tx.syncBatch.findFirst({
+    where: {
+      connectionId,
+      isActive: true,
+      status: { in: ['queued', 'running'] },
+    },
+    select: { batchCode: true },
+  });
+  if (activeBatch) {
+    throw new Error(`Gian hàng đang có đợt ${activeBatch.batchCode} hoạt động.`);
+  }
+
   const batchCode = `sync_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
   const startedAt = new Date();
 
@@ -28,6 +40,8 @@ export async function enqueueSyncBatchService(
       operationType: 'apply',
       status: 'queued',
       scope: (params as Prisma.InputJsonValue) ?? Prisma.JsonNull,
+      syncMode: params.createdAfter || params.createdBefore ? 'deep_reconcile' : 'incremental',
+      triggeredBy: 'integration_operator',
       totalOrders: estimatedTotal,
       startedAt,
     },
@@ -174,7 +188,7 @@ export async function completeBatchService(
     where: { id: batchId },
   });
 
-  if (!batch) return;
+  if (!batch || !batch.isActive) return;
 
   const now = new Date();
   const durationMs = now.getTime() - batch.startedAt.getTime();
@@ -211,7 +225,7 @@ export async function getBatchProgressService(
     where: { batchCode },
   });
 
-  if (!batch) {
+  if (!batch || !batch.isActive) {
     return null;
   }
 
@@ -295,13 +309,13 @@ export async function getActiveBatchForPlatformService(
     where: { code: platformCode },
   });
 
-  if (!platform) return null;
+  if (!platform || !platform.isActive) return null;
 
   const connection = await tx.platformConnection.findUnique({
     where: { platformId: platform.id },
   });
 
-  if (!connection) return null;
+  if (!connection || !connection.isActive) return null;
 
   const activeBatch = await tx.syncBatch.findFirst({
     where: {
@@ -328,7 +342,7 @@ export async function cancelSyncBatchService(
     where: { batchCode },
   });
 
-  if (!batch || batch.status === 'completed' || batch.status === 'failed') {
+  if (!batch || !batch.isActive || batch.status === 'completed' || batch.status === 'failed') {
     return false;
   }
 

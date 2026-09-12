@@ -76,3 +76,4 @@ export {
 
 // Channel Integrations
 export * from './Integrations';
+export * from './SyncBatchDetail';

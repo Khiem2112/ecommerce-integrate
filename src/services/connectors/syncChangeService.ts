@@ -18,7 +18,7 @@ import type {
 
 type ChangeInput = {
   readonly operationId: number;
-  readonly changeType: 'created' | 'updated' | 'inactivated';
+  readonly changeType: 'created' | 'updated' | 'unchanged' | 'inactivated';
   readonly entityId: string;
   readonly internalId: number | null;
   readonly changes: Record<string, FieldDiff> | null;
@@ -322,7 +322,7 @@ function mapChangeToRecord(change: {
   return {
     id: change.id,
     operationId: change.operationId,
-    changeType: change.changeType as 'created' | 'updated' | 'inactivated',
+    changeType: change.changeType as 'created' | 'updated' | 'unchanged' | 'inactivated',
     entityId: change.entityId,
     internalId: change.internalId,
     changes: (change.changes as Record<string, FieldDiff> | null) ?? null,

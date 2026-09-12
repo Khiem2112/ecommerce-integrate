@@ -10,4 +10,8 @@ export * from './SyncHistoryTable';
 export * from './SyncBatchDetailView';
 export * from './SyncPreviewTable';
 export * from './SyncProgressDrawer';
-
+export * from './SyncBatchListScreen';
+export * from './SyncBatchFilterBar';
+export * from './SyncBatchStatusBadge';
+export * from './SyncBatchCounterChips';
+export * from './SyncBatchDurationLabel';

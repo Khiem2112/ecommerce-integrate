@@ -171,6 +171,19 @@ export type {
   OrderPreviewRow,
   OrderPreviewPage,
   OrderPreviewItemRow,
+  SyncBatchStatus,
+  SyncMode,
+  SyncBatchListItem,
+  SyncBatchListFilter,
+  SyncBatchListResponse,
+  SyncOrderChangeType,
+  SyncErrorCategory,
+  SyncOrderListItem,
+  SyncBatchDetail,
+  SyncFieldDiff,
+  SyncItemDiffGroup,
+  SyncOrderDiff,
+  SyncBatchDetailProgress,
 } from './sync';
 
 

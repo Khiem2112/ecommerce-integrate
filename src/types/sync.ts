@@ -10,6 +10,7 @@ import type {
   SyncRunError,
   SyncChange,
 } from '@prisma/client';
+import type { PaginationMeta } from './order';
 
 // Re-export core Prisma models
 export type { SyncBatch, SyncOperation, SyncRunError, SyncChange };
@@ -58,7 +59,7 @@ export type SyncRunErrorModel = Prisma.SyncRunErrorGetPayload<object>;
 // Sync Change Tracking & Audit DTOs (Derived from Prisma SyncChange)
 // ============================================================================
 
-export type SyncChangeType = 'created' | 'updated' | 'inactivated';
+export type SyncChangeType = 'created' | 'updated' | 'unchanged' | 'inactivated';
 
 export type SyncChangeEntityType = 'order' | 'order_item';
 
@@ -255,3 +256,141 @@ export type OrderPreviewItemRow = {
   readonly cancelReason?: string;
 };
 
+// ============================================================================
+// Sync Batch Operations Screens
+// ============================================================================
+
+export type SyncBatchStatus =
+  | 'queued'
+  | 'running'
+  | 'completed'
+  | 'partial'
+  | 'failed'
+  | 'cancelled';
+
+export type SyncMode = 'incremental' | 'deep_reconcile' | 'retry';
+
+export type SyncBatchListItem = {
+  readonly id: number;
+  readonly batchCode: string;
+  readonly platform: string;
+  readonly shopName: string | null;
+  readonly connectionActive: boolean;
+  readonly syncMode: SyncMode;
+  readonly status: SyncBatchStatus;
+  readonly startedAt: string;
+  readonly completedAt: string | null;
+  readonly triggeredBy: string | null;
+  readonly totalOrders: number;
+  readonly createdCount: number;
+  readonly updatedCount: number;
+  readonly unchangedCount: number;
+  readonly failedCount: number;
+  readonly durationMs: number | null;
+  readonly rangeFrom: string | null;
+  readonly rangeTo: string | null;
+  readonly parentBatchId: number | null;
+  readonly parentBatchCode: string | null;
+  readonly childBatchCode: string | null;
+  readonly hasRunningChild: boolean;
+  readonly retryBlockedReason: string | null;
+};
+
+export type SyncBatchListFilter = {
+  readonly platform?: string;
+  readonly status?: SyncBatchStatus;
+  readonly dateFrom?: string;
+  readonly dateTo?: string;
+  readonly batchCode?: string;
+  readonly page?: number;
+  readonly limit?: number;
+};
+
+export type SyncBatchListResponse = {
+  readonly data: readonly SyncBatchListItem[];
+  readonly meta: PaginationMeta;
+};
+
+export type SyncOrderChangeType = 'created' | 'updated' | 'unchanged' | 'failed';
+
+export type SyncErrorCategory =
+  | 'transient_network'
+  | 'rate_limited'
+  | 'auth_expired'
+  | 'validation_error'
+  | 'unknown';
+
+export type SyncOrderListItem = {
+  readonly externalOrderId: string;
+  readonly internalOrderId: number | null;
+  readonly syncedAt: string;
+  readonly changeType: SyncOrderChangeType;
+  readonly changedOrderFields: readonly string[];
+  readonly orderFields: readonly SyncFieldDiff[];
+  readonly currentStatus: string | null;
+  readonly totalValue: number | null;
+  readonly shippingFee: number | null;
+  readonly discountAmount: number | null;
+  readonly changedItemCount: number;
+  readonly errorCategory: SyncErrorCategory | null;
+  readonly errorMessage: string | null;
+  readonly retryEligible: boolean;
+};
+
+export type SyncBatchDetail = {
+  readonly id: number;
+  readonly batchCode: string;
+  readonly platform: string;
+  readonly shopName: string | null;
+  readonly connectionActive: boolean;
+  readonly syncMode: SyncMode;
+  readonly status: SyncBatchStatus;
+  readonly startedAt: string;
+  readonly completedAt: string | null;
+  readonly triggeredBy: string | null;
+  readonly totalOrders: number;
+  readonly createdCount: number;
+  readonly updatedCount: number;
+  readonly unchangedCount: number;
+  readonly failedCount: number;
+  readonly durationMs: number | null;
+  readonly rangeFrom: string | null;
+  readonly rangeTo: string | null;
+  readonly parentBatchId: number | null;
+  readonly parentBatchCode: string | null;
+};
+
+export type SyncFieldDiff = {
+  readonly fieldName: string;
+  readonly before: unknown;
+  readonly after: unknown;
+  readonly changedAt: string;
+};
+
+export type SyncItemDiffGroup = {
+  readonly entityId: string;
+  readonly changeType: SyncChangeType;
+  readonly fields: readonly SyncFieldDiff[];
+};
+
+export type SyncOrderDiff = {
+  readonly externalOrderId: string;
+  readonly internalOrderId: number | null;
+  readonly changeType: SyncOrderChangeType;
+  readonly syncedAt: string;
+  readonly orderFields: readonly SyncFieldDiff[];
+  readonly itemGroups: readonly SyncItemDiffGroup[];
+  readonly errorCategory: SyncErrorCategory | null;
+  readonly errorMessage: string | null;
+  readonly retryEligible: boolean;
+};
+
+export type SyncBatchDetailProgress = {
+  readonly totalOrders: number;
+  readonly createdCount: number;
+  readonly updatedCount: number;
+  readonly unchangedCount: number;
+  readonly failedCount: number;
+  readonly progressPercent: number;
+  readonly status: SyncBatchStatus;
+};

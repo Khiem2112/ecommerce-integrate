@@ -20,6 +20,13 @@ import {
   getSyncChangesByEntityAction,
   getPreviewOrdersPageAction,
   getPreviewOrderItemsAction,
+  getSyncBatchListAction,
+  retrySyncBatchAction,
+  getSyncBatchDetailByCodeAction,
+  getSyncOrdersByChangeTypeAction,
+  getSyncOrderDiffAction,
+  getSyncBatchDetailProgressAction,
+  retrySelectedOrdersAction,
 } from '@/actions';
 import type {
   FetchOrdersParams,
@@ -33,6 +40,14 @@ import type {
   OrderPreviewPage,
   OrderPreviewItemRow,
   SyncBatchProgress,
+  SyncBatchListFilter,
+  SyncBatchListResponse,
+  SyncBatchDetail,
+  SyncOrderChangeType,
+  SyncOrderListItem,
+  PaginationMeta,
+  SyncOrderDiff,
+  SyncBatchDetailProgress,
 } from '@/types';
 import {
   generatePreviewCacheKey,
@@ -55,7 +70,138 @@ export const INTEGRATION_QUERY_KEYS = {
   changesByEntity: (params: SyncChangeQueryParams) => ['integrations', 'changesByEntity', params] as const,
   activeBatch: (platform: string) => ['integrations', 'activeBatch', platform] as const,
   batchProgress: (batchCode: string) => ['integrations', 'batchProgress', batchCode] as const,
+  syncBatchList: (filter: SyncBatchListFilter) => ['syncBatches', 'list', filter] as const,
+  syncBatchDetail: (batchCode: string) => ['syncBatches', 'detail', batchCode] as const,
+  syncOrdersByType: (batchId: number, changeType: string, page: number, limit: number) =>
+    ['syncBatches', 'orders', batchId, changeType, page, limit] as const,
+  syncOrderDiff: (batchId: number, externalOrderId: string) =>
+    ['syncBatches', 'orderDiff', batchId, externalOrderId] as const,
+  syncBatchDetailProgress: (batchId: number) =>
+    ['syncBatches', 'detailProgress', batchId] as const,
 };
+
+export function useSyncBatchList(filter: SyncBatchListFilter, enabled: boolean = true) {
+  return useQuery({
+    queryKey: INTEGRATION_QUERY_KEYS.syncBatchList(filter),
+    queryFn: async (): Promise<SyncBatchListResponse> => {
+      const response = await getSyncBatchListAction(filter);
+      if (!response.success || !response.data) {
+        throw new Error(response.error ?? 'Không thể tải lịch sử đồng bộ.');
+      }
+      return response.data;
+    },
+    enabled,
+    staleTime: 30000,
+    placeholderData: (previousData) => previousData,
+    refetchInterval: (query) =>
+      query.state.data?.data.some((batch) => batch.status === 'running' || batch.status === 'queued') ? 5000 : false,
+  });
+}
+
+export function useRetrySyncBatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (batchId: number): Promise<{ readonly batchCode: string }> => {
+      const response = await retrySyncBatchAction(batchId);
+      if (!response.success || !response.data) {
+        throw new Error(response.error ?? 'Không thể tạo đợt thử lại.');
+      }
+      return { batchCode: response.data.batchCode };
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['syncBatches'] }),
+  });
+}
+
+export function useSyncBatchDetail(batchCode: string, enabled: boolean = true) {
+  return useQuery({
+    queryKey: INTEGRATION_QUERY_KEYS.syncBatchDetail(batchCode),
+    queryFn: async (): Promise<SyncBatchDetail> => {
+      const response = await getSyncBatchDetailByCodeAction(batchCode);
+      if (!response.success || !response.data) {
+        throw new Error(response.error ?? 'Không thể tải chi tiết đợt đồng bộ.');
+      }
+      return response.data;
+    },
+    enabled: enabled && Boolean(batchCode),
+    staleTime: 60000,
+  });
+}
+
+export function useSyncOrdersByChangeType(
+  batchId: number,
+  changeType: SyncOrderChangeType | undefined,
+  page: number,
+  enabled: boolean = true,
+  limit: number = 20,
+) {
+  return useQuery({
+    queryKey: INTEGRATION_QUERY_KEYS.syncOrdersByType(batchId, changeType ?? 'all', page, limit),
+    queryFn: async (): Promise<{ readonly data: readonly SyncOrderListItem[]; readonly meta: PaginationMeta }> => {
+      const response = await getSyncOrdersByChangeTypeAction({ batchId, changeType, page, limit });
+      if (!response.success || !response.data) {
+        throw new Error(response.error ?? 'Không thể tải danh sách đơn trong đợt.');
+      }
+      return response.data;
+    },
+    enabled: enabled && batchId > 0,
+    placeholderData: (previousData) => previousData,
+  });
+}
+
+export function useSyncOrderDiff(batchId: number, externalOrderId: string | null) {
+  return useQuery({
+    queryKey: INTEGRATION_QUERY_KEYS.syncOrderDiff(batchId, externalOrderId ?? ''),
+    queryFn: async (): Promise<SyncOrderDiff> => {
+      const response = await getSyncOrderDiffAction({ batchId, externalOrderId });
+      if (!response.success || !response.data) {
+        throw new Error(response.error ?? 'Không thể tải dữ liệu đối soát.');
+      }
+      return response.data;
+    },
+    enabled: batchId > 0 && Boolean(externalOrderId),
+    staleTime: 60000,
+  });
+}
+
+export function useSyncBatchDetailProgress(batchId: number, enabled: boolean = true) {
+  const queryClient = useQueryClient();
+  return useQuery({
+    queryKey: INTEGRATION_QUERY_KEYS.syncBatchDetailProgress(batchId),
+    queryFn: async (): Promise<SyncBatchDetailProgress> => {
+      const response = await getSyncBatchDetailProgressAction(batchId);
+      if (!response.success || !response.data) {
+        throw new Error(response.error ?? 'Không thể tải tiến trình đồng bộ.');
+      }
+      if (!['queued', 'running'].includes(response.data.status)) {
+        queryClient.invalidateQueries({ queryKey: ['syncBatches', 'detail'] });
+        queryClient.invalidateQueries({ queryKey: ['syncBatches', 'orders', batchId] });
+      }
+      return response.data;
+    },
+    enabled: enabled && batchId > 0,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === 'queued' || status === 'running' ? 3000 : false;
+    },
+  });
+}
+
+export function useRetrySelectedOrders() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: {
+      readonly batchId: number;
+      readonly externalOrderIds: readonly string[];
+    }): Promise<{ readonly batchCode: string }> => {
+      const response = await retrySelectedOrdersAction(params);
+      if (!response.success || !response.data) {
+        throw new Error(response.error ?? 'Không thể thử lại các đơn đã chọn.');
+      }
+      return { batchCode: response.data.batchCode };
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['syncBatches'] }),
+  });
+}
 
 
 
@@ -408,6 +554,3 @@ export function useClearOrderPreviewCache() {
     },
   });
 }
-
-
-

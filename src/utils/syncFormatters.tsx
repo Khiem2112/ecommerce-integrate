@@ -42,17 +42,23 @@ export function formatSyncFieldValue(key: string, val: unknown): React.ReactNode
     );
   }
 
+  const numericValue = typeof val === 'number'
+    ? val
+    : typeof val === 'string' && val.trim() !== '' && Number.isFinite(Number(val))
+      ? Number(val)
+      : null;
+
   if (
     (key === 'totalValue' ||
       key === 'shippingFee' ||
       key === 'discountAmount' ||
       key === 'unitPrice' ||
       key === 'discount') &&
-    typeof val === 'number'
+    numericValue !== null
   ) {
     return (
       <span className="font-mono font-medium">
-        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val)}
+        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(numericValue)}
       </span>
     );
   }

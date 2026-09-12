@@ -2,7 +2,7 @@
 
 /**
  * Detailed Lazada Integration Screen — /settings/integrations/lazada
- * 4 Tabs: Tổng quan, Đồng bộ, Thông tin xác thực, Nhật ký
+ * Operational tabs for overview, synchronization, credentials, and durable history navigation.
  */
 
 import { useState, useEffect, useMemo } from 'react';
@@ -35,7 +35,6 @@ import {
 import {
   ConnectionStatus,
   SyncResultSummary,
-  SyncHistoryTable,
   SyncPreviewTable,
   SyncProgressDrawer,
 } from '@/components/organisms';
@@ -44,7 +43,7 @@ import { OrderStatusFilter } from '@/components/molecules';
 import { cn } from '@/lib/cn';
 import type { SyncResult, FetchOrdersParams } from '@/types';
 
-type LazadaTabKey = 'overview' | 'sync' | 'credentials' | 'logs';
+type LazadaTabKey = 'overview' | 'sync' | 'credentials';
 
 const formatDateToInput = (d: Date): string => d.toISOString().split('T')[0];
 
@@ -275,18 +274,12 @@ export default function LazadaIntegrationDetailPage() {
         >
           3. Thông tin xác thực
         </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('logs')}
-          className={cn(
-            'px-4 py-2 text-xs font-semibold border-b-2 transition',
-            activeTab === 'logs'
-              ? 'border-foreground text-foreground'
-              : 'border-transparent text-muted hover:text-foreground',
-          )}
+        <Link
+          href="/settings/integrations/lazada/syncs"
+          className="border-b-2 border-transparent px-4 py-2 text-xs font-semibold text-muted transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           4. Nhật ký đồng bộ
-        </button>
+        </Link>
       </div>
 
       {/* Tab 1: Overview */}
@@ -612,20 +605,6 @@ export default function LazadaIntegrationDetailPage() {
               </span>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Tab 4: Logs */}
-      {activeTab === 'logs' && (
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-sm font-bold text-foreground">Lịch sử đồng bộ đơn hàng Lazada</h3>
-            <p className="text-xs text-muted mt-0.5">
-              Chi tiết các đợt nạp dữ liệu, số lượng thay đổi và nhật ký lỗi.
-            </p>
-          </div>
-
-          <SyncHistoryTable />
         </div>
       )}
 

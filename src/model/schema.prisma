@@ -578,6 +578,7 @@ model SyncBatch {
   operationType        String          @default("apply") // "preview" | "apply"
   status               String          @default("queued") // "queued" | "running" | "completed" | "partial" | "failed" | "cancelled"
   scope                Json?           // JSON scope/filter parameters
+  syncMode             String          @default("incremental") // "incremental" | "deep_reconcile" | "retry"
   totalOrders          Int             @default(0)
   createdCount         Int             @default(0)
   updatedCount         Int             @default(0)
@@ -589,6 +590,10 @@ model SyncBatch {
   sourcePreviewBatchId Int?
   sourcePreviewBatch   SyncBatch?      @relation("PreviewToApplyBatch", fields: [sourcePreviewBatchId], references: [id])
   applyBatches         SyncBatch[]     @relation("PreviewToApplyBatch")
+  parentBatchId        Int?
+  parentBatch          SyncBatch?      @relation("RetryLineage", fields: [parentBatchId], references: [id])
+  childBatches         SyncBatch[]     @relation("RetryLineage")
+  triggeredBy          String?
   workerId             String?
   heartbeatAt          DateTime?
   attemptCount         Int             @default(0)
@@ -603,6 +608,8 @@ model SyncBatch {
 
   @@index([connectionId, createdAt])
   @@index([status])
+  @@index([parentBatchId])
+  @@index([startedAt])
   @@map("sync_batch")
 }
 

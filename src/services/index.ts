@@ -4,3 +4,5 @@ export * from './aiDraftService';
 export * from './conversationService';
 export * from './customerService';
 export * from './connectors';
+export * from './syncBatchListService';
+export * from './syncBatchDetailService';
