@@ -16,7 +16,6 @@ import type {
   ActionResponse,
   ConnectionHealth,
   IntegrationSummary,
-  SyncResult,
   SyncRunLog,
   PreflightSyncResult,
   FetchOrdersParams,
@@ -30,7 +29,6 @@ import type {
   SyncBatchProgress,
 } from '@/types';
 import {
-  syncOrdersFromLazadaService,
   preflightLazadaSyncService,
   getPreviewOrdersPageService,
   getPreviewOrderItemsService,
@@ -110,30 +108,6 @@ export async function checkConnectionHealthAction(
   }
 }
 
-/**
- * Server Action: Trigger batch synchronization of orders from Lazada.
- */
-export async function syncLazadaOrdersAction(
-  rawParams: unknown = {},
-): Promise<ActionResponse<SyncResult>> {
-  try {
-    const parsed = syncParamsSchema.safeParse(rawParams);
-    if (!parsed.success) {
-      return {
-        success: false,
-        error: parsed.error.issues[0]?.message ?? 'Tham số đồng bộ không hợp lệ.',
-      };
-    }
-
-    const params: FetchOrdersParams = parsed.data;
-    const result = await syncOrdersFromLazadaService(params);
-
-    return { success: true, data: result };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Đồng bộ đơn hàng thất bại.';
-    return { success: false, error: message };
-  }
-}
 
 /**
  * Server Action: Enqueues background synchronization and returns immediately (< 100ms).

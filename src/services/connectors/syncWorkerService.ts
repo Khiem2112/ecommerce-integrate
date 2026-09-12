@@ -3,7 +3,7 @@
  * Executes chunked order ingestion, resilient error handling, and progress reporting in Node.js background.
  */
 
-import { prisma } from '@/lib/prisma';
+import { prisma, runWithTx } from '@/lib/prisma';
 import { MAX_ORDERS_TO_SYNC } from '@/constants';
 import type { FetchOrdersParams, ExternalOrder } from '@/types';
 import * as connectorFactory from './connectorFactory';
@@ -15,7 +15,6 @@ import {
 import {
   ensureMasterCatalogs,
   reconcileSingleExternalOrder,
-  runWithTx,
 } from './orderSyncService';
 import { bulkCreateSyncChanges } from './syncChangeService';
 
@@ -106,7 +105,7 @@ async function processClaimedBatch(
         return;
       }
 
-      // 1. Fetch chunk outside DB transaction
+      // Fetch chunk outside DB transaction
       const pageResult = await connector.fetchOrders({
         ...params,
         includeItems: true,
@@ -145,7 +144,7 @@ async function processClaimedBatch(
       let chunkUnchanged = 0;
       let chunkFailed = 0;
 
-      // 2. Reconcile each order in its own short transaction
+      // Reconcile each order in its own short transaction
       for (const order of ordersChunk) {
         try {
           const result = await runWithTx(prisma, async (scopedTx) => {
@@ -198,7 +197,7 @@ async function processClaimedBatch(
       totalFailed += chunkFailed;
       totalSuccess += (chunkCreated + chunkUpdated + chunkUnchanged);
 
-      // 3. Update batch progress in MySQL
+      // Update batch progress in MySQL
       await updateBatchProgressService(batch.id, {
         created: chunkCreated,
         updated: chunkUpdated,

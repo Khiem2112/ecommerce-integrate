@@ -13,7 +13,6 @@ import {
   useBreadcrumb,
   useIntegrationSummary,
   useCheckConnectionHealth,
-  useSyncLazadaOrders,
   useStartQueuedSync,
   useActiveSyncBatch,
   usePreflightLazadaSync,
@@ -89,7 +88,6 @@ export default function LazadaIntegrationDetailPage() {
 
   const { data: summary } = useIntegrationSummary('lazada');
   const { mutateAsync: checkHealth, isPending: isCheckingHealth } = useCheckConnectionHealth('lazada');
-  const { mutateAsync: syncOrders, isPending: isSyncing } = useSyncLazadaOrders();
   const { mutateAsync: startQueuedSync, isPending: isStartingSync } = useStartQueuedSync();
   const { data: activeBatch } = useActiveSyncBatch('lazada');
   const { data: preflightData, isLoading: isPreflightLoading } = usePreflightLazadaSync(debouncedParams, activeTab === 'sync');

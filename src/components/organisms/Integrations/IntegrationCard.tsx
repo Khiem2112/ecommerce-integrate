@@ -10,11 +10,11 @@ import { Badge, Button } from '@/components/atoms';
 import { ConnectionStatus } from './ConnectionStatus';
 import { SyncRunModal } from './SyncRunModal';
 import { useCheckConnectionHealth } from '@/hooks';
-import type { IntegrationSummary, SyncResult } from '@/types';
+import type { IntegrationSummary } from '@/types';
 
 export type IntegrationCardProps = {
   readonly summary: IntegrationSummary;
-  readonly onSyncComplete?: (result: SyncResult) => void;
+  readonly onSyncComplete?: (batchInfo: { readonly batchCode: string }) => void;
 };
 
 export function IntegrationCard({ summary, onSyncComplete }: IntegrationCardProps) {

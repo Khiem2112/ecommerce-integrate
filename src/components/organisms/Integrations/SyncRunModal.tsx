@@ -5,6 +5,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
+import { useSetAtom } from 'jotai';
 import {
   Dialog,
   DialogContent,
@@ -17,13 +18,14 @@ import {
   Badge,
 } from '@/components/atoms';
 import { OrderStatusFilter } from '@/components/molecules';
-import { useSyncLazadaOrders, usePreflightLazadaSync, useDebounce } from '@/hooks';
-import type { FetchOrdersParams, SyncResult } from '@/types';
+import { openSyncDrawerAtom } from '@/atoms';
+import { useStartQueuedSync, usePreflightLazadaSync, useDebounce } from '@/hooks';
+import type { FetchOrdersParams } from '@/types';
 
 export type SyncRunModalProps = {
   readonly open: boolean;
   readonly onClose: () => void;
-  readonly onSyncComplete?: (result: SyncResult) => void;
+  readonly onSyncComplete?: (batchInfo: { readonly batchCode: string }) => void;
 };
 
 const getInitialDateRange = () => {
@@ -65,7 +67,8 @@ export function SyncRunModal({ open, onClose, onSyncComplete }: SyncRunModalProp
   const debouncedParams = useDebounce(syncParams, 400);
 
   const { data: preflightData, isLoading: isPreflightLoading } = usePreflightLazadaSync(debouncedParams, open);
-  const { mutateAsync: syncOrders, isPending: isSyncing } = useSyncLazadaOrders();
+  const openSyncDrawer = useSetAtom(openSyncDrawerAtom);
+  const { mutateAsync: startQueuedSync, isPending: isStartingSync } = useStartQueuedSync();
 
   const handleStartSync = async () => {
     setErrorMsg(null);
@@ -86,9 +89,10 @@ export function SyncRunModal({ open, onClose, onSyncComplete }: SyncRunModalProp
         ...(status ? { status } : {}),
       };
 
-      const result = await syncOrders(params);
+      const res = await startQueuedSync({ platform: 'lazada', params });
+      openSyncDrawer({ batchCode: res.batchCode, platformName: 'Lazada Open Platform' });
       if (onSyncComplete) {
-        onSyncComplete(result);
+        onSyncComplete({ batchCode: res.batchCode });
       }
       onClose();
     } catch (err: unknown) {
@@ -210,14 +214,14 @@ export function SyncRunModal({ open, onClose, onSyncComplete }: SyncRunModalProp
             variant="secondary"
             size="sm"
             onClick={onClose}
-            disabled={isSyncing}
+            disabled={isStartingSync}
           >
             Hủy bỏ
           </Button>
           <Button
             variant="primary"
             size="sm"
-            isLoading={isSyncing}
+            isLoading={isStartingSync}
             onClick={handleStartSync}
             icon={
               <svg aria-hidden="true" className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -225,7 +229,7 @@ export function SyncRunModal({ open, onClose, onSyncComplete }: SyncRunModalProp
               </svg>
             }
           >
-            {isSyncing ? 'Đang đồng bộ...' : 'Bắt đầu đồng bộ'}
+            {isStartingSync ? 'Đang đồng bộ...' : 'Bắt đầu đồng bộ'}
           </Button>
         </DialogFooter>
       </DialogContent>

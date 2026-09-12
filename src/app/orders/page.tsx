@@ -209,7 +209,6 @@ function OrdersListContent() {
       <SyncRunModal
         open={isSyncModalOpen}
         onClose={() => setIsSyncModalOpen(false)}
-        onSyncComplete={(res) => setSyncResult(res)}
       />
     </div>
   );

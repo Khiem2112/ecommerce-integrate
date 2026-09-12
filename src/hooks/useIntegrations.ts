@@ -8,7 +8,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getIntegrationSummaryAction,
   checkConnectionHealthAction,
-  syncLazadaOrdersAction,
   startQueuedSyncOrdersAction,
   getSyncBatchProgressAction,
   getActiveSyncBatchAction,
@@ -26,7 +25,6 @@ import type {
   FetchOrdersParams,
   IntegrationSummary,
   ConnectionHealth,
-  SyncResult,
   PreflightSyncResult,
   SeedProfile,
   SyncChangeSummary,
@@ -111,27 +109,6 @@ export function useCheckConnectionHealth(platform: string = 'lazada') {
   });
 }
 
-/**
- * Hook to trigger batch order synchronization.
- */
-export function useSyncLazadaOrders() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params?: FetchOrdersParams): Promise<SyncResult> => {
-      const res = await syncLazadaOrdersAction(params);
-      if (!res.success || !res.data) {
-        throw new Error(res.error ?? 'Đồng bộ đơn hàng thất bại.');
-      }
-      return res.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-      queryClient.invalidateQueries({ queryKey: ['integrations'] });
-    },
-  });
-}
 
 /**
  * Hook to enqueue background synchronization and receive syncId immediately (< 100ms).

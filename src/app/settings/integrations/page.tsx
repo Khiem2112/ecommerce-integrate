@@ -4,19 +4,16 @@
  * Integration Center Page — /settings/integrations
  */
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useBreadcrumb, useIntegrationSummary } from '@/hooks';
 import {
   IntegrationCard,
-  SyncResultSummary,
   SyncHistoryTable,
 } from '@/components/organisms';
 import { Badge } from '@/components/atoms';
-import type { SyncResult } from '@/types';
 
 export default function IntegrationsPage() {
   const { setBreadcrumb } = useBreadcrumb();
-  const [recentSyncResult, setRecentSyncResult] = useState<SyncResult | null>(null);
 
   useEffect(() => {
     setBreadcrumb([
@@ -46,14 +43,6 @@ export default function IntegrationsPage() {
         </div>
       </div>
 
-      {/* Sync Result Alert Banner */}
-      {recentSyncResult && (
-        <SyncResultSummary
-          result={recentSyncResult}
-          onDismiss={() => setRecentSyncResult(null)}
-        />
-      )}
-
       {/* Platform Cards Grid */}
       <div className="space-y-4">
         <h2 className="text-sm font-bold tracking-tight text-foreground">
@@ -76,7 +65,6 @@ export default function IntegrationsPage() {
           ) : (
             <IntegrationCard
               summary={lazadaSummary}
-              onSyncComplete={(result) => setRecentSyncResult(result)}
             />
           )}
 
