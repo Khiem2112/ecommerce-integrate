@@ -45,21 +45,24 @@ Treat `PRODUCT.md` and the project rules as higher authority than generic UX gui
    accessibility, responsive behavior, and polish. This is a follow-up quality pass, not a
    replacement for product-flow design.
 
-## External Reference Skills
+## Interaction and Analysis Skills
 
-These repositories are optional reference sources, not decision makers and not local project
-skills created by this workflow:
+Use the project's local specialized flow skills on-demand to enrich the specification:
 
-- `jpoindexter/ux-flow-skills`: Consult selectively for generic flow patterns such as branches,
-  progressive disclosure, confirmations, loading, empty, error, and recovery states. Adapt any
-  pattern to this product's users, operational constraints, and business rules.
-- `rampstackco/claude-skills`: Consult selectively for UX research or information-architecture
-  questions that remain unresolved after project context and existing product patterns are
-  reviewed.
+### 1. Discovery & Analysis
+- `.agents/skills/jtbd-framing/SKILL.md`: Uncover the operator's core job, struggling moments, and decision criteria.
+- `.agents/skills/journey-mapping/SKILL.md`: Map multi-step operator workflows, identify friction points, and delineate handoffs.
+- `.agents/skills/information-architecture/SKILL.md`: Structure navigation, page hierarchy, and module taxonomy.
 
-Do not let either external source directly design an OmniCart flow, override `PRODUCT.md` or
-project rules, create local project files, or define product policy. The local specification is
-the only project artifact produced by this workflow.
+### 2. Interaction Patterns & Recovery
+- `.agents/skills/flow-tables/SKILL.md`: Design data-heavy tables, filters, sort persistence, pagination, and bulk actions.
+- `.agents/skills/flow-forms/SKILL.md`: Design credential inputs, sync configuration, inline validation, and work preservation.
+- `.agents/skills/flow-errors/SKILL.md`: Error anatomy, actionable recovery steps, retry eligibility, and undo over confirm.
+- `.agents/skills/flow-empty-states/SKILL.md`: Contextual empty states, first-run orientation, zero-result search recovery.
+- `.agents/skills/flow-settings/SKILL.md` & `.agents/skills/flow-permissions/SKILL.md`: Channel connection settings, danger zones, and role-based permissions.
+- `.agents/skills/flow-app-shell/SKILL.md` & `.agents/skills/flow-navigation/SKILL.md`: Dashboard layout, master-detail views, responsive navigation.
+
+Adapt any generic pattern to OmniCart's merchant-operations constraints, authority rules, and idempotency guarantees. The local specification in `docs/flows/` is the authoritative project artifact produced by this workflow.
 
 ## Flow Specification Standard
 
