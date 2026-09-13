@@ -7,6 +7,7 @@
  */
 
 import React, { useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   Badge,
   Button,
@@ -49,7 +50,8 @@ export function SyncPreviewTable({
   onPageSizeChange,
   onForceRefresh,
 }: SyncPreviewTableProps) {
-
+  const t = useTranslations('integrations.previewTable');
+  const locale = useLocale() === 'vi' ? 'vi-VN' : 'en-US';
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   const handleToggleExpand = (orderId: string) => {
@@ -75,8 +77,8 @@ export function SyncPreviewTable({
   if (rows.length === 0) {
     return (
       <div className="rounded-xl border border-hairline bg-surface-card p-8 text-center shadow-card space-y-2">
-        <p className="text-sm font-medium text-foreground">Không tìm thấy đơn hàng nào trong khoảng thời gian này.</p>
-        <p className="text-xs text-muted">Vui lòng điều chỉnh lại bộ lọc ngày hoặc trạng thái để xem trước.</p>
+        <p className="text-sm font-medium text-foreground">{t('emptyTitle')}</p>
+        <p className="text-xs text-muted">{t('emptyDesc')}</p>
       </div>
     );
   }
@@ -87,18 +89,18 @@ export function SyncPreviewTable({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
         <div className="flex items-center gap-2.5">
           <span className="text-sm font-semibold text-foreground">
-            Bản xem trước ({totalCount.toLocaleString('vi-VN')} đơn trên {platformName})
+            {t('previewTitle', { count: totalCount.toLocaleString(locale), platform: platformName })}
           </span>
 
           {data?.cachedAt && (
             <span className="inline-flex items-center gap-1 rounded-full bg-surface-lifted px-2.5 py-0.5 text-[11px] font-medium text-muted border border-hairline">
               <span className="size-1.5 rounded-full bg-status-success" />
-              Đệm IndexedDB: {new Date(data.cachedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+              {t('indexedDbCache', { time: new Date(data.cachedAt).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) })}
             </span>
           )}
 
           {isFetching && (
-            <span className="text-[11px] text-muted animate-pulse">Đang cập nhật...</span>
+            <span className="text-[11px] text-muted animate-pulse">{t('updating')}</span>
           )}
         </div>
 
@@ -121,13 +123,13 @@ export function SyncPreviewTable({
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
               </svg>
-              Làm mới từ {platformName}
+              {t('refreshFromPlatform', { platform: platformName })}
             </Button>
           )}
 
           {onPageSizeChange && (
             <div className="flex items-center gap-1.5 text-xs text-muted">
-              <span>Hiển thị:</span>
+              <span>{t('display')}</span>
               <div className="w-16">
                 <Select
                   size="sm"
@@ -151,13 +153,13 @@ export function SyncPreviewTable({
           <TableHeader>
             <TableRow>
               <TableHead className="w-8"></TableHead>
-              <TableHead>Mã đơn hàng</TableHead>
-              <TableHead>Khách hàng</TableHead>
-              <TableHead>Trạng thái sàn</TableHead>
-              <TableHead className="text-right">Tổng tiền</TableHead>
-              <TableHead className="text-center">Đối soát cục bộ</TableHead>
-              <TableHead>Ngày tạo sàn</TableHead>
-              <TableHead className="text-right">Chi tiết</TableHead>
+              <TableHead>{t('colOrderCode')}</TableHead>
+              <TableHead>{t('colBuyer')}</TableHead>
+              <TableHead>{t('colPlatformStatus')}</TableHead>
+              <TableHead className="text-right">{t('colTotalAmount')}</TableHead>
+              <TableHead className="text-center">{t('colLocalReconcile')}</TableHead>
+              <TableHead>{t('colCreatedAt')}</TableHead>
+              <TableHead className="text-right">{t('colDetails')}</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -173,7 +175,7 @@ export function SyncPreviewTable({
                         type="button"
                         onClick={() => handleToggleExpand(row.externalOrderId)}
                         className="p-1 rounded text-muted hover:text-foreground hover:bg-surface-lifted transition-colors"
-                        title={isExpanded ? 'Thu gọn sản phẩm' : 'Mở xem sản phẩm'}
+                        title={isExpanded ? t('collapseItemsTitle') : t('expandItemsTitle')}
                       >
                         <svg
                           aria-hidden="true"
@@ -219,7 +221,7 @@ export function SyncPreviewTable({
                     </TableCell>
 
                     <TableCell className="whitespace-nowrap text-xs text-muted">
-                      {new Date(row.createdAt).toLocaleString('vi-VN', {
+                      {new Date(row.createdAt).toLocaleString(locale, {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',
@@ -235,7 +237,7 @@ export function SyncPreviewTable({
                         onClick={() => handleToggleExpand(row.externalOrderId)}
                         className="text-xs text-primary hover:text-primary-focus"
                       >
-                        {isExpanded ? 'Đóng items' : 'Xem items'}
+                        {isExpanded ? t('closeItems') : t('viewItems')}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -270,7 +272,7 @@ export function SyncPreviewTable({
           pageSize={pageSize}
           onPageChange={onPageChange}
           onPageSizeChange={onPageSizeChange}
-          itemLabel="đơn"
+          itemLabel={t('orderItemLabel')}
         />
       )}
     </div>
@@ -287,10 +289,11 @@ function PreviewStatusBadge({
   readonly status: OrderPreviewRow['previewStatus'];
   readonly diff?: OrderPreviewRow['diffSummary'];
 }) {
+  const t = useTranslations('integrations.previewTable');
   if (status === 'new') {
     return (
       <Badge variant="success" size="xs">
-        + Đơn mới
+        {t('newOrderBadge')}
       </Badge>
     );
   }
@@ -300,7 +303,7 @@ function PreviewStatusBadge({
     return (
       <div className="inline-flex flex-col items-center gap-0.5">
         <Badge variant="warning" size="xs">
-          ~ Có thay đổi
+          {t('changedBadge')}
         </Badge>
         {changedFields.length > 0 && (
           <span className="text-[10px] text-muted font-mono" title={JSON.stringify(diff)}>
@@ -313,7 +316,7 @@ function PreviewStatusBadge({
 
   return (
     <Badge variant="secondary" size="xs">
-      = Không đổi
+      {t('unchangedBadge')}
     </Badge>
   );
 }
@@ -331,6 +334,7 @@ function LazyOrderItemsPanel({
   readonly externalOrderId: string;
   readonly platformName: string;
 }) {
+  const t = useTranslations('integrations.previewTable');
   const { data: items, isLoading, isError } = useOrderItemsPreview(platform, externalOrderId, true);
 
   if (isLoading) {
@@ -345,7 +349,7 @@ function LazyOrderItemsPanel({
   if (isError || !items || items.length === 0) {
     return (
       <div className="p-4 bg-surface-lifted/30 text-center text-xs text-muted border-y border-hairline">
-        Không có thông tin chi tiết sản phẩm hoặc không thể tải từ {platformName}.
+        {t('noItemsAvailable', { platform: platformName })}
       </div>
     );
   }
@@ -354,19 +358,19 @@ function LazyOrderItemsPanel({
   return (
     <div className="p-4 bg-surface-lifted/30 border-y border-hairline">
       <div className="mb-2 text-xs font-semibold text-foreground">
-        Danh sách sản phẩm ({items.length} món):
+        {t('itemsListTitle', { count: items.length })}
       </div>
 
       <div className="rounded-lg border border-hairline bg-surface overflow-hidden">
         <Table className="w-full text-xs">
           <TableHeader className="bg-surface-lifted text-muted font-medium">
             <TableRow>
-              <TableHead className="py-2 px-3">Tên sản phẩm</TableHead>
+              <TableHead className="py-2 px-3">{t('colProductName')}</TableHead>
               <TableHead className="py-2 px-3">SKU</TableHead>
-              <TableHead className="py-2 px-3 text-right">Đơn giá</TableHead>
-              <TableHead className="py-2 px-3 text-center">Số lượng</TableHead>
-              <TableHead className="py-2 px-3 text-right">Giá thanh toán</TableHead>
-              <TableHead className="py-2 px-3 text-center">Trạng thái item</TableHead>
+              <TableHead className="py-2 px-3 text-right">{t('colUnitPrice')}</TableHead>
+              <TableHead className="py-2 px-3 text-center">{t('colQuantity')}</TableHead>
+              <TableHead className="py-2 px-3 text-right">{t('colPaidPrice')}</TableHead>
+              <TableHead className="py-2 px-3 text-center">{t('colItemStatus')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

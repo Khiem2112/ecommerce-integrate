@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   Table,
   TableHeader,
@@ -15,7 +15,7 @@ import {
   TableHead,
   TableCell,
 } from '@/components/atoms';
-import { formatSyncFieldValue, SYNC_FIELD_LABELS } from '@/utils';
+import { formatSyncFieldValue } from '@/utils';
 import { cn } from '@/lib/cn';
 import type { FieldDiff } from '@/types';
 
@@ -33,6 +33,25 @@ export function SyncFieldDiffTable({
   title,
 }: SyncFieldDiffTableProps) {
   const t = useTranslations('integrations.diff');
+  const tFields = useTranslations('integrations.diff.fields');
+  const locale = useLocale() === 'vi' ? 'vi-VN' : 'en-US';
+  const formatOptions = {
+    locale,
+    activeLabel: t('active'),
+    inactiveLabel: t('inactive'),
+  } as const;
+  const fieldLabels: Readonly<Record<string, string>> = {
+    status: tFields('status'),
+    totalValue: tFields('totalValue'),
+    shippingFee: tFields('shippingFee'),
+    discountAmount: tFields('discountAmount'),
+    quantity: tFields('quantity'),
+    unitPrice: tFields('unitPrice'),
+    discount: tFields('discount'),
+    productName: tFields('productName'),
+    sku: tFields('sku'),
+    isActive: tFields('isActive'),
+  };
   const entries = Object.entries(diffs);
 
   if (entries.length === 0) {
@@ -67,7 +86,7 @@ export function SyncFieldDiffTable({
             {entries.map(([fieldKey, diff]) => (
               <TableRow key={fieldKey}>
                 <TableCell className={cn('font-medium text-foreground', isSmall && 'py-1.5 text-[11px]')}>
-                  {SYNC_FIELD_LABELS[fieldKey] ?? fieldKey}
+                  {fieldLabels[fieldKey] ?? fieldKey}
                 </TableCell>
                 <TableCell
                   className={cn(
@@ -76,10 +95,10 @@ export function SyncFieldDiffTable({
                     isSmall && 'py-1.5 text-[11px]',
                   )}
                 >
-                  {formatSyncFieldValue(fieldKey, diff.before)}
+                  {formatSyncFieldValue(fieldKey, diff.before, formatOptions)}
                 </TableCell>
                 <TableCell className={cn('text-status-success font-semibold', isSmall && 'py-1.5 text-[11px]')}>
-                  {formatSyncFieldValue(fieldKey, diff.after)}
+                  {formatSyncFieldValue(fieldKey, diff.after, formatOptions)}
                 </TableCell>
               </TableRow>
             ))}

@@ -7,7 +7,8 @@
  */
 
 import React, { useState } from 'react';
-import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { useAtom } from 'jotai';
 import { Badge, Button, ProgressBar, Chip, StatusBadge } from '@/components/atoms';
@@ -29,12 +30,14 @@ export function SyncProgressDrawer({
   batchCode: propBatchCode,
   platformName: propPlatformName,
 }: SyncProgressDrawerProps = {}) {
+  const t = useTranslations('integrations.progressDrawer');
+  const locale = useLocale() === 'vi' ? 'vi-VN' : 'en-US';
   const [globalDrawer, setGlobalDrawer] = useAtom(syncDrawerAtom);
 
   const isOpen = propIsOpen !== undefined ? propIsOpen : globalDrawer.isOpen;
   const onClose = propOnClose ?? (() => setGlobalDrawer((prev) => ({ ...prev, isOpen: false })));
   const batchCode = propBatchCode !== undefined ? propBatchCode : globalDrawer.batchCode;
-  const platformName = propPlatformName ?? globalDrawer.platformName ?? 'Lazada Open Platform';
+  const platformName = propPlatformName ?? globalDrawer.platformName ?? t('defaultPlatformName');
   const { data: progress, isLoading } = useSyncBatchProgress(batchCode, isOpen);
   const { mutateAsync: cancelBatch, isPending: isCancelling } = useCancelSyncBatch();
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
@@ -77,7 +80,7 @@ export function SyncProgressDrawer({
                   {platformName}
                 </DialogPrimitive.Title>
                 <p id="sync-drawer-description" className="text-[11px] font-mono text-muted">
-                  {batchCode ? `#${batchCode.slice(-14)}` : 'Tiến trình đồng bộ'}
+                  {batchCode ? `#${batchCode.slice(-14)}` : t('defaultTitle')}
                 </p>
               </div>
             </div>
@@ -85,7 +88,7 @@ export function SyncProgressDrawer({
             <div className="flex items-center gap-2">
               <StatusBadge status={progress?.status} />
               <DialogPrimitive.Close
-                aria-label="Đóng"
+                aria-label={t('closeAria')}
                 className="rounded-lg p-1.5 text-muted hover:bg-surface-lifted hover:text-foreground transition-colors cursor-pointer"
               >
                 <svg aria-hidden="true" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -99,7 +102,7 @@ export function SyncProgressDrawer({
           <div className="border-b border-hairline bg-surface-lifted/40 p-4 space-y-3">
             <div className="flex items-center justify-between text-xs">
               <span className="font-semibold text-foreground">
-                {isRunning ? 'Đang nạp đơn hàng...' : progress?.status === 'completed' ? 'Đã hoàn tất đồng bộ' : 'Tiến trình'}
+                {isRunning ? t('loadingOrders') : progress?.status === 'completed' ? t('completedOrders') : t('progressTitle')}
               </span>
               <Badge variant="outline" size="sm" className="font-mono font-bold">
                 {progress?.processedOrders ?? 0} / {progress?.totalOrders ?? 0} ({progress?.progressPercentage ?? 0}%)
@@ -115,25 +118,25 @@ export function SyncProgressDrawer({
             {/* 4 Mini Stat Chips */}
             <div className="grid grid-cols-4 gap-2 text-center text-xs">
               <Chip
-                label="Mới"
+                label={t('badgeNew')}
                 prefix="+"
                 value={progress?.createdCount ?? 0}
                 variant="success"
               />
               <Chip
-                label="Cập nhật"
+                label={t('badgeUpdated')}
                 prefix="~"
                 value={progress?.updatedCount ?? 0}
                 variant="warning"
               />
               <Chip
-                label="Giữ nguyên"
+                label={t('badgeUnchanged')}
                 prefix="="
                 value={progress?.unchangedCount ?? 0}
                 variant="muted"
               />
               <Chip
-                label="Lỗi"
+                label={t('badgeError')}
                 prefix="!"
                 value={progress?.failedCount ?? 0}
                 variant="error"
@@ -142,7 +145,7 @@ export function SyncProgressDrawer({
 
             {isRunning && (
               <p className="text-[11px] text-muted text-center italic">
-                Tiến trình đang chạy ngầm an toàn. Bạn có thể đóng cửa sổ này bất cứ lúc nào.
+                {t('runningNotice')}
               </p>
             )}
           </div>
@@ -151,12 +154,12 @@ export function SyncProgressDrawer({
           <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-muted">
-                Đơn hàng vừa đồng bộ ({recentOrders.length})
+                {t('recentOrdersTitle', { count: recentOrders.length })}
               </span>
               {isRunning && (
                 <span className="inline-flex items-center gap-1.5 text-[11px] text-muted font-medium">
                   <span className="size-1.5 rounded-full bg-status-success animate-ping" />
-                  Đang ghi dữ liệu...
+                  {t('savingData')}
                 </span>
               )}
             </div>
@@ -172,8 +175,8 @@ export function SyncProgressDrawer({
             {!isLoading && recentOrders.length === 0 && (
               <div className="rounded-xl border border-hairline bg-surface-lifted/30 p-8 text-center text-xs text-muted">
                 {isRunning
-                  ? 'Đang kết nối sàn Lazada để nạp các đơn hàng đầu tiên...'
-                  : 'Chưa có đơn hàng nào được ghi nhận trong đợt này.'}
+                  ? t('connectingPlatform')
+                  : t('noOrdersYet')}
               </div>
             )}
 
@@ -194,7 +197,7 @@ export function SyncProgressDrawer({
                         <OutcomeBadge outcome={order.outcome} />
                       </div>
                       <p className="text-[11px] text-muted mt-0.5">
-                        {order.buyerName} · Trạng thái: <span className="capitalize">{order.status}</span>
+                        {order.buyerName} · {t('statusLabel')} <span className="capitalize">{order.status}</span>
                       </p>
                     </div>
 
@@ -203,7 +206,7 @@ export function SyncProgressDrawer({
                         {formatVND(order.totalAmount)}
                       </span>
                       <p className="text-[10px] text-muted mt-0.5">
-                        {new Date(order.processedAt).toLocaleTimeString('vi-VN')}
+                        {new Date(order.processedAt).toLocaleTimeString(locale)}
                       </p>
                     </div>
                   </div>
@@ -217,7 +220,7 @@ export function SyncProgressDrawer({
                         className="flex items-center gap-1 text-[11px] text-primary hover:text-primary-focus cursor-pointer font-medium"
                       >
                         <span>
-                          {isExpanded ? 'Thu gọn' : `Xem ${order.items.length} sản phẩm`}
+                          {isExpanded ? t('collapse') : t('viewItems', { count: order.items.length })}
                         </span>
                         <svg
                           aria-hidden="true"
@@ -262,17 +265,17 @@ export function SyncProgressDrawer({
                 isLoading={isCancelling}
                 className="text-xs text-semantic-error border-semantic-error/30 hover:bg-semantic-error/10"
               >
-                Hủy đợt đồng bộ
+                {t('cancelBatch')}
               </Button>
             ) : (
               <Button variant="outline" size="sm" onClick={onClose} className="text-xs">
-                Đóng
+                {t('close')}
               </Button>
             )}
 
             <Link href="/settings/integrations/lazada" onClick={onClose}>
               <Button variant="primary" size="sm" className="text-xs gap-1">
-                <span>Chi tiết đồng bộ</span>
+                <span>{t('syncDetail')}</span>
                 <svg aria-hidden="true" className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                 </svg>
@@ -287,14 +290,15 @@ export function SyncProgressDrawer({
 
 
 function OutcomeBadge({ outcome }: { readonly outcome: 'created' | 'updated' | 'unchanged' | 'failed' }) {
+  const t = useTranslations('integrations.progressDrawer');
   switch (outcome) {
     case 'created':
-      return <Badge variant="success" size="xs">+ Mới</Badge>;
+      return <Badge variant="success" size="xs">+ {t('badgeNew')}</Badge>;
     case 'updated':
-      return <Badge variant="warning" size="xs">~ Cập nhật</Badge>;
+      return <Badge variant="warning" size="xs">~ {t('badgeUpdated')}</Badge>;
     case 'unchanged':
-      return <Badge variant="secondary" size="xs">= Không đổi</Badge>;
+      return <Badge variant="secondary" size="xs">= {t('badgeUnchanged')}</Badge>;
     case 'failed':
-      return <Badge variant="error" size="xs">! Lỗi</Badge>;
+      return <Badge variant="error" size="xs">! {t('badgeError')}</Badge>;
   }
 }

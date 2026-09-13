@@ -6,7 +6,8 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { useSetAtom } from 'jotai';
 import { openSyncDrawerAtom } from '@/atoms';
 import {
@@ -57,6 +58,10 @@ const getPresetDates = (days: number) => {
 };
 
 export default function LazadaIntegrationDetailPage() {
+  const t = useTranslations('integrations.lazadaPage');
+  const tConnection = useTranslations('integrations.connection');
+  const locale = useLocale();
+  const dateTimeLocale = locale === 'vi' ? 'vi-VN' : 'en-US';
   const { setBreadcrumb } = useBreadcrumb();
   const [activeTab, setActiveTab] = useState<LazadaTabKey>('overview');
 
@@ -79,11 +84,11 @@ export default function LazadaIntegrationDetailPage() {
 
   useEffect(() => {
     setBreadcrumb([
-      { label: 'Cài đặt' },
-      { label: 'Kênh tích hợp', href: '/settings/integrations' },
-      { label: 'Lazada Open Platform' },
+      { label: t('breadcrumbs.settings') },
+      { label: t('breadcrumbs.integrations'), href: '/settings/integrations' },
+      { label: t('breadcrumbs.lazada') },
     ]);
-  }, [setBreadcrumb]);
+  }, [setBreadcrumb, t]);
 
   const { data: summary } = useIntegrationSummary('lazada');
   const { mutateAsync: checkHealth, isPending: isCheckingHealth } = useCheckConnectionHealth('lazada');
@@ -125,13 +130,13 @@ export default function LazadaIntegrationDetailPage() {
     if (previewQueryError) {
       const message = previewQueryError instanceof Error
         ? previewQueryError.message
-        : 'Tải bản xem trước thất bại.';
+        : t('previewLoadFallback');
       setPreviewError(message);
       setSyncError(message);
     } else {
       setPreviewError(null);
     }
-  }, [previewQueryError]);
+  }, [previewQueryError, t]);
 
   // Clear preview error when user changes filters (new preview will be triggered)
   useEffect(() => {
@@ -145,11 +150,11 @@ export default function LazadaIntegrationDetailPage() {
     setSyncError(null);
     setPreviewError(null);
     if (!fromDate || !toDate) {
-      setSyncError('Vui lòng chọn khoảng thời gian hợp lệ để xem trước.');
+      setSyncError(t('previewRangeRequired'));
       return;
     }
     if (new Date(fromDate) > new Date(toDate)) {
-      setSyncError('Ngày bắt đầu không được lớn hơn ngày kết thúc.');
+      setSyncError(t('invalidDateRange'));
       return;
     }
     setPreviewPage(1);
@@ -163,7 +168,7 @@ export default function LazadaIntegrationDetailPage() {
       await clearPreviewMutation.mutateAsync();
       await refetchPreview();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Làm mới xem trước thất bại.';
+      const msg = err instanceof Error ? err.message : t('previewRefreshFailed');
       setSyncError(msg);
       setPreviewError(msg);
     }
@@ -172,11 +177,11 @@ export default function LazadaIntegrationDetailPage() {
   const handleRunSync = async () => {
     setSyncError(null);
     if (!fromDate || !toDate) {
-      setSyncError('Vui lòng chọn khoảng thời gian hợp lệ.');
+      setSyncError(t('syncRangeRequired'));
       return;
     }
     if (new Date(fromDate) > new Date(toDate)) {
-      setSyncError('Ngày bắt đầu không được lớn hơn ngày kết thúc.');
+      setSyncError(t('invalidDateRange'));
       return;
     }
 
@@ -190,7 +195,7 @@ export default function LazadaIntegrationDetailPage() {
       openSyncDrawer({ batchCode: res.batchCode, platformName: 'Lazada Open Platform' });
       await clearPreviewMutation.mutateAsync();
     } catch (err: unknown) {
-      setSyncError(err instanceof Error ? err.message : 'Khởi động đồng bộ nền thất bại.');
+      setSyncError(err instanceof Error ? err.message : t('syncStartFailed'));
     }
   };
 
@@ -215,7 +220,7 @@ export default function LazadaIntegrationDetailPage() {
               </Badge>
             </div>
             <p className="text-xs text-muted mt-0.5">
-              {summary?.shopName || 'Lazada Mall Official Store'} · Quản lý kết nối & đồng bộ đơn hàng
+              {summary?.shopName || t('fallbackShopName')} · {t('headerDescription')}
             </p>
           </div>
         </div>
@@ -230,7 +235,7 @@ export default function LazadaIntegrationDetailPage() {
 
           <Link href="/settings/integrations">
             <Button variant="outline" size="sm">
-              Quay lại danh sách
+              {t('backToIntegrations')}
             </Button>
           </Link>
         </div>
@@ -248,7 +253,7 @@ export default function LazadaIntegrationDetailPage() {
               : 'border-transparent text-muted hover:text-foreground',
           )}
         >
-          1. Tổng quan & Kết nối
+          {t('tabs.overview')}
         </button>
         <button
           type="button"
@@ -260,7 +265,7 @@ export default function LazadaIntegrationDetailPage() {
               : 'border-transparent text-muted hover:text-foreground',
           )}
         >
-          2. Đồng bộ đơn hàng
+          {t('tabs.sync')}
         </button>
         <button
           type="button"
@@ -272,13 +277,13 @@ export default function LazadaIntegrationDetailPage() {
               : 'border-transparent text-muted hover:text-foreground',
           )}
         >
-          3. Thông tin xác thực
+          {t('tabs.credentials')}
         </button>
         <Link
           href="/settings/integrations/lazada/syncs"
           className="border-b-2 border-transparent px-4 py-2 text-xs font-semibold text-muted transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          4. Nhật ký đồng bộ
+          {t('tabs.history')}
         </Link>
       </div>
 
@@ -287,10 +292,10 @@ export default function LazadaIntegrationDetailPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="rounded-xl border border-hairline bg-surface-card p-5 shadow-card space-y-3">
-              <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">Trạng thái kết nối</span>
+              <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">{tConnection('status')}</span>
               <div className="flex items-center justify-between">
                 <div className="text-sm font-bold text-foreground capitalize">
-                  {summary?.status === 'connected' ? 'Đang hoạt động tốt' : summary?.status}
+                  {summary?.status === 'connected' ? t('connectionStatus') : summary?.status}
                 </div>
                 {summary && (
                   <ConnectionStatus status={summary.status} latencyMs={summary.latencyMs} />
@@ -303,67 +308,67 @@ export default function LazadaIntegrationDetailPage() {
                 onClick={() => checkHealth()}
                 className="w-full mt-2"
               >
-                Kiểm tra kết nối ngay
+                {t('checkConnection')}
               </Button>
             </div>
 
             <div className="rounded-xl border border-hairline bg-surface-card p-5 shadow-card space-y-3">
-              <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">Độ trễ phản hồi (Latency)</span>
+              <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">{t('latencyTitle')}</span>
               <div className="text-2xl font-bold font-mono text-foreground">
                 {summary?.latencyMs ?? 0} <span className="text-xs text-muted font-normal">ms</span>
               </div>
               <p className="text-[11px] text-muted">
-                Kiểm tra lần cuối: {summary?.lastCheckedAt ? new Date(summary.lastCheckedAt).toLocaleTimeString('vi-VN') : '—'}
+                {t('lastCheckedAt', { time: summary?.lastCheckedAt ? new Date(summary.lastCheckedAt).toLocaleTimeString(dateTimeLocale) : '—' })}
               </p>
             </div>
 
             <div className="rounded-xl border border-hairline bg-surface-card p-5 shadow-card space-y-3">
-              <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">Tổng đơn hàng đã nạp</span>
+              <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">{t('totalOrdersLoaded')}</span>
               <div className="text-2xl font-bold font-mono text-foreground">
-                {summary?.totalOrders ?? 0} <span className="text-xs text-muted font-normal">đơn</span>
+                {summary?.totalOrders ?? 0} <span className="text-xs text-muted font-normal">{t('ordersUnit')}</span>
               </div>
               <p className="text-[11px] text-muted">
-                Đồng bộ gần nhất: {summary?.lastSyncedAt ? new Date(summary.lastSyncedAt).toLocaleString('vi-VN') : 'Chưa có'}
+                {t('lastSyncedAt', { time: summary?.lastSyncedAt ? new Date(summary.lastSyncedAt).toLocaleString(dateTimeLocale) : t('notSyncedYet') })}
               </p>
             </div>
           </div>
 
           {/* Endpoints & Architecture details */}
           <div className="rounded-xl border border-hairline bg-surface-card p-5 shadow-card space-y-4">
-            <h3 className="text-sm font-bold text-foreground">Các Endpoint API đang kết nối</h3>
+            <h3 className="text-sm font-bold text-foreground">{t('apiEndpointsTitle')}</h3>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Phương thức</TableHead>
-                  <TableHead>Đường dẫn Endpoint</TableHead>
-                  <TableHead>Chức năng</TableHead>
-                  <TableHead>Yêu cầu chữ ký</TableHead>
+                  <TableHead>{t('colMethod')}</TableHead>
+                  <TableHead>{t('colEndpoint')}</TableHead>
+                  <TableHead>{t('colFunction')}</TableHead>
+                  <TableHead>{t('colSignature')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="font-mono text-[11px]">
                 <TableRow>
                   <TableCell className="text-status-success font-bold">GET</TableCell>
                   <TableCell className="text-foreground">/rest/orders/get</TableCell>
-                  <TableCell className="font-sans text-muted">Lấy danh sách đơn hàng theo trạng thái & thời gian</TableCell>
+                  <TableCell className="font-sans text-muted">{t('fnGetOrders')}</TableCell>
                   <TableCell><Badge variant="teal" size="xs">HMAC-SHA256</Badge></TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="text-status-success font-bold">GET</TableCell>
                   <TableCell className="text-foreground">/rest/order/get</TableCell>
-                  <TableCell className="font-sans text-muted">Lấy chi tiết đơn hàng authoritative từ Lazada</TableCell>
+                  <TableCell className="font-sans text-muted">{t('fnGetOrder')}</TableCell>
                   <TableCell><Badge variant="teal" size="xs">HMAC-SHA256</Badge></TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="text-status-success font-bold">GET</TableCell>
                   <TableCell className="text-foreground">/rest/order/items/get</TableCell>
-                  <TableCell className="font-sans text-muted">Lấy danh sách sản phẩm dòng (items) của đơn hàng</TableCell>
+                  <TableCell className="font-sans text-muted">{t('fnGetOrderItems')}</TableCell>
                   <TableCell><Badge variant="teal" size="xs">HMAC-SHA256</Badge></TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="text-status-success font-bold">GET</TableCell>
                   <TableCell className="text-foreground">/health</TableCell>
-                  <TableCell className="font-sans text-muted">Kiểm tra trạng thái uptime của Mock Server</TableCell>
-                  <TableCell><Badge variant="secondary" size="xs">Không bắt buộc</Badge></TableCell>
+                  <TableCell className="font-sans text-muted">{t('fnHealth')}</TableCell>
+                  <TableCell><Badge variant="secondary" size="xs">{t('optionalSignature')}</Badge></TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -384,11 +389,11 @@ export default function LazadaIntegrationDetailPage() {
                     <span className="relative inline-flex rounded-full size-2 bg-teal-500" />
                   </span>
                   <span className="text-xs font-bold text-teal-800 dark:text-teal-200">
-                    Đang có một đợt đồng bộ ngầm đang diễn ra
+                    {t('activeSyncBannerTitle')}
                   </span>
                 </div>
                 <p className="text-[11px] text-muted">
-                  Tiến trình: <span className="font-semibold text-foreground">{activeBatch.processedOrders} / {activeBatch.totalOrders} đơn ({activeBatch.progressPercentage}%)</span> · Mã đợt: <span className="font-mono">#{activeBatch.batchCode.slice(-12)}</span>
+                  {t('activeSyncBannerInfo', { processed: activeBatch.processedOrders, total: activeBatch.totalOrders, percent: activeBatch.progressPercentage, batchCode: activeBatch.batchCode.slice(-12) })}
                 </p>
               </div>
 
@@ -403,7 +408,7 @@ export default function LazadaIntegrationDetailPage() {
                 }}
                 className="text-xs shrink-0"
               >
-                Mở Drawer xem trực tiếp
+                {t('btnOpenLiveDrawer')}
               </Button>
             </div>
           )}
@@ -424,9 +429,9 @@ export default function LazadaIntegrationDetailPage() {
 
           <div className="rounded-xl border border-hairline bg-surface-card p-6 shadow-card space-y-5">
             <div>
-              <h3 className="text-base font-bold text-foreground">Kích hoạt đồng bộ đơn hàng</h3>
+              <h3 className="text-base font-bold text-foreground">{t('triggerSyncTitle')}</h3>
               <p className="text-xs text-muted mt-0.5">
-                Thiết lập khoảng thời gian và kéo dữ liệu đơn hàng authoritative từ Lazada vào hệ thống.
+                {t('triggerSyncDesc')}
               </p>
             </div>
 
@@ -434,7 +439,7 @@ export default function LazadaIntegrationDetailPage() {
               {/* Date Range Picker */}
               <div className="space-y-1.5">
                 <label className="font-semibold text-foreground">
-                  Khoảng thời gian đồng bộ
+                  {t('syncRangeLabel')}
                 </label>
                 <DateRangePicker
                   from={fromDate}
@@ -443,7 +448,7 @@ export default function LazadaIntegrationDetailPage() {
                     setFromDate(from);
                     setToDate(to);
                   }}
-                  placeholder="Chọn khoảng thời gian…"
+                  placeholder={t('syncRangePlaceholder')}
                 />
               </div>
 
@@ -452,30 +457,30 @@ export default function LazadaIntegrationDetailPage() {
                 id="status-tab-select"
                 value={statusFilter}
                 onChange={setStatusFilter}
-                label="Trạng thái đơn hàng cần đồng bộ"
+                label={t('orderStatusLabel')}
               />
 
               {/* Preflight Discovery Banner */}
               <div className="rounded-xl border border-hairline bg-surface-lifted/60 p-3.5 flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <span className="text-[11px] text-muted block">Ước tính số đơn trên sàn Lazada:</span>
+                  <span className="text-[11px] text-muted block">{t('estimatedOrders')}</span>
                   {isPreflightLoading ? (
-                    <span className="text-xs text-muted animate-pulse font-medium">Đang thăm dò dữ liệu sàn...</span>
+                    <span className="text-xs text-muted animate-pulse font-medium">{t('probingOrders')}</span>
                   ) : (
                     <span className="text-sm font-bold font-mono text-foreground">
-                      ~{preflightData?.totalCount ?? 0} đơn hàng
+                      {t('approxOrders', { count: preflightData?.totalCount ?? 0 })}
                     </span>
                   )}
                 </div>
                 <Badge variant="teal" size="sm">
-                  Khám phá tự động
+                  {t('autoDiscovery')}
                 </Badge>
               </div>
             </div>
 
             <div className="pt-3 border-t border-hairline flex flex-wrap items-center justify-between gap-3">
               <span className="text-[11px] text-muted">
-                Đối soát an toàn: xem trước không ghi DB, nạp dữ liệu có audit log SyncChange
+                {t('safeNotice')}
               </span>
 
               <div className="flex items-center gap-2">
@@ -491,7 +496,7 @@ export default function LazadaIntegrationDetailPage() {
                     </svg>
                   }
                 >
-                  {isPreviewLoading ? 'Đang tải xem trước...' : 'Xem trước đơn hàng'}
+                  {isPreviewLoading ? t('previewLoading') : t('btnPreview')}
                 </Button>
 
                 <Button
@@ -505,7 +510,7 @@ export default function LazadaIntegrationDetailPage() {
                     </svg>
                   }
                 >
-                  {isStartingSync ? 'Đang khởi chạy...' : 'Bắt đầu đồng bộ ngay'}
+                  {isStartingSync ? t('syncStarting') : t('btnStartSync')}
                 </Button>
               </div>
             </div>
@@ -515,9 +520,9 @@ export default function LazadaIntegrationDetailPage() {
           {isPreviewTriggered && (
             <div className="space-y-3">
               <div>
-                <h3 className="text-base font-bold text-foreground">Bản xem trước đơn hàng Lazada (Quick Preview)</h3>
+                <h3 className="text-base font-bold text-foreground">{t('quickPreviewTitle')}</h3>
                 <p className="text-xs text-muted mt-0.5">
-                  Kiểm tra đối soát trước khi đồng bộ. Dữ liệu được lưu trong bộ nhớ đệm IndexedDB để bảo vệ hạn mức 10.000 req/ngày của Lazada.
+                  {t('quickPreviewDesc')}
                 </p>
               </div>
 
@@ -528,12 +533,12 @@ export default function LazadaIntegrationDetailPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                     </svg>
                     <div>
-                      <span className="font-semibold">Không thể tải bản xem trước:</span>
+                      <span className="font-semibold">{t('previewFailed')}</span>
                       <p className="mt-1">{previewError}</p>
                     </div>
                   </div>
                   <p className="text-[11px] opacity-70 ml-6">
-                    Kiểm tra: 1) Access Token Lazada còn hạn không, 2) Khoảng thời gian có đơn hàng không, 3) Click "Làm mới" để thử lại.
+                    {t('previewFailedHelp')}
                   </p>
                 </div>
               )}
@@ -563,35 +568,35 @@ export default function LazadaIntegrationDetailPage() {
         <div className="space-y-6 max-w-2xl">
           <div className="rounded-xl border border-hairline bg-surface-card p-6 shadow-card space-y-4">
             <div>
-              <h3 className="text-base font-bold text-foreground">Thông tin xác thực ứng dụng</h3>
+              <h3 className="text-base font-bold text-foreground">{t('credentialsTitle')}</h3>
               <p className="text-xs text-muted mt-0.5">
-                Các khoá kết nối được lưu trữ an toàn phía máy chủ qua file cấu hình biến môi trường (`.env`).
+                {t('credentialsDesc')}
               </p>
             </div>
 
             <div className="space-y-3.5 text-xs">
               <div className="rounded-lg bg-surface-lifted border border-hairline p-3.5 space-y-1">
-                <span className="text-muted block text-[11px]">Môi trường kết nối (Environment)</span>
+                <span className="text-muted block text-[11px]">{t('envLabel')}</span>
                 <span className="font-mono text-foreground font-semibold">{summary?.environment.toUpperCase()}</span>
               </div>
 
               <div className="rounded-lg bg-surface-lifted border border-hairline p-3.5 space-y-1">
-                <span className="text-muted block text-[11px]">Base API URL</span>
+                <span className="text-muted block text-[11px]">{t('baseApiUrlLabel')}</span>
                 <span className="font-mono text-foreground">{process.env.NEXT_PUBLIC_LAZADA_BASE || 'http://localhost:4000/rest'}</span>
               </div>
 
               <div className="rounded-lg bg-surface-lifted border border-hairline p-3.5 space-y-1">
-                <span className="text-muted block text-[11px]">App Key (Mã định danh ứng dụng)</span>
+                <span className="text-muted block text-[11px]">{t('appKeyLabel')}</span>
                 <span className="font-mono text-foreground">mock_app_••••1234</span>
               </div>
 
               <div className="rounded-lg bg-surface-lifted border border-hairline p-3.5 space-y-1">
-                <span className="text-muted block text-[11px]">App Secret (Khoá bí mật ký HMAC)</span>
+                <span className="text-muted block text-[11px]">{t('appSecretLabel')}</span>
                 <span className="font-mono text-muted">••••••••••••••••••••••••••••••••</span>
               </div>
 
               <div className="rounded-lg bg-surface-lifted border border-hairline p-3.5 space-y-1">
-                <span className="text-muted block text-[11px]">Thuật toán ký chữ ký số</span>
+                <span className="text-muted block text-[11px]">{t('signAlgorithmLabel')}</span>
                 <span className="font-mono text-foreground">HMAC-SHA256 (Canonical Parameter Ordering A-Z)</span>
               </div>
             </div>
@@ -601,7 +606,7 @@ export default function LazadaIntegrationDetailPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
               </svg>
               <span>
-                Khoá bí mật App Secret và Access Token không bao giờ được trả về trình duyệt hoặc in ra log để đảm bảo an toàn tuyệt đối theo tiêu chuẩn bảo mật.
+                {t('securityNotice')}
               </span>
             </div>
           </div>

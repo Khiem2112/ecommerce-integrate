@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import { Link, useRouter } from '@/i18n/navigation';
 import { Button, Badge } from '@/components/atoms';
 import { useRetrySyncBatch } from '@/hooks';
 import type { SyncBatchDetail } from '@/types';
@@ -12,6 +12,9 @@ type SyncBatchDetailHeaderProps = {
 };
 
 export function SyncBatchDetailHeader({ detail }: SyncBatchDetailHeaderProps) {
+  const t = useTranslations('integrations.batchDetail');
+  const tList = useTranslations('integrations.listScreen');
+  const locale = useLocale() === 'vi' ? 'vi-VN' : 'en-US';
   const router = useRouter();
   const retryMutation = useRetrySyncBatch();
   const canRetry = detail.failedCount > 0 && detail.status !== 'running' && detail.status !== 'queued';
@@ -33,16 +36,16 @@ export function SyncBatchDetailHeader({ detail }: SyncBatchDetailHeaderProps) {
               <h1 className="break-all font-mono text-lg font-bold tracking-tight text-foreground">{detail.batchCode}</h1>
               <SyncBatchStatusBadge status={detail.status} />
               <Badge variant="outline" size="xs">
-                {detail.syncMode === 'retry' ? 'Thử lại chọn lọc' : detail.syncMode === 'deep_reconcile' ? 'Quét sâu' : 'Tiếp nối'}
+                {detail.syncMode === 'retry' ? tList('modeRetry') : detail.syncMode === 'deep_reconcile' ? tList('modeDeepReconcile') : tList('modeIncremental')}
               </Badge>
             </div>
             <p className="mt-1 text-xs text-muted">
-              {detail.shopName ?? 'Gian hàng Lazada'} · Bắt đầu {new Date(detail.startedAt).toLocaleString('vi-VN')}
+              {detail.shopName ?? tList('defaultShopName')} · {t('startedAt', { time: new Date(detail.startedAt).toLocaleString(locale) })}
               {detail.triggeredBy ? ` · ${detail.triggeredBy}` : ''}
             </p>
             {detail.parentBatchCode && (
               <Link href={`/settings/integrations/lazada/syncs/${encodeURIComponent(detail.parentBatchCode)}`} className="mt-1 inline-block text-[11px] text-status-info hover:underline">
-                ← Xem đợt gốc {detail.parentBatchCode}
+                {t('viewParentBatch', { batchCode: detail.parentBatchCode })}
               </Link>
             )}
           </div>
@@ -50,16 +53,16 @@ export function SyncBatchDetailHeader({ detail }: SyncBatchDetailHeaderProps) {
         <div className="flex flex-wrap gap-2">
           {canRetry && detail.connectionActive && (
             <Button size="sm" onClick={handleRetryAll} isLoading={retryMutation.isPending}>
-              Thử lại lỗi đủ điều kiện
+              {t('retryEligible')}
             </Button>
           )}
           {!detail.connectionActive && (
             <Link href="/settings/integrations">
-              <Button variant="outline" size="sm">Cấp lại quyền kết nối</Button>
+              <Button variant="outline" size="sm">{t('reauthorize')}</Button>
             </Link>
           )}
           <Link href="/settings/integrations/lazada/syncs">
-            <Button variant="outline" size="sm">Quay lại lịch sử</Button>
+            <Button variant="outline" size="sm">{t('backToHistory')}</Button>
           </Link>
         </div>
       </div>

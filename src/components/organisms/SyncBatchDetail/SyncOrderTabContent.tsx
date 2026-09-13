@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button, Input } from '@/components/atoms';
 import { Pagination } from '@/components/molecules';
 import { useSyncOrdersByChangeType } from '@/hooks';
@@ -15,6 +16,7 @@ type SyncOrderTabContentProps = {
 };
 
 export function SyncOrderTabContent({ batchId, activeTab, onSelect }: SyncOrderTabContentProps) {
+  const t = useTranslations('integrations.batchDetail');
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState('');
   const result = useSyncOrdersByChangeType(batchId, activeTab, page);
@@ -31,24 +33,24 @@ export function SyncOrderTabContent({ batchId, activeTab, onSelect }: SyncOrderT
       className="overflow-hidden rounded-b-2xl border-x border-b border-hairline bg-surface-card shadow-card"
     >
       <div className="border-b border-hairline p-3">
-        <label htmlFor="sync-order-search" className="sr-only">Tìm mã đơn trong tab hiện tại</label>
-        <Input id="sync-order-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo mã đơn trong trang này…" className="max-w-sm" />
+        <label htmlFor="sync-order-search" className="sr-only">{t('searchAria')}</label>
+        <Input id="sync-order-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('searchPlaceholder')} className="max-w-sm" />
       </div>
       {result.isLoading ? (
-        <div className="space-y-2 p-3 motion-safe:animate-pulse" aria-label="Đang tải danh sách đơn">
+        <div className="space-y-2 p-3 motion-safe:animate-pulse" aria-label={t('loadingOrdersAria')}>
           {[1, 2, 3, 4, 5].map((row) => <div key={row} className="h-12 rounded-lg bg-surface-strong" />)}
         </div>
       ) : result.error ? (
         <div className="p-8 text-center" role="alert">
-          <p className="text-sm font-semibold text-foreground">Không thể tải danh sách đơn</p>
+          <p className="text-sm font-semibold text-foreground">{t('loadOrdersError')}</p>
           <p className="mt-1 text-xs text-muted">{result.error.message}</p>
-          <Button className="mt-3" size="sm" onClick={() => result.refetch()}>Thử tải lại</Button>
+          <Button className="mt-3" size="sm" onClick={() => result.refetch()}>{t('retryLoadBtn')}</Button>
         </div>
       ) : orders.length === 0 ? (
         <div className="p-10 text-center">
-          <p className="text-sm font-semibold text-foreground">{query ? `Không có kết quả cho “${query}”` : 'Không có đơn trong nhóm này'}</p>
-          <p className="mt-1 text-xs text-muted">{query ? 'Hãy xóa từ khóa hoặc thử một mã đơn khác.' : 'Đợt đồng bộ không ghi nhận kết quả thuộc trạng thái này.'}</p>
-          {query && <Button className="mt-3" variant="outline" size="sm" onClick={() => setQuery('')}>Xóa tìm kiếm</Button>}
+          <p className="text-sm font-semibold text-foreground">{query ? t('emptySearchTitle', { query }) : t('emptyTab')}</p>
+          <p className="mt-1 text-xs text-muted">{query ? t('emptySearchDesc') : t('emptyTabDesc')}</p>
+          {query && <Button className="mt-3" variant="outline" size="sm" onClick={() => setQuery('')}>{t('clearSearch')}</Button>}
         </div>
       ) : (
         <div>
@@ -65,7 +67,7 @@ export function SyncOrderTabContent({ batchId, activeTab, onSelect }: SyncOrderT
             total={result.data.meta.total}
             pageSize={result.data.meta.pageSize}
             onPageChange={setPage}
-            itemLabel="đơn"
+            itemLabel={t('orderUnit')}
           />
         </div>
       )}

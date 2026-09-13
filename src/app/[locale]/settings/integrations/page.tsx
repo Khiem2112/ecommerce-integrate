@@ -15,15 +15,15 @@ import { Badge } from '@/components/atoms';
 
 export default function IntegrationsPage() {
   const t = useTranslations('integrations');
-  const tNav = useTranslations('navigation');
+  const tBreadcrumb = useTranslations('breadcrumb');
   const { setBreadcrumb } = useBreadcrumb();
 
   useEffect(() => {
     setBreadcrumb([
-      { label: tNav('settings') },
+      { label: tBreadcrumb('settings') },
       { label: t('title') },
     ]);
-  }, [setBreadcrumb, t, tNav]);
+  }, [setBreadcrumb, t, tBreadcrumb]);
 
   const { data: lazadaSummary, isLoading: isLoadingLazada } = useIntegrationSummary('lazada');
 
@@ -37,7 +37,7 @@ export default function IntegrationsPage() {
               {t('title')}
             </h1>
             <Badge variant="teal" size="xs">
-              Ports & Adapters
+              {t('portsAndAdapters')}
             </Badge>
           </div>
           <p className="text-xs text-muted max-w-3xl">
@@ -81,10 +81,10 @@ export default function IntegrationsPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-bold tracking-tight text-foreground">
-                      Shopify Store
+                      {t('shopifyTitle')}
                     </h3>
                     <Badge variant="secondary" size="xs">
-                      CUSTOM APP
+                      {t('customApp')}
                     </Badge>
                   </div>
                   <p className="text-xs text-muted mt-0.5">
@@ -117,10 +117,10 @@ export default function IntegrationsPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-bold tracking-tight text-foreground">
-                      TikTok Shop
+                      {t('tiktokTitle')}
                     </h3>
                     <Badge variant="secondary" size="xs">
-                      PARTNER API
+                      {t('partnerApi')}
                     </Badge>
                   </div>
                   <p className="text-xs text-muted mt-0.5">

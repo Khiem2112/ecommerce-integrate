@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useAtom } from 'jotai';
 import { syncBatchFilterAtom } from '@/atoms';
 import { Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/atoms';
@@ -35,6 +35,7 @@ function parseFiltersFromLocation(): SyncBatchListFilter {
 }
 
 function SyncBatchActions({ batch }: { readonly batch: SyncBatchListItem }) {
+  const t = useTranslations('integrations.listScreen');
   const router = useRouter();
   const retryMutation = useRetrySyncBatch();
   const canRetry = ['partial', 'failed'].includes(batch.status) && batch.failedCount > 0;
@@ -47,11 +48,11 @@ function SyncBatchActions({ batch }: { readonly batch: SyncBatchListItem }) {
   return (
     <div className="flex flex-wrap justify-end gap-2">
       <Link href={`/settings/integrations/lazada/syncs/${encodeURIComponent(batch.batchCode)}`}>
-        <Button variant="outline" size="xs">Chi tiết</Button>
+        <Button variant="outline" size="xs">{t('details')}</Button>
       </Link>
       {canRetry && !batch.retryBlockedReason && (
         <Button size="xs" onClick={handleRetry} isLoading={retryMutation.isPending}>
-          Thử lại lỗi
+          {t('retryErrors')}
         </Button>
       )}
       {batch.retryBlockedReason && canRetry && (
@@ -69,6 +70,7 @@ function SyncBatchActions({ batch }: { readonly batch: SyncBatchListItem }) {
 }
 
 export function SyncBatchListScreen() {
+  const t = useTranslations('integrations.listScreen');
   const [filters, setFilters] = useAtom(syncBatchFilterAtom);
   const hasHydratedFilters = useRef(false);
   const { data, isLoading, isFetching, error, refetch } = useSyncBatchList(filters);
@@ -99,7 +101,7 @@ export function SyncBatchListScreen() {
 
   if (isLoading && !data) {
     return (
-      <div className="space-y-4 motion-safe:animate-pulse" aria-busy="true" aria-label="Đang tải lịch sử đồng bộ">
+      <div className="space-y-4 motion-safe:animate-pulse" aria-busy="true" aria-label={t('loadingHistoryAria')}>
         <div className="h-28 rounded-2xl bg-surface-strong" />
         {[1, 2, 3, 4, 5].map((row) => <div key={row} className="h-16 rounded-xl bg-surface-strong" />)}
       </div>
@@ -109,19 +111,19 @@ export function SyncBatchListScreen() {
   return (
     <div className="space-y-4">
       <SyncBatchFilterBar filters={filters} onFilterChange={handleFilterChange} onReset={handleReset} />
-      {isFetching && <p className="text-[11px] text-muted" role="status" aria-live="polite">Đang cập nhật dữ liệu…</p>}
+      {isFetching && <p className="text-[11px] text-muted" role="status" aria-live="polite">{t('updatingData')}</p>}
 
       {error ? (
         <div className="rounded-2xl border border-semantic-error/30 bg-surface-card p-8 text-center shadow-card" role="alert">
-          <h2 className="text-sm font-semibold text-foreground">Không thể tải lịch sử đồng bộ</h2>
-          <p className="mt-1 text-xs text-muted">{error.message} Bộ lọc của bạn vẫn được giữ nguyên.</p>
-          <Button className="mt-4" size="sm" onClick={() => refetch()}>Thử tải lại</Button>
+          <h2 className="text-sm font-semibold text-foreground">{t('loadFailedTitle')}</h2>
+          <p className="mt-1 text-xs text-muted">{t('loadFailedDesc', { message: error.message })}</p>
+          <Button className="mt-4" size="sm" onClick={() => refetch()}>{t('retryLoad')}</Button>
         </div>
       ) : batches.length === 0 ? (
         <div className="rounded-2xl border border-hairline bg-surface-card p-10 text-center shadow-card">
-          <h2 className="text-sm font-semibold text-foreground">Không có đợt đồng bộ phù hợp</h2>
-          <p className="mt-1 text-xs text-muted">Hãy điều chỉnh khoảng ngày hoặc xóa bộ lọc hiện tại.</p>
-          <Button className="mt-4" variant="outline" size="sm" onClick={handleReset}>Xóa bộ lọc</Button>
+          <h2 className="text-sm font-semibold text-foreground">{t('emptyFilteredTitle')}</h2>
+          <p className="mt-1 text-xs text-muted">{t('emptyFilteredDesc')}</p>
+          <Button className="mt-4" variant="outline" size="sm" onClick={handleReset}>{t('resetFilters')}</Button>
         </div>
       ) : (
         <>
@@ -129,12 +131,12 @@ export function SyncBatchListScreen() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Đợt đồng bộ</TableHead>
-                  <TableHead>Gian hàng / chế độ</TableHead>
-                  <TableHead>Thời gian</TableHead>
-                  <TableHead>Kết quả</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead className="text-right">Thao tác</TableHead>
+                  <TableHead>{t('colBatch')}</TableHead>
+                  <TableHead>{t('colShopMode')}</TableHead>
+                  <TableHead>{t('colTime')}</TableHead>
+                  <TableHead>{t('colResult')}</TableHead>
+                  <TableHead>{t('colStatus')}</TableHead>
+                  <TableHead className="text-right">{t('colActions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -146,18 +148,18 @@ export function SyncBatchListScreen() {
                       </Link>
                       {batch.parentBatchCode && (
                         <Link href={`/settings/integrations/lazada/syncs/${encodeURIComponent(batch.parentBatchCode)}`} className="mt-1 block text-[10px] text-status-info hover:underline">
-                          ← Đợt gốc {batch.parentBatchCode}
+                          {t('parentBatchLink', { code: batch.parentBatchCode })}
                         </Link>
                       )}
                       {!batch.parentBatchCode && batch.childBatchCode && (
                         <Link href={`/settings/integrations/lazada/syncs/${encodeURIComponent(batch.childBatchCode)}`} className="mt-1 block text-[10px] text-status-info hover:underline">
-                          Xem đợt thử lại →
+                          {t('retryBatchLink')}
                         </Link>
                       )}
                     </TableCell>
                     <TableCell>
-                      <p className="text-xs font-medium text-foreground">{batch.shopName ?? 'Gian hàng Lazada'}</p>
-                      <p className="mt-0.5 text-[10px] uppercase text-muted">{batch.platform} · {batch.syncMode === 'deep_reconcile' ? 'Quét sâu' : batch.syncMode === 'retry' ? 'Thử lại chọn lọc' : 'Tiếp nối'}</p>
+                      <p className="text-xs font-medium text-foreground">{batch.shopName ?? t('defaultShopName')}</p>
+                      <p className="mt-0.5 text-[10px] uppercase text-muted">{batch.platform} · {batch.syncMode === 'deep_reconcile' ? t('modeDeepReconcile') : batch.syncMode === 'retry' ? t('modeRetry') : t('modeIncremental')}</p>
                     </TableCell>
                     <TableCell><SyncBatchDurationLabel {...batch} /></TableCell>
                     <TableCell><SyncBatchCounterChips {...batch} /></TableCell>
@@ -176,7 +178,7 @@ export function SyncBatchListScreen() {
                   <Link href={`/settings/integrations/lazada/syncs/${encodeURIComponent(batch.batchCode)}`} className="break-all font-mono text-xs font-semibold text-foreground hover:underline">{batch.batchCode}</Link>
                   <SyncBatchStatusBadge status={batch.status} />
                 </div>
-                <p className="mt-2 text-xs text-muted">{batch.shopName ?? 'Gian hàng Lazada'} · {batch.syncMode === 'retry' ? 'Thử lại chọn lọc' : batch.syncMode === 'deep_reconcile' ? 'Quét sâu' : 'Tiếp nối'}</p>
+                <p className="mt-2 text-xs text-muted">{batch.shopName ?? t('defaultShopName')} · {batch.syncMode === 'retry' ? t('modeRetry') : batch.syncMode === 'deep_reconcile' ? t('modeDeepReconcile') : t('modeIncremental')}</p>
                 <div className="mt-3"><SyncBatchCounterChips {...batch} /></div>
                 <div className="mt-3"><SyncBatchDurationLabel {...batch} /></div>
                 <div className="mt-4"><SyncBatchActions batch={batch} /></div>
@@ -192,7 +194,7 @@ export function SyncBatchListScreen() {
               pageSize={data.meta.pageSize}
               onPageChange={(page) => setFilters((current) => ({ ...current, page }))}
               onPageSizeChange={(limit) => setFilters((current) => ({ ...current, limit, page: 1 }))}
-              itemLabel="đợt"
+              itemLabel={t('batchItemLabel')}
             />
           )}
         </>

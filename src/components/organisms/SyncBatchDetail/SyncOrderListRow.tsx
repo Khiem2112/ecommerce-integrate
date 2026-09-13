@@ -1,6 +1,7 @@
+import { useLocale, useTranslations } from 'next-intl';
 import { Badge } from '@/components/atoms';
 import type { SyncOrderListItem } from '@/types';
-import { formatSyncFieldValue, SYNC_FIELD_LABELS } from '@/utils';
+import { formatSyncFieldValue } from '@/utils';
 
 type SyncOrderListRowProps = {
   readonly order: SyncOrderListItem;
@@ -15,6 +16,15 @@ function getCurrentFieldValue(order: SyncOrderListItem, field: (typeof SUMMARY_F
 }
 
 export function SyncOrderListRow({ order, onSelect }: SyncOrderListRowProps) {
+  const t = useTranslations('integrations.batchDetail');
+  const tDiff = useTranslations('integrations.diff');
+  const tDiffFields = useTranslations('integrations.diff.fields');
+  const locale = useLocale() === 'vi' ? 'vi-VN' : 'en-US';
+  const formatOptions = {
+    locale,
+    activeLabel: tDiff('active'),
+    inactiveLabel: tDiff('inactive'),
+  } as const;
   const visibleFields = order.changedOrderFields.slice(0, 4);
   const remaining = order.changedOrderFields.length - visibleFields.length;
   const diffByField = new Map(order.orderFields.map((field) => [field.fieldName, field]));
@@ -31,22 +41,22 @@ export function SyncOrderListRow({ order, onSelect }: SyncOrderListRowProps) {
           const currentValue = getCurrentFieldValue(order, field);
           return (
             <span key={field} className="min-w-0 rounded-lg border border-hairline bg-surface-card px-2 py-1">
-              <span className="block text-[10px] font-semibold text-muted">{SYNC_FIELD_LABELS[field]}</span>
+              <span className="block text-[10px] font-semibold text-muted">{tDiffFields(field)}</span>
               <span className="mt-0.5 flex min-h-5 min-w-0 flex-wrap items-center gap-1 text-[11px] text-foreground">
                 {diff ? (
                   <>
-                    <span className="min-w-0 text-muted line-through decoration-muted/40">{formatSyncFieldValue(field, diff.before)}</span>
+                    <span className="min-w-0 text-muted line-through decoration-muted/40">{formatSyncFieldValue(field, diff.before, formatOptions)}</span>
                     <span className="text-muted">→</span>
-                    <span className="min-w-0 font-semibold text-status-success">{formatSyncFieldValue(field, diff.after)}</span>
+                    <span className="min-w-0 font-semibold text-status-success">{formatSyncFieldValue(field, diff.after, formatOptions)}</span>
                   </>
                 ) : (
-                  <span className="min-w-0 font-semibold">{formatSyncFieldValue(field, currentValue)}</span>
+                  <span className="min-w-0 font-semibold">{formatSyncFieldValue(field, currentValue, formatOptions)}</span>
                 )}
               </span>
             </span>
           );
         })}
-        {remaining > 0 && <Badge variant="secondary" size="xs">+{remaining} trường khác</Badge>}
+        {remaining > 0 && <Badge variant="secondary" size="xs">{t('remainingFields', { count: remaining })}</Badge>}
         {visibleFields.some((field) => !SUMMARY_FIELDS.includes(field as (typeof SUMMARY_FIELDS)[number])) && (
           <span className="flex flex-wrap gap-1">
             {visibleFields
@@ -56,7 +66,7 @@ export function SyncOrderListRow({ order, onSelect }: SyncOrderListRowProps) {
         )}
       </span>
       <span className="text-[11px] text-muted md:text-right">
-        {order.changedItemCount > 0 ? `${order.changedItemCount} items thay đổi` : new Date(order.syncedAt).toLocaleTimeString('vi-VN')}
+        {order.changedItemCount > 0 ? t('changedItems', { count: order.changedItemCount }) : new Date(order.syncedAt).toLocaleTimeString(locale)}
       </span>
     </button>
   );

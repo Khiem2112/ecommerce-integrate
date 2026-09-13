@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/atoms';
 import { useSyncBatchList } from '@/hooks';
 import { cn } from '@/lib/cn';
@@ -13,13 +14,9 @@ type SyncBatchSidePanelProps = {
   readonly currentBatch: SyncBatchDetail;
 };
 
-function getModeLabel(mode: SyncBatchDetail['syncMode']) {
-  if (mode === 'retry') return 'Thử lại chọn lọc';
-  if (mode === 'deep_reconcile') return 'Quét sâu';
-  return 'Tiếp nối';
-}
-
 export function SyncBatchSidePanel({ currentBatch }: SyncBatchSidePanelProps) {
+  const t = useTranslations('integrations.batchDetail');
+  const tList = useTranslations('integrations.listScreen');
   const result = useSyncBatchList({
     platform: currentBatch.platform,
     page: 1,
@@ -28,10 +25,10 @@ export function SyncBatchSidePanel({ currentBatch }: SyncBatchSidePanelProps) {
   const batches = result.data?.data ?? [];
 
   return (
-    <aside className="hidden w-80 shrink-0 overflow-hidden rounded-2xl border border-hairline bg-surface-card shadow-card xl:flex xl:flex-col" aria-label="Danh sách đợt đồng bộ">
+    <aside className="hidden w-80 shrink-0 overflow-hidden rounded-2xl border border-hairline bg-surface-card shadow-card xl:flex xl:flex-col" aria-label={t('batchListAria')}>
       <div className="border-b border-hairline p-3">
-        <h2 className="text-xs font-semibold text-foreground">Các đợt đồng bộ</h2>
-        <p className="mt-0.5 text-[10px] text-muted">Chọn một đợt để xem chi tiết xử lý.</p>
+        <h2 className="text-xs font-semibold text-foreground">{t('batchListTitle')}</h2>
+        <p className="mt-0.5 text-[10px] text-muted">{t('batchListDesc')}</p>
       </div>
 
       <div className="max-h-[calc(100dvh-220px)] flex-1 overflow-y-auto custom-scrollbar" aria-busy={result.isLoading}>
@@ -41,11 +38,11 @@ export function SyncBatchSidePanel({ currentBatch }: SyncBatchSidePanelProps) {
           </div>
         ) : result.error ? (
           <div className="p-4 text-center" role="alert">
-            <p className="text-xs text-semantic-error">Không tải được danh sách đợt.</p>
-            <Button className="mt-2" variant="outline" size="xs" onClick={() => result.refetch()}>Thử lại</Button>
+            <p className="text-xs text-semantic-error">{t('batchListError')}</p>
+            <Button className="mt-2" variant="outline" size="xs" onClick={() => result.refetch()}>{t('retryLoadBtn')}</Button>
           </div>
         ) : batches.length === 0 ? (
-          <p className="p-4 text-center text-xs text-muted">Chưa có đợt đồng bộ nào.</p>
+          <p className="p-4 text-center text-xs text-muted">{t('emptyBatchList')}</p>
         ) : batches.map((batch) => {
           const isCurrent = batch.id === currentBatch.id;
           return (
@@ -61,7 +58,7 @@ export function SyncBatchSidePanel({ currentBatch }: SyncBatchSidePanelProps) {
               <span className="flex items-start justify-between gap-2">
                 <span className="min-w-0">
                   <span className="block truncate font-mono text-[11px] font-semibold text-foreground">{batch.batchCode}</span>
-                  <span className="mt-0.5 block text-[10px] text-muted">{batch.shopName ?? 'Gian hàng Lazada'} · {getModeLabel(batch.syncMode)}</span>
+                  <span className="mt-0.5 block text-[10px] text-muted">{batch.shopName ?? tList('defaultShopName')} · {batch.syncMode === 'retry' ? tList('modeRetry') : batch.syncMode === 'deep_reconcile' ? tList('modeDeepReconcile') : tList('modeIncremental')}</span>
                 </span>
                 <SyncBatchStatusBadge status={batch.status} />
               </span>
@@ -74,7 +71,7 @@ export function SyncBatchSidePanel({ currentBatch }: SyncBatchSidePanelProps) {
 
       <div className="border-t border-hairline p-2">
         <Link href="/settings/integrations/lazada/syncs" className="block">
-          <Button variant="ghost" size="xs" className="w-full">Xem toàn bộ lịch sử</Button>
+          <Button variant="ghost" size="xs" className="w-full">{t('viewAllHistory')}</Button>
         </Link>
       </div>
     </aside>

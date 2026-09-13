@@ -1,24 +1,10 @@
 'use client';
 
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { Button, Combobox, DateRangePicker, Input, type ComboboxItem } from '@/components/atoms';
 import type { SyncBatchListFilter } from '@/types';
-
-const PLATFORM_OPTIONS: readonly ComboboxItem[] = [
-  { value: '', label: 'Tất cả kênh' },
-  { value: 'lazada', label: 'Lazada' },
-  { value: 'shopify', label: 'Shopify' },
-  { value: 'tiktok_shop', label: 'TikTok Shop' },
-];
-
-const STATUS_OPTIONS: readonly ComboboxItem[] = [
-  { value: '', label: 'Tất cả trạng thái' },
-  { value: 'queued', label: 'Đang xếp hàng' },
-  { value: 'running', label: 'Đang chạy' },
-  { value: 'completed', label: 'Hoàn tất' },
-  { value: 'partial', label: 'Một phần lỗi' },
-  { value: 'failed', label: 'Thất bại' },
-  { value: 'cancelled', label: 'Đã hủy' },
-];
 
 type SyncBatchFilterBarProps = {
   readonly filters: SyncBatchListFilter;
@@ -27,43 +13,59 @@ type SyncBatchFilterBarProps = {
 };
 
 export function SyncBatchFilterBar({ filters, onFilterChange, onReset }: SyncBatchFilterBarProps) {
+  const t = useTranslations('integrations.filterBar');
+  const platformOptions: readonly ComboboxItem[] = [
+    { value: '', label: t('allChannels') },
+    { value: 'lazada', label: 'Lazada' },
+    { value: 'shopify', label: 'Shopify' },
+    { value: 'tiktok_shop', label: 'TikTok Shop' },
+  ];
+  const statusOptions: readonly ComboboxItem[] = [
+    { value: '', label: t('allStatuses') },
+    { value: 'queued', label: t('queued') },
+    { value: 'running', label: t('running') },
+    { value: 'completed', label: t('completed') },
+    { value: 'partial', label: t('partial') },
+    { value: 'failed', label: t('failed') },
+    { value: 'cancelled', label: t('cancelled') },
+  ];
   return (
-    <section className="rounded-2xl border border-hairline bg-surface-card p-4 shadow-card" aria-label="Bộ lọc lịch sử đồng bộ">
+    <section className="rounded-2xl border border-hairline bg-surface-card p-4 shadow-card" aria-label={t('filterSectionAria')}>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_180px_190px_280px_auto]">
         <div>
           <label htmlFor="sync-batch-search" className="mb-1.5 block text-xs font-semibold text-foreground">
-            Tìm mã đợt
+            {t('searchBatchTitle')}
           </label>
           <Input
             id="sync-batch-search"
             value={filters.batchCode ?? ''}
             onChange={(event) => onFilterChange({ batchCode: event.target.value || undefined })}
-            placeholder="Ví dụ: sync_..."
+            placeholder={t('searchBatchPlaceholder')}
           />
         </div>
         <Combobox
-          label="Kênh sàn"
-          items={PLATFORM_OPTIONS}
+          label={t('channelLabel')}
+          items={platformOptions}
           value={filters.platform ?? ''}
           onChange={(value) => onFilterChange({ platform: value || undefined })}
           searchable={false}
         />
         <Combobox
-          label="Trạng thái"
-          items={STATUS_OPTIONS}
+          label={t('statusLabel')}
+          items={statusOptions}
           value={filters.status ?? ''}
           onChange={(value) => onFilterChange({ status: value ? value as SyncBatchListFilter['status'] : undefined })}
           searchable={false}
         />
         <DateRangePicker
-          label="Khoảng ngày"
+          label={t('dateRangeLabel')}
           from={filters.dateFrom ?? ''}
           to={filters.dateTo ?? ''}
           onChange={(range) => onFilterChange({ dateFrom: range.from || undefined, dateTo: range.to || undefined })}
         />
         <div className="flex items-end">
           <Button type="button" variant="ghost" size="sm" onClick={onReset} className="w-full xl:w-auto">
-            Xóa bộ lọc
+            {t('clearFilter')}
           </Button>
         </div>
       </div>

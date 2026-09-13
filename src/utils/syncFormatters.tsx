@@ -5,32 +5,29 @@
 import React from 'react';
 import { Badge } from '@/components/atoms';
 
-export const SYNC_FIELD_LABELS: Record<string, string> = {
-  status: 'Trạng thái đơn',
-  totalValue: 'Tổng tiền đơn hàng',
-  shippingFee: 'Phí vận chuyển',
-  discountAmount: 'Giảm giá voucher',
-  quantity: 'Số lượng sản phẩm',
-  unitPrice: 'Đơn giá',
-  discount: 'Tiền giảm giá',
-  productName: 'Tên sản phẩm',
-  sku: 'Mã SKU',
-  isActive: 'Trạng thái kích hoạt',
+export type SyncFieldValueFormatOptions = {
+  readonly locale: string;
+  readonly activeLabel: string;
+  readonly inactiveLabel: string;
 };
 
 /**
  * Formats diff field value into a readable ReactNode with semantic badges and currency formatting.
  */
-export function formatSyncFieldValue(key: string, val: unknown): React.ReactNode {
+export function formatSyncFieldValue(
+  key: string,
+  val: unknown,
+  options: SyncFieldValueFormatOptions,
+): React.ReactNode {
   if (val === null || val === undefined) {
     return <span className="text-muted/60 font-mono">—</span>;
   }
 
   if (typeof val === 'boolean') {
     return val ? (
-      <Badge variant="success" size="xs">Đang bán</Badge>
+      <Badge variant="success" size="xs">{options.activeLabel}</Badge>
     ) : (
-      <Badge variant="error" size="xs">Đã vô hiệu</Badge>
+      <Badge variant="error" size="xs">{options.inactiveLabel}</Badge>
     );
   }
 
@@ -58,7 +55,7 @@ export function formatSyncFieldValue(key: string, val: unknown): React.ReactNode
   ) {
     return (
       <span className="font-mono font-medium">
-        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(numericValue)}
+        {new Intl.NumberFormat(options.locale, { style: 'currency', currency: 'VND' }).format(numericValue)}
       </span>
     );
   }

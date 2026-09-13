@@ -5,7 +5,8 @@
  */
 
 import React, { useState } from 'react';
-import Link from 'next/link';
+import { useTranslations, useLocale } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import {
   Badge,
   Button,
@@ -20,6 +21,8 @@ import { useSyncLogsHistory } from '@/hooks';
 import type { SyncRunLog } from '@/types';
 
 export function SyncHistoryTable() {
+  const t = useTranslations('integrations.historyTable');
+  const locale = useLocale();
   const { data: rawLogs, isLoading } = useSyncLogsHistory();
   const [expandedSyncId, setExpandedSyncId] = useState<string | null>(null);
 
@@ -37,7 +40,7 @@ export function SyncHistoryTable() {
   if (logs.length === 0) {
     return (
       <div className="rounded-lg border border-hairline-strong bg-surface-card/75 p-8 text-center">
-        <p className="text-xs text-muted">Chưa có lịch sử đồng bộ đơn hàng nào được ghi nhận.</p>
+        <p className="text-xs text-muted">{t('empty')}</p>
       </div>
     );
   }
@@ -47,12 +50,12 @@ export function SyncHistoryTable() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Thời gian</TableHead>
-            <TableHead>Mã đợt (Sync ID)</TableHead>
-            <TableHead>Trạng thái</TableHead>
-            <TableHead>Thời lượng</TableHead>
-            <TableHead className="text-center">Kết quả</TableHead>
-            <TableHead className="text-right">Chi tiết</TableHead>
+            <TableHead>{t('colTime')}</TableHead>
+            <TableHead>{t('colBatchId')}</TableHead>
+            <TableHead>{t('colStatus')}</TableHead>
+            <TableHead>{t('colDuration')}</TableHead>
+            <TableHead className="text-center">{t('colResult')}</TableHead>
+            <TableHead className="text-right">{t('colDetails')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -64,7 +67,7 @@ export function SyncHistoryTable() {
               <React.Fragment key={log.syncId}>
                 <TableRow>
                   <TableCell className="whitespace-nowrap font-medium text-foreground">
-                    {new Date(log.startedAt).toLocaleString('vi-VN', {
+                    {new Date(log.startedAt).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US', {
                       day: '2-digit',
                       month: '2-digit',
                       hour: '2-digit',
@@ -80,7 +83,7 @@ export function SyncHistoryTable() {
                       variant={log.status === 'completed' ? 'success' : log.status === 'partial' ? 'warning' : 'error'}
                       size="xs"
                     >
-                      {log.status === 'completed' ? 'Thành công' : log.status === 'partial' ? 'Một phần' : 'Thất bại'}
+                      {log.status === 'completed' ? t('statusSuccess') : log.status === 'partial' ? t('statusPartial') : t('statusFailed')}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-muted">
@@ -102,7 +105,7 @@ export function SyncHistoryTable() {
                           size="xs"
                           className="text-[11px] h-6.5 px-2.5"
                         >
-                          Chi tiết
+                          {t('viewDetails')}
                         </Button>
                       </Link>
 
@@ -113,7 +116,7 @@ export function SyncHistoryTable() {
                           onClick={() => setExpandedSyncId(isExpanded ? null : log.syncId)}
                           className="text-[11px] text-semantic-error hover:bg-semantic-error/10 h-6.5 px-2"
                         >
-                          {isExpanded ? 'Ẩn lỗi' : `Lỗi (${log.errors?.length})`}
+                          {isExpanded ? t('hideErrors') : t('showErrors', { count: log.errors?.length ?? 0 })}
                         </Button>
                       )}
                     </div>
@@ -128,7 +131,7 @@ export function SyncHistoryTable() {
                           <svg aria-hidden="true" className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
                           </svg>
-                          <span>Danh sách đơn hàng lỗi ({log.errors?.length}):</span>
+                          <span>{t('errorListTitle', { count: log.errors?.length ?? 0 })}</span>
                         </div>
                         <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
                           {log.errors?.map((err, idx) => (

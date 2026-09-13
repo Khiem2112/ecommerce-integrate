@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useAtom } from 'jotai';
 import { activeDetailTabAtom, selectedSyncOrderIdAtom } from '@/atoms';
 import { useSyncBatchDetailProgress } from '@/hooks';
@@ -23,6 +24,7 @@ function getDefaultTab(detail: SyncBatchDetail): SyncOrderChangeType {
 type SyncBatchDetailScreenProps = { readonly detail: SyncBatchDetail };
 
 export function SyncBatchDetailScreen({ detail }: SyncBatchDetailScreenProps) {
+  const t = useTranslations('integrations.batchDetail');
   const [activeTab, setActiveTab] = useAtom(activeDetailTabAtom);
   const [selectedOrderId, setSelectedOrderId] = useAtom(selectedSyncOrderIdAtom);
   const progress = useSyncBatchDetailProgress(detail.id, detail.status === 'queued' || detail.status === 'running');
@@ -45,8 +47,8 @@ export function SyncBatchDetailScreen({ detail }: SyncBatchDetailScreenProps) {
     <div className="space-y-5">
       <SyncBatchDetailHeader detail={detail} />
       {isRunning && progress.data && <SyncBatchProgressBar progress={progress.data} />}
-      {progress.error && <p role="alert" className="rounded-xl border border-semantic-error/30 bg-semantic-error/10 p-3 text-xs text-semantic-error">Không thể cập nhật tiến trình trực tiếp. Dữ liệu đã ghi vẫn được bảo toàn.</p>}
-      {detail.status === 'cancelled' && <p className="rounded-xl border border-status-warning/30 bg-status-warning/10 p-3 text-xs text-status-warning">Đợt đã bị hủy an toàn. Danh sách chỉ gồm những đơn đã xử lý xong trước khi dừng.</p>}
+      {progress.error && <p role="alert" className="rounded-xl border border-semantic-error/30 bg-semantic-error/10 p-3 text-xs text-semantic-error">{t('progressError')}</p>}
+      {detail.status === 'cancelled' && <p className="rounded-xl border border-status-warning/30 bg-status-warning/10 p-3 text-xs text-status-warning">{t('cancelledNotice')}</p>}
       <SyncBatchResultSummaryCards detail={liveDetail} progress={progress.data} />
       <div className="flex items-start gap-4">
         <SyncBatchSidePanel currentBatch={liveDetail} />

@@ -1,17 +1,10 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
 import { Badge, Button } from '@/components/atoms';
 import { useRetrySelectedOrders } from '@/hooks';
-import type { SyncErrorCategory, SyncOrderListItem } from '@/types';
-
-const ERROR_LABELS: Record<SyncErrorCategory, string> = {
-  transient_network: 'Lỗi mạng tạm thời',
-  rate_limited: 'Vượt giới hạn sàn',
-  auth_expired: 'Hết hạn xác thực',
-  validation_error: 'Dữ liệu không hợp lệ',
-  unknown: 'Chưa phân loại',
-};
+import type { SyncOrderListItem } from '@/types';
 
 type SyncOrderErrorRowProps = {
   readonly batchId: number;
@@ -20,6 +13,7 @@ type SyncOrderErrorRowProps = {
 };
 
 export function SyncOrderErrorRow({ batchId, order, onSelect }: SyncOrderErrorRowProps) {
+  const t = useTranslations('integrations.batchDetail');
   const router = useRouter();
   const retryMutation = useRetrySelectedOrders();
 
@@ -34,14 +28,14 @@ export function SyncOrderErrorRow({ batchId, order, onSelect }: SyncOrderErrorRo
         {order.externalOrderId}
       </button>
       <div className="min-w-0">
-        <Badge variant={order.retryEligible ? 'warning' : 'error'} size="xs">{ERROR_LABELS[order.errorCategory ?? 'unknown']}</Badge>
+        <Badge variant={order.retryEligible ? 'warning' : 'error'} size="xs">{t(`errorCategories.${order.errorCategory ?? 'unknown'}`)}</Badge>
         <p className="mt-1 truncate text-[11px] text-muted" title={order.errorMessage ?? undefined}>{order.errorMessage}</p>
       </div>
       <div className="flex items-center justify-end gap-2">
         <Badge variant={order.retryEligible ? 'success' : 'secondary'} size="xs">
-          {order.retryEligible ? 'Đủ điều kiện thử lại' : 'Cần xử lý thủ công'}
+          {order.retryEligible ? t('eligibleForRetry') : t('manualHandling')}
         </Badge>
-        {order.retryEligible && <Button size="xs" onClick={handleRetry} isLoading={retryMutation.isPending}>Thử lại</Button>}
+        {order.retryEligible && <Button size="xs" onClick={handleRetry} isLoading={retryMutation.isPending}>{t('retryOrder')}</Button>}
       </div>
       {retryMutation.error && <p role="alert" className="text-[10px] text-semantic-error md:col-span-3">{retryMutation.error.message}</p>}
     </div>
