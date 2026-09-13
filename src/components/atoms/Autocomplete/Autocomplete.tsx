@@ -33,6 +33,7 @@ export type AutocompleteProps = {
   readonly searchable?: boolean;
   readonly searchPlaceholder?: string;
   readonly ariaLabel?: string;
+  readonly placement?: 'bottom' | 'top';
 };
 
 export function Autocomplete({
@@ -48,6 +49,7 @@ export function Autocomplete({
   searchable = true,
   searchPlaceholder = 'Search…',
   ariaLabel,
+  placement = 'bottom',
 }: AutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -175,8 +177,10 @@ export function Autocomplete({
         <div
           id={listboxId}
           role="listbox"
+          style={placement === 'top' ? { bottom: 'calc(100% + 4px)', top: 'auto' } : undefined}
           className={cn(
-            'absolute z-50 mt-1 max-h-60 w-full min-w-[10rem] overflow-hidden rounded-xl border border-hairline-strong bg-surface-card shadow-elevated animate-in fade-in-0 zoom-in-95',
+            'absolute z-50 max-h-60 w-full min-w-[10rem] overflow-hidden rounded-xl border border-hairline-strong bg-surface-card shadow-elevated animate-in fade-in-0 zoom-in-95',
+            placement === 'top' ? 'mb-0' : 'mt-1',
             menuClassName,
           )}
         >
@@ -217,7 +221,7 @@ export function Autocomplete({
                     className={cn(
                       'flex cursor-pointer select-none items-center justify-between rounded-lg px-2.5 py-1.5 transition duration-100',
                       isSelected
-                        ? 'bg-foreground/8 font-medium text-foreground'
+                        ? 'bg-foreground/10 font-bold text-foreground'
                         : 'text-foreground hover:bg-surface-lifted',
                       option.disabled &&
                       'cursor-not-allowed opacity-40 hover:bg-transparent',
@@ -240,20 +244,6 @@ export function Autocomplete({
                         </span>
                       )}
                     </span>
-                    {isSelected && (
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                        className="size-3.5 shrink-0 text-foreground"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    )}
                   </li>
                 );
               })

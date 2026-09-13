@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Button, Input } from '@/components/atoms';
+import { Pagination } from '@/components/molecules';
 import { useSyncOrdersByChangeType } from '@/hooks';
 import type { SyncOrderChangeType, SyncOrderListItem } from '@/types';
 import { SyncOrderErrorRow } from './SyncOrderErrorRow';
@@ -56,14 +57,17 @@ export function SyncOrderTabContent({ batchId, activeTab, onSelect }: SyncOrderT
             : <SyncOrderListRow key={order.externalOrderId} order={order} onSelect={onSelect} />)}
         </div>
       )}
-      {(result.data?.meta.totalPages ?? 1) > 1 && (
-        <nav className="flex items-center justify-between border-t border-hairline p-3" aria-label="Phân trang đơn hàng">
-          <span className="text-[11px] text-muted">Trang {result.data?.meta.page}/{result.data?.meta.totalPages}</span>
-          <div className="flex gap-2">
-            <Button variant="outline" size="xs" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Trước</Button>
-            <Button variant="outline" size="xs" disabled={page >= (result.data?.meta.totalPages ?? 1)} onClick={() => setPage((current) => current + 1)}>Sau</Button>
-          </div>
-        </nav>
+      {result.data?.meta && result.data.meta.totalPages > 1 && (
+        <div className="border-t border-hairline p-3">
+          <Pagination
+            page={result.data.meta.page}
+            totalPages={result.data.meta.totalPages}
+            total={result.data.meta.total}
+            pageSize={result.data.meta.pageSize}
+            onPageChange={setPage}
+            itemLabel="đơn"
+          />
+        </div>
       )}
     </section>
   );

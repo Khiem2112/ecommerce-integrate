@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAtom } from 'jotai';
 import { syncBatchFilterAtom } from '@/atoms';
 import { Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/atoms';
+import { Pagination } from '@/components/molecules';
 import { useRetrySyncBatch, useSyncBatchList } from '@/hooks';
 import type { SyncBatchListFilter, SyncBatchListItem } from '@/types';
 import { SyncBatchCounterChips } from './SyncBatchCounterChips';
@@ -183,13 +184,17 @@ export function SyncBatchListScreen() {
             ))}
           </div>
 
-          <nav className="flex items-center justify-between" aria-label="Phân trang lịch sử đồng bộ">
-            <p className="text-xs text-muted">Trang {data?.meta.page} / {data?.meta.totalPages} · {data?.meta.total} đợt</p>
-            <div className="flex gap-2">
-              <Button variant="outline" size="xs" disabled={(data?.meta.page ?? 1) <= 1} onClick={() => setFilters((current) => ({ ...current, page: Math.max(1, (current.page ?? 1) - 1) }))}>Trang trước</Button>
-              <Button variant="outline" size="xs" disabled={(data?.meta.page ?? 1) >= (data?.meta.totalPages ?? 1)} onClick={() => setFilters((current) => ({ ...current, page: (current.page ?? 1) + 1 }))}>Trang sau</Button>
-            </div>
-          </nav>
+          {data?.meta && data.meta.total > 0 && (
+            <Pagination
+              page={data.meta.page}
+              totalPages={data.meta.totalPages}
+              total={data.meta.total}
+              pageSize={data.meta.pageSize}
+              onPageChange={(page) => setFilters((current) => ({ ...current, page }))}
+              onPageSizeChange={(limit) => setFilters((current) => ({ ...current, limit, page: 1 }))}
+              itemLabel="đợt"
+            />
+          )}
         </>
       )}
     </div>

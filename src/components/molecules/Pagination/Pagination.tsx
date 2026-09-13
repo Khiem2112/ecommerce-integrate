@@ -11,9 +11,11 @@ export type PaginationProps = {
   readonly pageSize: number;
   readonly onPageChange: (page: number) => void;
   readonly onPageSizeChange?: (size: number) => void;
+  readonly itemLabel?: string;
+  readonly className?: string;
 };
 
-const PAGE_SIZE_ITEMS: readonly ComboboxItem[] = [
+const DEFAULT_PAGE_SIZE_ITEMS: readonly ComboboxItem[] = [
   { value: '5', label: '5' },
   { value: '10', label: '10' },
   { value: '20', label: '20' },
@@ -110,11 +112,24 @@ export function Pagination({
   pageSize,
   onPageChange,
   onPageSizeChange,
+  itemLabel = 'đơn hàng',
+  className,
 }: PaginationProps) {
   const [jumpInput, setJumpInput] = useState('');
   const safeTotalPages = Math.max(1, totalPages);
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
+
+  const pageSizeItems = useMemo(() => {
+    const hasCurrent = DEFAULT_PAGE_SIZE_ITEMS.some(
+      (item) => item.value === String(pageSize),
+    );
+    if (hasCurrent) return DEFAULT_PAGE_SIZE_ITEMS;
+    return [
+      ...DEFAULT_PAGE_SIZE_ITEMS,
+      { value: String(pageSize), label: String(pageSize) },
+    ].sort((a, b) => Number(a.value) - Number(b.value));
+  }, [pageSize]);
 
   const handleJump = useCallback(() => {
     if (!jumpInput.trim()) {
@@ -136,7 +151,7 @@ export function Pagination({
   );
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+    <div className={cn('flex flex-wrap items-center justify-between gap-3 px-1', className)}>
       {/* Row count summary */}
       <div className="text-xs text-muted">
         Hiển thị{' '}
@@ -144,7 +159,7 @@ export function Pagination({
         {' – '}
         <span className="font-medium text-foreground">{to}</span>
         {' trên tổng số '}
-        <span className="font-medium text-foreground">{total}</span> đơn hàng
+        <span className="font-medium text-foreground">{total}</span> {itemLabel}
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -154,96 +169,101 @@ export function Pagination({
             <span>Dòng / trang:</span>
             <span className="w-[4.5rem]">
               <Combobox
-                items={PAGE_SIZE_ITEMS}
+                items={pageSizeItems}
                 value={String(pageSize)}
                 onChange={(val) => onPageSizeChange(Number(val))}
                 size="sm"
                 searchable={false}
                 ariaLabel="Chọn số dòng mỗi trang"
-                menuClassName="bottom-full mb-1 mt-0"
+                placement="top"
+                menuClassName="min-w-[4.5rem]"
               />
             </span>
           </div>
         )}
 
-        {/* Prev / Page numbers / Next */}
-        <div className="flex items-center gap-0.5">
-          {/* Previous button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onPageChange(page - 1)}
-            disabled={page <= 1}
-            aria-label="Trang trước"
-            className="size-7"
-          >
-            <ChevronLeft />
-          </Button>
-
-          {/* Page number buttons */}
-          {pageRange.map((item, index) =>
-            item === '…' ? (
-              <span
-                key={`ellipsis-${index}`}
-                className="flex size-7 select-none items-center justify-center text-xs text-muted"
-                aria-hidden="true"
+        {safeTotalPages > 1 && (
+          <>
+            {/* Prev / Page numbers / Next */}
+            <div className="flex items-center gap-0.5">
+              {/* Previous button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onPageChange(page - 1)}
+                disabled={page <= 1}
+                aria-label="Trang trước"
+                className="size-7"
               >
-                …
-              </span>
-            ) : (
-              <button
-                key={item}
-                type="button"
-                onClick={() => onPageChange(item)}
-                disabled={item === page}
-                aria-label={`Trang ${item}`}
-                aria-current={item === page ? 'page' : undefined}
-                className={cn(
-                  'flex size-7 cursor-pointer items-center justify-center rounded-full text-xs font-medium transition duration-150 select-none',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20',
-                  item === page
-                    ? 'bg-foreground text-background'
-                    : 'text-muted hover:bg-foreground/8 hover:text-foreground',
-                )}
+                <ChevronLeft />
+              </Button>
+
+              {/* Page number buttons */}
+              {pageRange.map((item, index) =>
+                item === '…' ? (
+                  <span
+                    key={`ellipsis-${index}`}
+                    className="flex size-7 select-none items-center justify-center text-xs text-muted"
+                    aria-hidden="true"
+                  >
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => onPageChange(item)}
+                    disabled={item === page}
+                    aria-label={`Trang ${item}`}
+                    aria-current={item === page ? 'page' : undefined}
+                    className={cn(
+                      'flex size-7 cursor-pointer items-center justify-center rounded-full text-xs font-medium transition duration-150 select-none',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20',
+                      item === page
+                        ? 'bg-foreground text-background'
+                        : 'text-muted hover:bg-foreground/8 hover:text-foreground',
+                    )}
+                  >
+                    {item}
+                  </button>
+                ),
+              )}
+
+              {/* Next button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onPageChange(page + 1)}
+                disabled={page >= safeTotalPages}
+                aria-label="Trang sau"
+                className="size-7"
               >
-                {item}
-              </button>
-            ),
-          )}
+                <ChevronRight />
+              </Button>
+            </div>
 
-          {/* Next button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onPageChange(page + 1)}
-            disabled={page >= safeTotalPages}
-            aria-label="Trang sau"
-            className="size-7"
-          >
-            <ChevronRight />
-          </Button>
-        </div>
-
-        {/* Jump to page */}
-        <label className="flex items-center gap-1.5 text-xs text-muted">
-          <span>Đến trang:</span>
-          <input
-            type="number"
-            min={1}
-            max={safeTotalPages}
-            value={jumpInput}
-            onChange={(event) => setJumpInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                handleJump();
-              }
-            }}
-            onBlur={handleJump}
-            className="h-7 w-16 rounded-lg border border-hairline bg-surface-card px-2 text-center text-xs text-foreground outline-none transition focus-visible:border-foreground focus-visible:ring-2 focus-visible:ring-foreground/10"
-            placeholder={String(page)}
-            aria-label="Nhảy đến trang"
-          />
-        </label>
+            {/* Jump to page */}
+            <label className="flex items-center gap-1.5 text-xs text-muted">
+              <span>Đến trang:</span>
+              <input
+                type="number"
+                min={1}
+                max={safeTotalPages}
+                value={jumpInput}
+                onChange={(event) => setJumpInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    handleJump();
+                  }
+                }}
+                onBlur={handleJump}
+                className="h-7 w-16 rounded-lg border border-hairline bg-surface-card px-2 text-center text-xs text-foreground outline-none transition focus-visible:border-foreground focus-visible:ring-2 focus-visible:ring-foreground/10"
+                placeholder={String(page)}
+                aria-label="Nhảy đến trang"
+              />
+            </label>
+          </>
+        )}
       </div>
     </div>
   );

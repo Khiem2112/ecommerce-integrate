@@ -18,6 +18,7 @@ import {
   TableCell,
   Select,
 } from '@/components/atoms';
+import { Pagination } from '@/components/molecules';
 import { formatVND } from '@/utils';
 import { useOrderItemsPreview } from '@/hooks';
 
@@ -260,30 +261,18 @@ export function SyncPreviewTable({
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex items-center justify-between border-t border-hairline pt-3 text-xs text-muted">
-        <div>
-          Trang <span className="font-medium text-foreground">{page}</span> / {totalPages} (tổng {totalCount.toLocaleString('vi-VN')} đơn)
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() => onPageChange(Math.max(1, page - 1))}
-            disabled={page <= 1}
-          >
-            Trang trước
-          </Button>
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() => onPageChange(page + 1)}
-            disabled={page >= totalPages}
-          >
-            Trang sau
-          </Button>
-        </div>
-      </div>
+      {totalCount > 0 && (
+        <Pagination
+          className="border-t border-hairline pt-3"
+          page={page}
+          totalPages={totalPages}
+          total={totalCount}
+          pageSize={pageSize}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+          itemLabel="đơn"
+        />
+      )}
     </div>
   );
 }
