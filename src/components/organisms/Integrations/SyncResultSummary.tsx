@@ -76,7 +76,7 @@ export function SyncResultSummary({ result, onDismiss, onRetryFailed }: SyncResu
         <div className="rounded-lg bg-surface-lifted border border-hairline p-3 text-center">
           <span className="text-[11px] text-muted block mb-0.5">Lỗi</span>
           <span className={cn('text-lg font-bold', result.failed > 0 ? 'text-semantic-error' : 'text-muted')}>
-            !{result.failed}
+            ×{result.failed}
           </span>
         </div>
       </div>

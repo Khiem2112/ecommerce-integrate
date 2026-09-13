@@ -60,7 +60,7 @@ export function OrderFilterBar({
   );
 
   return (
-    <div className="flex flex-col gap-2.5 rounded-lg border border-hairline-strong bg-surface-lifted/55 p-2.5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-2.5 rounded-lg border border-hairline-strong bg-surface-card/55 p-2.5 sm:flex-row sm:items-center sm:justify-between">
       <div className="grid w-full min-w-0 flex-1 grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
         {/* Search by Order ID / Customer */}
         <div className="relative w-full sm:max-w-xs">

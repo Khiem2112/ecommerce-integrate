@@ -118,7 +118,7 @@ function OrdersListContent() {
       {/* Top Banner & Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Danh sách đơn hàng
           </h1>
           <p className="text-xs text-muted mt-0.5">
