@@ -370,7 +370,7 @@ function LazyOrderItemsPanel({
 
       <div className="rounded-lg border border-hairline bg-surface overflow-hidden">
         <Table className="w-full text-xs">
-          <TableHeader className="bg-surface-lifted/50 text-muted font-medium">
+          <TableHeader className="bg-surface-lifted text-muted font-medium">
             <TableRow>
               <TableHead className="py-2 px-3">Tên sản phẩm</TableHead>
               <TableHead className="py-2 px-3">SKU</TableHead>

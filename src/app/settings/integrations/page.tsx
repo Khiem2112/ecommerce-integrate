@@ -31,7 +31,7 @@ export default function IntegrationsPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-xl font-bold tracking-tight text-foreground">
-              Trung tâm Tích hợp Kênh Sàn (Integration Center)
+              Trung tâm tích hợp kênh sàn
             </h1>
             <Badge variant="teal" size="xs">
               Ports & Adapters
@@ -52,7 +52,7 @@ export default function IntegrationsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {/* Lazada Card (Live) */}
           {isLoadingLazada || !lazadaSummary ? (
-            <div className="rounded-2xl border border-hairline bg-surface-card p-6 space-y-4 animate-pulse">
+            <div className="animate-pulse space-y-4 rounded-xl border border-hairline-strong bg-surface-card/75 p-6">
               <div className="flex items-center gap-3">
                 <div className="size-11 rounded-xl bg-surface-lifted" />
                 <div className="space-y-1.5 flex-1">
@@ -69,10 +69,10 @@ export default function IntegrationsPage() {
           )}
 
           {/* Shopify Card (Placeholder / Secondary) */}
-          <div className="rounded-2xl border border-hairline bg-surface-card/60 p-5 sm:p-6 shadow-card flex flex-col justify-between gap-5 opacity-80 hover:opacity-100 transition">
+          <div className="flex flex-col justify-between gap-5 rounded-xl border border-hairline-strong bg-surface-card/55 p-5 opacity-80 transition-colors hover:bg-surface-card/80 hover:opacity-100 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-center gap-3.5">
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-channel-shopify-soft border border-channel-shopify-border text-channel-shopify font-bold text-sm shadow-xs">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-channel-shopify-border bg-channel-shopify-soft text-sm font-bold text-channel-shopify">
                   <span>SHO</span>
                 </div>
                 <div>
@@ -95,7 +95,7 @@ export default function IntegrationsPage() {
               </Badge>
             </div>
 
-            <div className="rounded-xl bg-surface-lifted border border-hairline p-3 text-xs text-muted">
+            <div className="border-y border-hairline py-3 text-xs text-muted">
               Được thiết kế theo chuẩn Ports & Adapters. Có thể cắm thêm `ShopifyConnector` mà không ảnh hưởng luồng nghiệp vụ.
             </div>
 
@@ -105,10 +105,10 @@ export default function IntegrationsPage() {
           </div>
 
           {/* TikTok Shop Card (Placeholder / Secondary) */}
-          <div className="rounded-2xl border border-hairline bg-surface-card/60 p-5 sm:p-6 shadow-card flex flex-col justify-between gap-5 opacity-80 hover:opacity-100 transition">
+          <div className="flex flex-col justify-between gap-5 rounded-xl border border-hairline-strong bg-surface-card/55 p-5 opacity-80 transition-colors hover:bg-surface-card/80 hover:opacity-100 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-center gap-3.5">
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-foreground/10 border border-hairline text-foreground font-bold text-sm shadow-xs">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-hairline-strong bg-foreground/8 text-sm font-bold text-foreground">
                   <span>TTS</span>
                 </div>
                 <div>
@@ -131,7 +131,7 @@ export default function IntegrationsPage() {
               </Badge>
             </div>
 
-            <div className="rounded-xl bg-surface-lifted border border-hairline p-3 text-xs text-muted">
+            <div className="border-y border-hairline py-3 text-xs text-muted">
               Hỗ trợ kiến trúc đa kênh, đồng bộ đơn hàng và tin nhắn chăm sóc khách hàng VIP trên TikTok Shop.
             </div>
 

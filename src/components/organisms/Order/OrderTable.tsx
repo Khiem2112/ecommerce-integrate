@@ -75,12 +75,93 @@ export function OrderTable({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="overflow-hidden rounded-xl border border-hairline bg-surface-card shadow-card">
+      <div className="overflow-hidden rounded-lg border border-hairline-strong bg-surface-card/75 md:hidden">
+        {isLoading ? (
+          <div className="divide-y divide-hairline" aria-label="Đang tải đơn hàng">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={`mobile-skeleton-${index}`} className="animate-pulse space-y-3 p-4">
+                <div className="h-3 w-2/5 rounded bg-hairline" />
+                <div className="h-3 w-4/5 rounded bg-hairline-soft" />
+                <div className="h-3 w-3/5 rounded bg-hairline-soft" />
+              </div>
+            ))}
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="px-5 py-12 text-center">
+            <p className="text-sm font-semibold text-foreground">Không tìm thấy đơn hàng</p>
+            <p className="mt-1 text-xs text-muted">Thử thay đổi từ khóa hoặc bộ lọc.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-hairline">
+            {orders.map((order) => {
+              const statusInfo = getStatusBadgeVariant(order.currentStatus.code);
+
+              return (
+                <article key={order.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <Link href={`/orders/${order.id}`} className="min-w-0">
+                      <span className="block truncate font-mono text-sm font-semibold text-foreground">
+                        {order.platformOrderId}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-muted">{order.platform.name}</span>
+                    </Link>
+                    <Badge variant={statusInfo.variant} size="sm">
+                      {order.currentStatus.name || statusInfo.label}
+                    </Badge>
+                  </div>
+
+                  <dl className="mt-4 grid min-w-0 grid-cols-2 gap-x-4 gap-y-3 border-y border-hairline py-3 text-xs">
+                    <div className="min-w-0">
+                      <dt className="text-muted">Người mua</dt>
+                      <dd className="mt-0.5 truncate font-mono text-foreground">
+                        {order.customer?.platformBuyerId ?? 'N/A'}
+                      </dd>
+                    </div>
+                    <div className="min-w-0 text-right">
+                      <dt className="text-muted">Tổng tiền</dt>
+                      <dd className="mt-0.5 font-semibold text-foreground">
+                        {formatVND(order.totalValue)}
+                      </dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-muted">Sản phẩm</dt>
+                      <dd className="mt-0.5 text-foreground">{order.items?.length || 0} sản phẩm</dd>
+                    </div>
+                    <div className="min-w-0 text-right">
+                      <dt className="text-muted">Ngày tạo</dt>
+                      <dd className="mt-0.5 break-words text-foreground">{formatDate(order.createdAt)}</dd>
+                    </div>
+                  </dl>
+
+                  <div className="mt-3 flex items-center justify-end gap-1">
+                    <Link href={`/orders/${order.id}`}>
+                      <Button variant="ghost" size="xs">Xem</Button>
+                    </Link>
+                    <Link href={`/orders/${order.id}/edit`}>
+                      <Button variant="ghost" size="xs">Sửa</Button>
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={() => onDeleteClick(order)}
+                      className="text-semantic-error"
+                    >
+                      Xóa
+                    </Button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-lg border border-hairline-strong bg-surface-card/75 md:block">
         <Table
           className="min-w-[1050px]"
           containerClassName="max-h-[calc(100vh-320px)] min-h-[360px] overflow-auto custom-scrollbar"
         >
-          <TableHeader className="sticky top-0 z-10 bg-surface-lifted border-b border-hairline">
+          <TableHeader className="sticky top-0 z-10">
             <TableRow>
               <TableHead className="w-44 whitespace-nowrap">Mã đơn hàng</TableHead>
               <TableHead className="w-36 whitespace-nowrap">Nền tảng</TableHead>

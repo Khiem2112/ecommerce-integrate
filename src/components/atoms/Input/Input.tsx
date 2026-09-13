@@ -26,12 +26,12 @@ export function Input({
       type={type}
       disabled={disabled}
       className={cn(
-        'flex w-full border border-hairline bg-surface-lifted text-foreground shadow-xs transition duration-150',
+        'flex w-full border border-hairline-strong bg-surface-card/65 text-foreground transition duration-150',
         'placeholder:text-muted outline-none file:border-0 file:bg-transparent file:text-xs file:font-medium',
         'focus-visible:border-foreground focus-visible:ring-2 focus-visible:ring-foreground/10',
         'disabled:cursor-not-allowed disabled:opacity-50',
         SIZE_STYLES[size],
-        rounded ? 'rounded-full' : 'rounded-xl',
+        rounded ? 'rounded-full' : 'rounded-lg',
         className,
       )}
       {...props}

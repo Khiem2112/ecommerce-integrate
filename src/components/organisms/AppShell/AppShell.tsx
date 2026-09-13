@@ -33,7 +33,7 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Main layout container */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-hairline bg-surface-card px-3 sm:px-4">
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-hairline-strong bg-surface-lifted px-3 sm:px-4">
           {/* Hamburger / Features drawer trigger */}
           <IconButton
             id="features-menu-trigger"
@@ -69,10 +69,10 @@ export function AppShell({ children }: AppShellProps) {
         <main
           id="main-content"
           className={cn(
-            'flex min-h-0 flex-1 flex-col',
+            'flex min-h-0 min-w-0 flex-1 flex-col',
             isFullBleed
               ? 'overflow-hidden pb-16 md:pb-0'
-              : 'custom-scrollbar overflow-y-auto p-4 sm:p-6 pb-20 md:pb-6',
+              : 'custom-scrollbar overflow-x-hidden overflow-y-auto p-4 pb-20 sm:p-6 md:pb-6',
           )}
         >
           {children}

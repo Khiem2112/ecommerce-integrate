@@ -1,3 +1,4 @@
+import { atom } from 'jotai';
 import { atomWithStorage, createJSONStorage } from 'jotai/utils';
 import type { InboxFilters } from '@/types';
 
@@ -47,12 +48,7 @@ export const inboxFiltersAtom = atomWithStorage<InboxFilters>(
   { getOnInit: true },
 );
 
-export const sidebarCollapsedAtom = atomWithStorage<boolean>(
-  'vip-workspace:sidebar-collapsed',
-  false,
-  localStorageAdapter,
-  { getOnInit: true },
-);
+export const sidebarCollapsedAtom = atom(true);
 
 /** Controls the global left app sidebar (collapse to icon-only mode). */
 export const appSidebarCollapsedAtom = atomWithStorage<boolean>(

@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${manrope.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="vi" className={`${manrope.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="h-full overflow-hidden bg-background text-foreground">
         <AppProviders>
           <AppShell>{children}</AppShell>

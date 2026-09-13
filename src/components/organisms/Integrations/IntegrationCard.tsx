@@ -33,11 +33,11 @@ export function IntegrationCard({ summary, onSyncComplete }: IntegrationCardProp
 
   return (
     <>
-      <div className="rounded-2xl border border-hairline bg-surface-card p-5 sm:p-6 shadow-card transition-all hover:border-hairline-strong hover:shadow-soft flex flex-col justify-between gap-5">
+      <div className="flex flex-col justify-between gap-5 rounded-xl border border-channel-lazada-border bg-surface-card/75 p-5 transition-colors hover:bg-surface-card sm:p-6">
         {/* Header: Platform & Health */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-3.5">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-channel-lazada-soft border border-channel-lazada-border text-channel-lazada font-bold text-sm shadow-xs">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-channel-lazada-border bg-channel-lazada-soft text-sm font-bold text-channel-lazada">
               <span className="tracking-tight">LAZ</span>
             </div>
             <div>
@@ -65,7 +65,7 @@ export function IntegrationCard({ summary, onSyncComplete }: IntegrationCardProp
         </div>
 
         {/* Status Metrics Box */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 rounded-xl bg-surface-lifted border border-hairline p-3 text-xs">
+        <div className="grid grid-cols-2 gap-3 border-y border-hairline py-3 text-xs sm:grid-cols-3">
           <div>
             <span className="text-muted block text-[11px] mb-0.5">Kiểm tra kết nối</span>
             <span className="font-medium text-foreground">

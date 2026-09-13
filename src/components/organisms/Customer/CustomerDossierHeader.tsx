@@ -22,10 +22,10 @@ export function CustomerDossierHeader({
   const { copy, hasCopied } = useClipboard({ timeout: 1500 });
   const vipScorePct = Math.min(100, Math.max(0, customer.vipScore));
 
-  let scoreGradient = 'from-primary to-primary-active';
-  if (vipScorePct >= 90) scoreGradient = 'from-purple-500 to-indigo-600';
-  else if (vipScorePct >= 70) scoreGradient = 'from-amber-400 to-amber-600';
-  else if (vipScorePct >= 40) scoreGradient = 'from-cyan-400 to-cyan-600';
+  let scoreColor = 'bg-muted';
+  if (vipScorePct >= 90) scoreColor = 'bg-primary';
+  else if (vipScorePct >= 70) scoreColor = 'bg-status-warning';
+  else if (vipScorePct >= 40) scoreColor = 'bg-status-info';
 
   return (
     <div className="rounded-xl border border-hairline bg-surface-card p-5 shadow-card">
@@ -113,7 +113,7 @@ export function CustomerDossierHeader({
             </div>
             <div className="h-8 w-1.5 overflow-hidden rounded-full bg-surface-card border border-hairline">
               <div
-                className={cn('w-full rounded-full bg-gradient-to-t', scoreGradient)}
+                className={cn('w-full rounded-full', scoreColor)}
                 style={{ height: `${vipScorePct}%` }}
               />
             </div>

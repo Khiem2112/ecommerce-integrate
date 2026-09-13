@@ -15,9 +15,14 @@ export function Table({
   ...props
 }: TableProps) {
   return (
-    <div className={cn('custom-scrollbar relative w-full overflow-auto', containerClassName)}>
+    <div
+      className={cn(
+        'custom-scrollbar relative w-full overflow-auto overscroll-x-contain',
+        containerClassName,
+      )}
+    >
       <table
-        className={cn('w-full caption-bottom text-xs text-foreground', className)}
+        className={cn('w-full caption-bottom text-xs text-foreground tabular-nums', className)}
         {...props}
       />
     </div>
@@ -30,7 +35,10 @@ export function TableHeader({
 }: HTMLAttributes<HTMLTableSectionElement>) {
   return (
     <thead
-      className={cn('border-b border-hairline bg-surface-lifted font-medium', className)}
+      className={cn(
+        'relative z-10 border-b border-hairline-strong bg-surface-strong font-semibold text-body-strong',
+        className,
+      )}
       {...props}
     />
   );
@@ -70,7 +78,7 @@ export function TableRow({
   return (
     <tr
       className={cn(
-        'border-b border-hairline transition-colors hover:bg-surface-lifted/60 data-[state=selected]:bg-foreground/5',
+        'border-b border-hairline transition-colors hover:bg-surface-strong/35 data-[state=selected]:bg-status-warning/8',
         className,
       )}
       {...props}
@@ -85,7 +93,7 @@ export function TableHead({
   return (
     <th
       className={cn(
-        'h-8 px-3 text-left align-middle text-[11px] font-semibold uppercase tracking-wider text-muted [&:has([role=checkbox])]:pr-0',
+        'h-10 bg-inherit px-3 text-left align-middle text-xs font-bold text-body-strong [&:has([role=checkbox])]:pr-0',
         className,
       )}
       {...props}

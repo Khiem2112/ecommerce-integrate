@@ -119,7 +119,7 @@ function OrdersListContent() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">
-            Danh sách Đơn Hàng
+            Danh sách đơn hàng
           </h1>
           <p className="text-xs text-muted mt-0.5">
             Xem, tạo mới, chỉnh sửa và quản lý danh mục toàn bộ đơn hàng đa kênh thương mại điện tử.

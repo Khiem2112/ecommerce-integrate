@@ -6,10 +6,10 @@ import { useState } from 'react';
 import { cn } from '@/lib/cn';
 import type { NavItem } from './navConfig';
 
-interface SidebarNavItemProps {
+type SidebarNavItemProps = {
   readonly item: NavItem;
   readonly collapsed: boolean;
-}
+};
 
 export function SidebarNavItem({ item, collapsed }: SidebarNavItemProps) {
   const pathname = usePathname();
@@ -30,16 +30,19 @@ export function SidebarNavItem({ item, collapsed }: SidebarNavItemProps) {
     );
 
   const rowBase =
-    'group relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors duration-150 cursor-pointer select-none';
-  const rowActive = 'bg-primary/10 text-primary';
-  const rowInactive = 'text-muted hover:bg-surface-lifted hover:text-foreground';
+    'group relative flex cursor-pointer select-none items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors duration-150';
+  const rowActive =
+    'bg-status-warning/8 text-foreground before:absolute before:left-0 before:h-5 before:w-px before:rounded-full before:bg-status-warning';
+  const rowInactive = 'text-muted hover:bg-surface-strong/60 hover:text-foreground';
 
   const icon = (
     <svg
       aria-hidden="true"
       className={cn(
         'size-5 shrink-0 transition-colors',
-        isActive || isSubActive ? 'text-primary' : 'text-muted group-hover:text-foreground',
+        isActive || isSubActive
+          ? 'text-status-warning'
+          : 'text-muted group-hover:text-foreground',
       )}
       viewBox="0 0 24 24"
       fill="none"

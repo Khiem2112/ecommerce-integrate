@@ -95,10 +95,10 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
       onClick={() => onSelect(conversation.id)}
       title={buildTooltipText(conversation)}
       className={cn(
-        'group relative mb-1 min-w-0 w-full overflow-hidden rounded-xl border p-3 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 cursor-pointer',
+        'group relative w-full min-w-0 cursor-pointer overflow-hidden border-b border-hairline p-3 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-foreground/20',
         isActive
-          ? 'border-foreground bg-surface-card ring-1 ring-foreground/10'
-          : 'border-transparent bg-transparent hover:border-hairline hover:bg-surface-card',
+          ? 'bg-surface-card/80 before:absolute before:inset-y-3 before:left-0 before:w-px before:rounded-full before:bg-status-warning'
+          : 'bg-transparent hover:bg-surface-card/55',
       )}
     >
       <div className="flex items-start gap-2.5">
@@ -106,7 +106,7 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
         <div className="relative shrink-0">
           <div
             className={cn(
-              'grid size-8 place-items-center rounded-full text-sm font-bold transition duration-150 shadow-xs',
+              'grid size-8 place-items-center rounded-full text-sm font-bold transition duration-150',
               isActive
                 ? 'bg-foreground text-background'
                 : 'bg-background text-foreground border border-hairline group-hover:bg-hairline',

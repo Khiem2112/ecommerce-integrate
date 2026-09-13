@@ -130,7 +130,7 @@ export function ContextSidebar({
         <div
           role="tablist"
           aria-label="Sidebar tabs"
-          className="flex gap-1 rounded-full border border-hairline bg-background p-0.5"
+          className="flex border-b border-hairline"
         >
           <button
             type="button"
@@ -138,10 +138,10 @@ export function ContextSidebar({
             aria-selected={activeTab === 'customer'}
             onClick={() => setActiveTab('customer')}
             className={cn(
-              'flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition duration-150 cursor-pointer',
+              'flex-1 cursor-pointer border-b-2 px-3 py-2 text-xs font-semibold transition-colors duration-150',
               activeTab === 'customer'
-                ? 'bg-foreground text-background shadow-xs'
-                : 'text-muted hover:text-foreground',
+                ? 'border-status-warning text-foreground'
+                : 'border-transparent text-muted hover:text-foreground',
             )}
           >
             Customer
@@ -153,12 +153,12 @@ export function ContextSidebar({
             aria-disabled={!hasDraft}
             onClick={() => hasDraft && setActiveTab('ai-draft')}
             className={cn(
-              'relative flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition duration-150',
+              'relative flex-1 border-b-2 px-3 py-2 text-xs font-semibold transition-colors duration-150',
               activeTab === 'ai-draft'
-                ? 'bg-foreground text-background shadow-xs'
+                ? 'border-status-warning text-foreground'
                 : hasDraft
-                  ? 'text-muted hover:text-foreground cursor-pointer'
-                  : 'text-muted/40 cursor-not-allowed',
+                  ? 'cursor-pointer border-transparent text-muted hover:text-foreground'
+                  : 'cursor-not-allowed border-transparent text-muted/40',
             )}
           >
             <span className="inline-flex items-center gap-1.5">

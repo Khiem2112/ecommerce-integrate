@@ -24,7 +24,7 @@ export function MobileNavigation() {
   return (
     <nav
       aria-label="Primary navigation"
-      className="fixed inset-x-0 bottom-0 z-40 grid h-16 w-screen grid-cols-5 border-t border-hairline bg-surface-card px-1 pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 grid h-16 w-screen grid-cols-5 border-t border-hairline-strong bg-surface-lifted px-1 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       {MOBILE_NAV_ITEMS.map((item) => {
         const isActive = item.id === activeItem?.id;
@@ -37,13 +37,13 @@ export function MobileNavigation() {
             className={cn(
               'flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[11px] font-medium transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/30',
-              isActive ? 'text-foreground' : 'text-muted hover:text-foreground',
+              isActive ? 'font-semibold text-foreground' : 'text-muted hover:text-foreground',
             )}
           >
             <span
               className={cn(
                 'grid h-6 w-10 place-items-center rounded-full transition-colors',
-                isActive && 'bg-foreground/10',
+                isActive && 'bg-status-warning/10 text-status-warning',
               )}
             >
               <svg

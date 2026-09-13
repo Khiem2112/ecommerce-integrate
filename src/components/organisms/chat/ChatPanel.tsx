@@ -71,7 +71,7 @@ export function ChatPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
-      <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-hairline bg-surface-card px-4 shadow-xs md:px-6">
+      <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-hairline-strong bg-surface-lifted px-4 md:px-6">
         <IconButton
           size="sm"
           variant="ghost"
@@ -92,7 +92,7 @@ export function ChatPanel({
             </svg>
           }
         />
-        <div className="grid size-8.5 place-items-center rounded-full bg-foreground text-xs font-bold text-background shadow-xs">
+        <div className="grid size-8.5 place-items-center rounded-full bg-foreground text-xs font-bold text-background">
           {conversation.customerIdentifier.slice(-2).toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
@@ -185,7 +185,7 @@ export function ChatPanel({
             <button
               type="button"
               onClick={onViewDraft}
-              className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-status-warning/25 bg-status-warning/8 px-4 py-3 text-left text-sm transition duration-150 hover:bg-status-warning/15"
+              className="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-status-warning/25 bg-status-warning/8 px-4 py-3 text-left text-sm transition duration-150 hover:bg-status-warning/15"
             >
               <span className="grid size-7 shrink-0 place-items-center rounded-full bg-foreground text-xs font-bold text-background">
                 ✦

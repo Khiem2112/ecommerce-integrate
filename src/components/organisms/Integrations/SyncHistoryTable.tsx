@@ -27,7 +27,7 @@ export function SyncHistoryTable() {
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-hairline bg-surface-card p-6 space-y-3 animate-pulse">
+      <div className="animate-pulse space-y-3 rounded-lg border border-hairline-strong bg-surface-card/75 p-6">
         <div className="h-5 w-48 rounded bg-surface-lifted" />
         <div className="h-24 rounded-lg bg-surface-lifted" />
       </div>
@@ -36,14 +36,14 @@ export function SyncHistoryTable() {
 
   if (logs.length === 0) {
     return (
-      <div className="rounded-xl border border-hairline bg-surface-card p-8 text-center shadow-card">
+      <div className="rounded-lg border border-hairline-strong bg-surface-card/75 p-8 text-center">
         <p className="text-xs text-muted">Chưa có lịch sử đồng bộ đơn hàng nào được ghi nhận.</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-hairline bg-surface-card overflow-hidden shadow-card">
+    <div className="overflow-hidden rounded-lg border border-hairline-strong bg-surface-card/75">
       <Table>
         <TableHeader>
           <TableRow>

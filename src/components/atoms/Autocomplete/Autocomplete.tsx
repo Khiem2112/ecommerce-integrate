@@ -134,7 +134,7 @@ export function Autocomplete({
         aria-label={ariaLabel ?? label ?? placeholder}
         onClick={() => setIsOpen((prev) => !prev)}
         className={cn(
-          'flex w-full items-center justify-between gap-1.5 rounded-full border border-hairline bg-surface-card text-left text-foreground shadow-xs transition duration-150 outline-none hover:border-foreground/30 focus-visible:border-foreground focus-visible:ring-2 focus-visible:ring-foreground/10 cursor-pointer',
+          'flex w-full cursor-pointer items-center justify-between gap-1.5 rounded-full border border-hairline-strong bg-surface-card/65 text-left text-foreground transition duration-150 outline-none hover:bg-surface-card focus-visible:border-foreground focus-visible:ring-2 focus-visible:ring-foreground/10',
           size === 'sm' ? 'h-8 px-2.5 py-1 text-xs' : 'h-9 px-3 py-1.5 text-sm',
           disabled && 'cursor-not-allowed opacity-50',
           isOpen && 'border-foreground ring-2 ring-foreground/10',
@@ -176,7 +176,7 @@ export function Autocomplete({
           id={listboxId}
           role="listbox"
           className={cn(
-            'absolute z-50 mt-1 max-h-60 w-full min-w-[10rem] overflow-hidden rounded-2xl border border-hairline bg-surface-card shadow-xl shadow-black/8 animate-in fade-in-0 zoom-in-95',
+            'absolute z-50 mt-1 max-h-60 w-full min-w-[10rem] overflow-hidden rounded-xl border border-hairline-strong bg-surface-card shadow-elevated animate-in fade-in-0 zoom-in-95',
             menuClassName,
           )}
         >
@@ -188,7 +188,7 @@ export function Autocomplete({
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full rounded-full border border-hairline bg-surface-lifted px-2.5 py-1 text-xs text-foreground placeholder:text-muted outline-none focus:border-foreground"
+                className="w-full rounded-lg border border-hairline-strong bg-surface-lifted px-2.5 py-1 text-xs text-foreground placeholder:text-muted outline-none focus:border-foreground"
               />
             </div>
           )}
@@ -215,7 +215,7 @@ export function Autocomplete({
                       if (!option.disabled) handleSelect(option.value);
                     }}
                     className={cn(
-                      'flex cursor-pointer select-none items-center justify-between rounded-xl px-2.5 py-1.5 transition duration-100',
+                      'flex cursor-pointer select-none items-center justify-between rounded-lg px-2.5 py-1.5 transition duration-100',
                       isSelected
                         ? 'bg-foreground/8 font-medium text-foreground'
                         : 'text-foreground hover:bg-surface-lifted',

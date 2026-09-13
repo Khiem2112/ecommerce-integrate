@@ -25,17 +25,17 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const VARIANT_STYLES: Record<ButtonVariant, string> = {
   primary:
-    'bg-foreground text-background hover:bg-primary-hover shadow-xs focus-visible:ring-foreground/30',
+    'border border-foreground bg-foreground text-background hover:bg-primary-hover focus-visible:ring-foreground/30',
   secondary:
-    'bg-foreground/5 text-foreground hover:bg-foreground/10 border border-hairline focus-visible:ring-foreground/20',
+    'border border-hairline-strong bg-surface-strong/70 text-foreground hover:bg-surface-strong focus-visible:ring-foreground/20',
   outline:
-    'border border-hairline bg-transparent text-foreground hover:bg-surface-lifted shadow-xs focus-visible:ring-foreground/20',
+    'border border-hairline-strong bg-surface-card/55 text-foreground hover:bg-surface-card focus-visible:ring-foreground/20',
   ghost:
     'text-muted hover:bg-foreground/6 hover:text-foreground focus-visible:ring-foreground/20',
   destructive:
-    'border border-semantic-error/30 bg-semantic-error/10 text-semantic-error hover:bg-semantic-error/20 focus-visible:ring-semantic-error/30 shadow-xs',
+    'border border-semantic-error/30 bg-semantic-error/10 text-semantic-error hover:bg-semantic-error/20 focus-visible:ring-semantic-error/30',
   ai:
-    'border border-status-warning/30 bg-status-warning/10 text-status-warning hover:bg-status-warning/18 focus-visible:ring-status-warning/30 shadow-xs',
+    'border border-status-warning/30 bg-status-warning/10 text-status-warning hover:bg-status-warning/18 focus-visible:ring-status-warning/30',
   link:
     'text-foreground underline-offset-4 hover:underline focus-visible:ring-foreground/20 p-0 h-auto',
 };

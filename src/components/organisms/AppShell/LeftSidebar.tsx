@@ -14,14 +14,14 @@ export function LeftSidebar() {
   return (
     <aside
       className={cn(
-        'hidden h-full shrink-0 flex-col border-r border-hairline bg-surface-card transition-[width] duration-200 ease-in-out md:flex',
+        'hidden h-full shrink-0 flex-col border-r border-hairline-strong bg-surface-lifted transition-[width] duration-200 ease-in-out md:flex',
         collapsed ? 'w-16' : 'w-56',
       )}
     >
       {/* Logo & Collapsed button*/}
       <div
         className={cn(
-          'flex h-14 shrink-0 items-center border-b border-hairline px-3',
+          'flex h-14 shrink-0 items-center border-b border-hairline-strong px-3',
           collapsed ? 'justify-center' : 'justify-between',
         )}
       >
@@ -55,8 +55,8 @@ export function LeftSidebar() {
               title="OmniCart Recover"
             >
               {/* Logo mark — stylized "O" mark */}
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-on-primary shadow-xs">
-                O
+              <div className="relative flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-on-primary">
+                O<span aria-hidden="true" className="absolute right-1 top-1 size-1 rounded-full bg-status-accent" />
               </div>
               <span className="truncate text-sm font-semibold tracking-tight text-foreground">
                 OmniCart
@@ -98,7 +98,7 @@ export function LeftSidebar() {
                 {group.label}
               </p>
             )}
-            {collapsed && <div className="mb-2 h-px bg-hairline mx-2" />}
+            {collapsed && <div className="mx-2 mb-2 h-px bg-hairline" />}
             <ul className="flex flex-col gap-0.5">
               {group.items.map((item) => (
                 <SidebarNavItem key={item.id} item={item} collapsed={collapsed} />

@@ -73,10 +73,10 @@ export function CustomerFilterBar({
   );
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-surface-card p-3 shadow-card">
-      <div className="flex flex-1 flex-wrap items-center gap-2.5 min-w-72">
+    <div className="flex flex-col gap-2.5 rounded-lg border border-hairline-strong bg-surface-lifted/55 p-2.5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="grid w-full min-w-0 flex-1 grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
         {/* Search by Platform Buyer ID */}
-        <div className="relative w-full max-w-xs">
+        <div className="relative w-full sm:max-w-xs">
           <Input
             placeholder="Tìm theo Buyer ID sàn..."
             value={searchInput}
@@ -97,7 +97,7 @@ export function CustomerFilterBar({
         </div>
 
         {/* Platform Dropdown */}
-        <div className="w-40">
+        <div className="w-full sm:w-40">
           <Combobox
             items={platformOptions}
             value={filters.platformId ? String(filters.platformId) : ''}
@@ -111,7 +111,7 @@ export function CustomerFilterBar({
         </div>
 
         {/* VIP Tier Dropdown */}
-        <div className="w-48">
+        <div className="w-full sm:w-48">
           <Combobox
             items={vipTierOptions}
             value={filters.vipTierId ? String(filters.vipTierId) : ''}
@@ -125,7 +125,7 @@ export function CustomerFilterBar({
         </div>
 
         {/* Sort Selector */}
-        <div className="w-48">
+        <div className="w-full sm:w-48">
           <Combobox
             items={sortOptions}
             value={currentSortValue}

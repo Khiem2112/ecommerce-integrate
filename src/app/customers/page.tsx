@@ -126,7 +126,7 @@ function CustomersListContent() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">
-            Danh bạ & Hồ Sơ Khách Hàng 360°
+            Danh bạ & hồ sơ khách hàng 360°
           </h1>
           <p className="text-xs text-muted mt-0.5">
             Tra cứu, phân khúc RFM, theo dõi LTV và quản lý hồ sơ 360 độ khách hàng VIP trên toàn sàn.

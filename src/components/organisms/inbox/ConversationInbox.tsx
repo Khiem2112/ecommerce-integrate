@@ -76,7 +76,7 @@ export function ConversationInbox({
       <div
         tabIndex={0}
         aria-label="Conversation list"
-        className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-2 outline-none"
+        className="custom-scrollbar min-h-0 flex-1 overflow-y-auto outline-none"
       >
         {isLoading && <InboxSkeleton />}
         {error && (
@@ -112,11 +112,11 @@ export function ConversationInbox({
 
 function InboxSkeleton() {
   return (
-    <div className="space-y-2 p-2" aria-label="Loading conversations">
+    <div className="divide-y divide-hairline" aria-label="Loading conversations">
       {Array.from({ length: 6 }, (_, index) => (
         <div
           key={`inbox-skeleton-${index}`}
-          className="animate-pulse rounded-lg border border-hairline bg-surface-lifted p-3"
+          className="animate-pulse p-4"
         >
           <div className="h-3 w-2/5 rounded bg-hairline" />
           <div className="mt-3 h-3 w-4/5 rounded bg-background" />

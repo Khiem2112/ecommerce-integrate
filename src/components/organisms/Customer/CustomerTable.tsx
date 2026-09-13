@@ -100,12 +100,85 @@ export function CustomerTable({
 }: CustomerTableProps) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="overflow-hidden rounded-xl border border-hairline bg-surface-card shadow-card">
+      <div className="overflow-hidden rounded-lg border border-hairline-strong bg-surface-card/75 md:hidden">
+        {isLoading ? (
+          <div className="divide-y divide-hairline" aria-label="Đang tải khách hàng">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={`mobile-skeleton-${index}`} className="animate-pulse space-y-3 p-4">
+                <div className="h-3 w-2/5 rounded bg-hairline" />
+                <div className="h-3 w-4/5 rounded bg-hairline-soft" />
+                <div className="h-3 w-3/5 rounded bg-hairline-soft" />
+              </div>
+            ))}
+          </div>
+        ) : customers.length === 0 ? (
+          <div className="px-5 py-12 text-center">
+            <p className="text-sm font-semibold text-foreground">Không tìm thấy khách hàng</p>
+            <p className="mt-1 text-xs text-muted">Thử thay đổi từ khóa hoặc bộ lọc.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-hairline">
+            {customers.map((customer) => (
+              <article key={customer.id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <Link href={`/customers/${customer.id}`} className="min-w-0">
+                    <span className="block truncate font-mono text-sm font-semibold text-foreground">
+                      {customer.platformBuyerId}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-muted">{customer.platform.name}</span>
+                  </Link>
+                  <VipTierBadge code={customer.vipTier.code} name={customer.vipTier.name} />
+                </div>
+
+                <dl className="mt-4 grid min-w-0 grid-cols-2 gap-x-4 gap-y-3 border-y border-hairline py-3 text-xs">
+                  <div className="min-w-0">
+                    <dt className="text-muted">Điểm VIP</dt>
+                    <dd className="mt-0.5 font-mono font-semibold text-foreground">
+                      {customer.vipScore.toFixed(1)} / 100
+                    </dd>
+                  </div>
+                  <div className="min-w-0 text-right">
+                    <dt className="text-muted">Tổng chi tiêu</dt>
+                    <dd className="mt-0.5 font-semibold text-foreground">
+                      {formatVND(customer.totalSpend)}
+                    </dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-muted">Đơn hàng</dt>
+                    <dd className="mt-0.5 text-foreground">{customer.orderCount} đơn</dd>
+                  </div>
+                  <div className="min-w-0 text-right">
+                    <dt className="text-muted">Mua gần nhất</dt>
+                    <dd className="mt-0.5 text-foreground">
+                      {customer.daysSinceLastOrder === null || customer.daysSinceLastOrder === undefined
+                        ? 'Chưa mua'
+                        : `${customer.daysSinceLastOrder} ngày trước`}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div className="mt-3 flex items-center justify-end gap-1">
+                  <Link href={`/customers/${customer.id}`}>
+                    <Button variant="ghost" size="xs">Xem hồ sơ</Button>
+                  </Link>
+                  {onQuickEdit && (
+                    <Button variant="ghost" size="xs" onClick={() => onQuickEdit(customer)}>
+                      Chỉnh sửa
+                    </Button>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-lg border border-hairline-strong bg-surface-card/75 md:block">
         <Table
           className="min-w-[1100px]"
           containerClassName="max-h-[calc(100vh-320px)] min-h-[360px] overflow-auto custom-scrollbar"
         >
-          <TableHeader className="sticky top-0 z-10 bg-surface-lifted border-b border-hairline">
+          <TableHeader className="sticky top-0 z-10">
             <TableRow>
               <TableHead className="w-48 whitespace-nowrap">Khách hàng</TableHead>
               <TableHead className="w-32 whitespace-nowrap">Phân hạng</TableHead>

@@ -1,28 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  /* ElevenLabs Brand Colors */
-  --primary: #292524;
-  --primary-active: #0c0a09;
-  --ink: #0c0a09;
-  --body: #4e4e4e;
-  --body-strong: #292524;
-  --muted: #696969;
-  --muted-soft: #a8a29e;
+  /* Editorial ink palette */
+  --primary: #141413;
+  --primary-active: #050505;
+  --ink: #141413;
+  --body: #4f4a46;
+  --body-strong: #2d2926;
+  --muted: #736c65;
+  --muted-soft: #9d958e;
 
   /* Surfaces & Canvas */
-  --canvas: #f5f5f5;
-  --canvas-soft: #fafafa;
-  --canvas-deep: #0c0a09;
+  --canvas: #f3f0ee;
+  --canvas-soft: #fcfbfa;
+  --canvas-deep: #141413;
   --surface-card: #ffffff;
-  --surface-strong: #f0efed;
-  --surface-dark: #0c0a09;
+  --surface-strong: #ebe6e1;
+  --surface-dark: #141413;
   --surface-dark-elevated: #1c1917;
 
   /* Hairlines & Borders */
-  --hairline: #e7e5e4;
-  --hairline-soft: #f0efed;
-  --hairline-strong: #d6d3d1;
+  --hairline: #e3ddd7;
+  --hairline-soft: #eee9e5;
+  --hairline-strong: #cec6be;
 
   /* On-Color Text */
   --on-primary: #ffffff;
@@ -47,7 +47,7 @@
   --status-success-text: #026b3f;
   --status-info: #3860BE;
   --status-accent: #F37338;
-  --primary-hover: #262627;
+  --primary-hover: #302d2a;
 
   /* Badge Palette */
   --badge-purple: #6366f1;
@@ -187,9 +187,9 @@
   --radius-xxl: 24px;
   --radius-pill: 9999px;
 
-  --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.04);
-  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.02);
-  --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --shadow-soft: 0 8px 24px rgba(34, 27, 22, 0.07);
+  --shadow-card: 0 1px 2px rgba(34, 27, 22, 0.035);
+  --shadow-elevated: 0 16px 48px rgba(34, 27, 22, 0.14);
 }
 
 * {
@@ -240,7 +240,7 @@ body {
   }
 }
 
-/* ElevenLabs Typography Utility Classes */
+/* Editorial typography utility classes */
 .font-display {
   font-family: var(--font-display);
   font-weight: 600;
@@ -321,7 +321,7 @@ body {
   background: radial-gradient(circle, var(--gradient-rose) 0%, rgba(232, 184, 196, 0) 70%);
 }
 
-/* ElevenLabs Global & Custom Scrollbars */
+/* Global & custom scrollbars */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--hairline-strong, #d6d3d1) transparent;
