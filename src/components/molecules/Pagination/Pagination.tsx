@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useId, useState } from 'react';
 import { Button, Select } from '@/components/atoms';
 
 export type PaginationProps = {
@@ -23,6 +23,7 @@ export function Pagination({
   onPageSizeChange,
 }: PaginationProps) {
   const [jumpInput, setJumpInput] = useState('');
+  const pageSizeLabelId = useId();
   const safeTotalPages = Math.max(1, totalPages);
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
@@ -55,14 +56,14 @@ export function Pagination({
       <div className="flex flex-wrap items-center gap-3">
         {onPageSizeChange && (
           <div className="flex items-center gap-1.5 text-xs text-muted">
-            <span id="pagination-page-size-label">Dòng / trang:</span>
+            <span id={pageSizeLabelId}>Dòng / trang:</span>
             <span className="w-16">
               <Select
                 value={String(pageSize)}
                 onChange={(event) => onPageSizeChange(Number(event.target.value))}
                 size="sm"
                 className="h-7 text-xs"
-                aria-labelledby="pagination-page-size-label"
+                aria-labelledby={pageSizeLabelId}
               >
                 {PAGE_SIZE_OPTIONS.map((option) => (
                   <option key={option} value={option}>
