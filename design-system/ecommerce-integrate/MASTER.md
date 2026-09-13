@@ -15,7 +15,7 @@ Mastercard's design language is an editorial, high-trust, human-centric aestheti
   - Cards & Small Panels: `16px` (`rounded-2xl`).
   - Large Containers & Modals: `20px` - `24px` (`rounded-3xl`).
 - **Shadows**: Atmospheric Cushioning (`rgba(0, 0, 0, 0.04) 0px 4px 24px`).
-- **Typography**: `Sofia Sans` (450 weight body copy, 500-600 headings with -1.5% to -2% letter-spacing).
+- **Typography**: `Manrope` (400-500 weight body copy, 600-700 headings with -1.5% to -2% letter-spacing); `Geist Mono` for order IDs, API values, and other technical data.
 
 ---
 

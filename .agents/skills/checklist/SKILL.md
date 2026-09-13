@@ -54,3 +54,12 @@ Before declaring any feature or task complete, verify the technical implementati
 
 ## 5. Domain Business Logic Verification
 - [ ] **Check Domain Rules**: Consult the [business-logic skill](.agents/skills/business-logic/SKILL.md) and verify that all feature-specific rules in `features/` are satisfied.
+
+---
+
+## 6. Internationalization (i18n) Verification
+- [ ] **Zero Hardcoded Strings**: Are all UI texts, labels, button labels, placeholders, titles, and error toasts extracted using `useTranslations` (or `getTranslations`)?
+- [ ] **Dictionary Parity**: Do all newly added keys exist in both `src/messages/vi.json` and `src/messages/en.json` at identical paths?
+- [ ] **Language Purity**: Is `en.json` free of Vietnamese text and `vi.json` fully translated into Vietnamese?
+- [ ] **Navigation**: Are all internal links using `Link` imported from `@/i18n/navigation` (no direct `next/link`)?
+- [ ] **Automated Validation**: Does `yarn i18n:check` run cleanly without errors? (Consult the [i18n-check skill](.agents/skills/i18n-check/SKILL.md)).

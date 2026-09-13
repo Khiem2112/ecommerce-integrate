@@ -54,11 +54,13 @@ Before creating or visually changing a user-facing feature:
 1. Read `.agents/skills/ui-ux-pro-max/rules/style-discovery.md` and reuse the closest persisted or repository style precedent.
 2. Read `.agents/skills/ui-ux-pro-max/rules/web-rules.md` for UX, accessibility, responsive, interaction, and e-commerce requirements.
 3. Use `design-system/*/MASTER.md` plus the matching page override when discovered; otherwise inspect `src/app/globals.css`, shared components, and the closest existing feature before inventing a new pattern.
+4. All user-facing text, labels, placeholders, errors, and actions MUST use `next-intl` (`src/messages/vi.json` and `en.json`) with 100% key parity and zero hardcoding. Validate via `yarn i18n:check`.
 
 Skill Loading:
 - **Core Baseline (always load for UI):**
   - `.agents/skills/convention/SKILL.md`
   - `.agents/skills/styling/SKILL.md`
+  - `.agents/skills/i18n-check/SKILL.md`
 - **On-demand (load only when relevant):**
   - `.agents/skills/react/SKILL.md` when creating/refactoring components, managing state (Jotai), forms (RHF), effects, or loading/empty states.
   - `.agents/skills/typescript/SKILL.md` when defining complex types, interfaces, generics, or type-safe mappers.
