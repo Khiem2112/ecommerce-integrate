@@ -13,6 +13,7 @@ import {
   Button,
   IconButton,
 } from '@/components/atoms';
+import { Pagination } from '@/components/molecules';
 import {
   formatVND,
   formatDate,
@@ -317,64 +318,15 @@ export function OrderTable({
         </Table>
       </div>
 
-      {/* Pagination Footer */}
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-          <div className="text-xs text-muted">
-            Hiển thị{' '}
-            <span className="font-medium text-foreground">
-              {(pagination.page - 1) * pagination.pageSize + 1}
-            </span>{' '}
-            -{' '}
-            <span className="font-medium text-foreground">
-              {Math.min(pagination.page * pagination.pageSize, pagination.total)}
-            </span>{' '}
-            trên tổng số{' '}
-            <span className="font-medium text-foreground">{pagination.total}</span> đơn hàng
-          </div>
-
-          <div className="flex items-center gap-2">
-            {onPageSizeChange && (
-              <div className="flex items-center gap-1.5 text-xs text-muted">
-                <span>Dòng / trang:</span>
-                <select
-                  value={pagination.pageSize}
-                  onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                  className="h-7 rounded border border-hairline bg-surface-card px-1.5 text-xs text-foreground"
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
-              </div>
-            )}
-
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onPageChange(pagination.page - 1)}
-                disabled={pagination.page <= 1}
-                className="h-7 px-2 text-xs"
-              >
-                Trước
-              </Button>
-              <span className="px-2 text-xs font-medium text-foreground">
-                {pagination.page} / {pagination.totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onPageChange(pagination.page + 1)}
-                disabled={pagination.page >= pagination.totalPages}
-                className="h-7 px-2 text-xs"
-              >
-                Sau
-              </Button>
-            </div>
-          </div>
-        </div>
+        <Pagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          pageSize={pagination.pageSize}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+        />
       )}
     </div>
   );

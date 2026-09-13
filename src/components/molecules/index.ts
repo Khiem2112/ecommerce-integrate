@@ -9,6 +9,10 @@ export { GroundingAnnotation } from './copilot/GroundingAnnotation';
 
 export { ErrorBanner } from './ErrorBanner';
 export { SuccessBanner } from './SuccessBanner';
+export {
+  Pagination,
+  type PaginationProps,
+} from './Pagination/Pagination';
 
 export { ConversationRow } from './inbox/ConversationRow';
 export { InboxFilters } from './inbox/InboxFilters';
