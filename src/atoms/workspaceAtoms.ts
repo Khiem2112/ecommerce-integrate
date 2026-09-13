@@ -53,3 +53,11 @@ export const sidebarCollapsedAtom = atomWithStorage<boolean>(
   localStorageAdapter,
   { getOnInit: true },
 );
+
+/** Controls the global left app sidebar (collapse to icon-only mode). */
+export const appSidebarCollapsedAtom = atomWithStorage<boolean>(
+  'vip-workspace:app-sidebar-collapsed',
+  false,
+  localStorageAdapter,
+  { getOnInit: true },
+);

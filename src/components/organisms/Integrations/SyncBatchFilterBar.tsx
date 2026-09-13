@@ -1,8 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Button, Combobox, DateRangePicker, Input, type ComboboxItem } from '@/components/atoms';
-import { useDebounce } from '@/hooks';
 import type { SyncBatchListFilter } from '@/types';
 
 const PLATFORM_OPTIONS: readonly ComboboxItem[] = [
@@ -29,15 +27,6 @@ type SyncBatchFilterBarProps = {
 };
 
 export function SyncBatchFilterBar({ filters, onFilterChange, onReset }: SyncBatchFilterBarProps) {
-  const [searchInput, setSearchInput] = useState(filters.batchCode ?? '');
-  const debouncedSearch = useDebounce(searchInput, 300);
-
-  useEffect(() => {
-    onFilterChange({ batchCode: debouncedSearch || undefined });
-  }, [debouncedSearch, onFilterChange]);
-
-  useEffect(() => setSearchInput(filters.batchCode ?? ''), [filters.batchCode]);
-
   return (
     <section className="rounded-2xl border border-hairline bg-surface-card p-4 shadow-card" aria-label="Bộ lọc lịch sử đồng bộ">
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_180px_190px_280px_auto]">
@@ -47,8 +36,8 @@ export function SyncBatchFilterBar({ filters, onFilterChange, onReset }: SyncBat
           </label>
           <Input
             id="sync-batch-search"
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
+            value={filters.batchCode ?? ''}
+            onChange={(event) => onFilterChange({ batchCode: event.target.value || undefined })}
             placeholder="Ví dụ: sync_..."
           />
         </div>

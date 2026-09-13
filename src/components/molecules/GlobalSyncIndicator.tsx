@@ -2,7 +2,7 @@
 
 /**
  * Global Synchronization Indicator Component.
- * Placed in top App Header to show ongoing sync jobs across the entire application.
+ * Placed in top App Header or bottom floating widget to show ongoing sync jobs across the entire application.
  * Clicking the indicator opens the Right-Side SyncProgressDrawer.
  */
 
@@ -35,23 +35,23 @@ export function GlobalSyncIndicator() {
       <button
         type="button"
         onClick={handleClick}
-        className="flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-medium text-teal-700 dark:text-teal-300 hover:bg-teal-500/20 transition-all cursor-pointer shadow-xs animate-in fade-in"
-        title="Nhấn để xem chi tiết tiến trình đồng bộ đơn hàng"
+        className="flex items-center gap-2 rounded-full border border-badge-teal/30 bg-badge-teal/10 px-3 py-1 text-xs font-medium text-badge-teal-text hover:bg-badge-teal/20 transition-all cursor-pointer shadow-xs animate-in fade-in select-none"
+        title="Click to view sync progress"
       >
         <span className="relative flex size-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
-          <span className="relative inline-flex rounded-full size-2 bg-teal-500" />
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-badge-teal opacity-75" />
+          <span className="relative inline-flex rounded-full size-2 bg-badge-teal" />
         </span>
 
         <span className="font-semibold">Lazada:</span>
 
         <span>
           {isRunning
-            ? `Đang nạp (${activeBatch.processedOrders}/${activeBatch.totalOrders})`
-            : 'Đang chuẩn bị...'}
+            ? `Syncing (${activeBatch.processedOrders}/${activeBatch.totalOrders})`
+            : 'Preparing…'}
         </span>
 
-        <span className="font-mono text-[11px] font-bold text-teal-800 dark:text-teal-200">
+        <span className="font-mono text-xs font-bold text-badge-teal-text">
           {activeBatch.progressPercentage}%
         </span>
       </button>

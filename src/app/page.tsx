@@ -1,5 +1,5 @@
-import { AgentWorkspace } from '@/components/organisms';
+import { redirect } from 'next/navigation';
 
 export default function Home() {
-  return <AgentWorkspace />;
+  redirect('/conversations');
 }

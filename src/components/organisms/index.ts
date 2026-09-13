@@ -1,3 +1,4 @@
+export { AppShell } from './AppShell';
 export { ChatPanel } from './chat/ChatPanel';
 export { AiResponsePreview } from './copilot/AiResponsePreview';
 export { ConversationInbox } from './inbox/ConversationInbox';
