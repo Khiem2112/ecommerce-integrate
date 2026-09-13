@@ -5,7 +5,8 @@
  */
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { useTranslations, useLocale } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { Badge, Button } from '@/components/atoms';
 import { ConnectionStatus } from './ConnectionStatus';
 import { SyncRunModal } from './SyncRunModal';
@@ -18,6 +19,10 @@ export type IntegrationCardProps = {
 };
 
 export function IntegrationCard({ summary, onSyncComplete }: IntegrationCardProps) {
+  const t = useTranslations('integrations.card');
+  const tStatus = useTranslations('integrations.status');
+  const locale = useLocale();
+
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const { mutateAsync: checkHealth, isPending: isCheckingHealth } = useCheckConnectionHealth(summary.platform);
 
@@ -43,7 +48,7 @@ export function IntegrationCard({ summary, onSyncComplete }: IntegrationCardProp
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold tracking-tight text-foreground">
-                  Lazada Việt Nam
+                  Lazada
                 </h3>
                 <Badge
                   variant={isMock ? 'teal' : 'primary'}
@@ -67,29 +72,29 @@ export function IntegrationCard({ summary, onSyncComplete }: IntegrationCardProp
         {/* Status Metrics Box */}
         <div className="grid grid-cols-2 gap-3 border-y border-hairline py-3 text-xs sm:grid-cols-3">
           <div>
-            <span className="text-muted block text-[11px] mb-0.5">Kiểm tra kết nối</span>
+            <span className="text-muted block text-[11px] mb-0.5">{t('connectionCheck')}</span>
             <span className="font-medium text-foreground">
               {summary.lastCheckedAt
-                ? new Date(summary.lastCheckedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                : 'Chưa kiểm tra'}
+                ? new Date(summary.lastCheckedAt).toLocaleTimeString(locale === 'vi' ? 'vi-VN' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                : tStatus('notChecked')}
             </span>
           </div>
 
           <div>
-            <span className="text-muted block text-[11px] mb-0.5">Đồng bộ gần nhất</span>
+            <span className="text-muted block text-[11px] mb-0.5">{t('lastSync')}</span>
             <span className="font-medium text-foreground">
               {summary.lastSyncedAt
-                ? new Date(summary.lastSyncedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-                : 'Chưa đồng bộ'}
+                ? new Date(summary.lastSyncedAt).toLocaleTimeString(locale === 'vi' ? 'vi-VN' : 'en-US', { hour: '2-digit', minute: '2-digit' })
+                : tStatus('notSynced')}
             </span>
           </div>
 
           <div className="col-span-2 sm:col-span-1">
-            <span className="text-muted block text-[11px] mb-0.5">Đơn hàng / Lỗi</span>
+            <span className="text-muted block text-[11px] mb-0.5">{t('ordersAndErrors')}</span>
             <span className="font-medium text-foreground">
-              <strong className="text-foreground">{summary.totalOrders ?? 0}</strong> đơn ·{' '}
+              <strong className="text-foreground">{summary.totalOrders ?? 0}</strong> {t('ordersCount', { count: summary.totalOrders ?? 0 })} ·{' '}
               <span className={summary.failedRecords ? 'text-semantic-error font-semibold' : 'text-muted'}>
-                {summary.failedRecords ?? 0} lỗi
+                {t('errorsCount', { count: summary.failedRecords ?? 0 })}
               </span>
             </span>
           </div>
@@ -119,7 +124,7 @@ export function IntegrationCard({ summary, onSyncComplete }: IntegrationCardProp
                 </svg>
               }
             >
-              Kiểm tra kết nối
+              {t('testConnection')}
             </Button>
 
             <Button
@@ -132,7 +137,7 @@ export function IntegrationCard({ summary, onSyncComplete }: IntegrationCardProp
                 </svg>
               }
             >
-              Đồng bộ ngay
+              {t('syncNow')}
             </Button>
           </div>
 
@@ -142,7 +147,7 @@ export function IntegrationCard({ summary, onSyncComplete }: IntegrationCardProp
                 <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
               </svg>
             }>
-              Cấu hình & Nhật ký
+              {t('configAndLogs')}
             </Button>
           </Link>
         </div>

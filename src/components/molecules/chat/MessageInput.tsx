@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type KeyboardEvent } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
 import { sendMessageAction } from '@/actions/conversationActions';
 import { Button } from '@/components/atoms';
@@ -19,6 +20,7 @@ export function MessageInput({
   onGenerate,
   onSent,
 }: MessageInputProps) {
+  const t = useTranslations('chat.composer');
   const queryClient = useQueryClient();
   const [text, setText] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -36,7 +38,7 @@ export function MessageInput({
       onSent();
       await queryClient.invalidateQueries({ queryKey: ['conversations'] });
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : 'Unable to send message.');
+      setError(sendError instanceof Error ? sendError.message : t('sendError'));
     } finally {
       setIsSending(false);
     }
@@ -69,7 +71,7 @@ export function MessageInput({
             htmlFor={`composer-${conversationId}`}
             className="text-sm font-semibold tracking-tight text-foreground"
           >
-            Reply to customer
+            {t('replyLabel')}
           </label>
           <Button
             size="xs"
@@ -96,7 +98,7 @@ export function MessageInput({
               ) : undefined
             }
           >
-            <span className="hidden sm:inline">AI Draft</span>
+            <span className="hidden sm:inline">{t('aiDraft')}</span>
           </Button>
         </div>
 
@@ -106,13 +108,13 @@ export function MessageInput({
           value={text}
           onChange={(event) => setText(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Write a customer reply…"
+          placeholder={t('placeholder')}
           className="block w-full resize-none bg-transparent text-base leading-6 text-foreground outline-none placeholder:text-muted"
         />
 
         <div className="mt-2 flex items-center justify-between gap-2 border-t border-hairline pt-2">
           <p className="text-xs text-muted">
-            Enter to send · Shift+Enter for new line
+            {t('shortcutHint')}
           </p>
 
           <Button
@@ -132,7 +134,7 @@ export function MessageInput({
               </svg>
             }
           >
-            Send
+            {isSending ? t('sending') : t('send')}
           </Button>
         </div>
       </div>

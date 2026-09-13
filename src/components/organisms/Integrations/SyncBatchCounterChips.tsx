@@ -1,3 +1,6 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/atoms';
 
 type SyncBatchCounterChipsProps = {
@@ -13,8 +16,10 @@ export function SyncBatchCounterChips({
   unchangedCount,
   failedCount,
 }: SyncBatchCounterChipsProps) {
+  const t = useTranslations('integrations.card');
+
   return (
-    <div className="flex flex-wrap items-center gap-1.5" aria-label="Kết quả xử lý đơn hàng">
+    <div className="flex flex-wrap items-center gap-1.5" aria-label={t('orderResultsAria')}>
       <Badge variant="success" size="xs">✓ {createdCount + updatedCount}</Badge>
       {unchangedCount > 0 && <Badge variant="secondary" size="xs">= {unchangedCount}</Badge>}
       {failedCount > 0 && <Badge variant="error" size="xs">✕ {failedCount}</Badge>}

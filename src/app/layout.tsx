@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
 import { Geist_Mono, Manrope } from 'next/font/google';
-import { AppProviders } from '@/components/providers/AppProviders';
-import { AppShell } from '@/components/organisms/AppShell';
 import './globals.css';
 
 const manrope = Manrope({
@@ -28,9 +26,7 @@ export default function RootLayout({
   return (
     <html lang="vi" className={`${manrope.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="h-full overflow-hidden bg-background text-foreground">
-        <AppProviders>
-          <AppShell>{children}</AppShell>
-        </AppProviders>
+        {children}
       </body>
     </html>
   );

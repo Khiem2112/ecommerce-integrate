@@ -5,7 +5,8 @@
  * Contains a search input, a Combobox filter for change types, and expand/collapse actions.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Combobox, type ComboboxItem, Button } from '@/components/atoms';
 
 export type SyncBatchToolbarProps = {
@@ -19,13 +20,6 @@ export type SyncBatchToolbarProps = {
   readonly isRefreshing?: boolean;
 };
 
-const CHANGE_TYPE_OPTIONS: readonly ComboboxItem[] = [
-  { value: 'all', label: 'Tất cả thay đổi' },
-  { value: 'created', label: 'Chỉ đơn tạo mới', dotColor: '#149e61' },
-  { value: 'updated', label: 'Chỉ đơn cập nhật', dotColor: '#3860BE' },
-  { value: 'itemsOnly', label: 'Có đổi sản phẩm con', dotColor: '#6366f1' },
-];
-
 export function SyncBatchToolbar({
   searchInput,
   onSearchInputChange,
@@ -36,6 +30,15 @@ export function SyncBatchToolbar({
   onRefresh,
   isRefreshing = false,
 }: SyncBatchToolbarProps) {
+  const t = useTranslations('integrations.toolbar');
+
+  const changeTypeOptions: readonly ComboboxItem[] = useMemo(() => [
+    { value: 'all', label: t('allChanges') },
+    { value: 'created', label: t('createdOnly'), dotColor: '#149e61' },
+    { value: 'updated', label: t('updatedOnly'), dotColor: '#3860BE' },
+    { value: 'itemsOnly', label: t('itemsOnly'), dotColor: '#6366f1' },
+  ], [t]);
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 bg-surface-card border border-hairline p-3.5 rounded-xl shadow-card">
       <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
@@ -53,7 +56,7 @@ export function SyncBatchToolbar({
           </svg>
           <input
             type="text"
-            placeholder="Tìm theo mã đơn hoặc sản phẩm..."
+            placeholder={t('searchPlaceholder')}
             value={searchInput}
             onChange={(e) => onSearchInputChange(e.target.value)}
             className="w-full h-8.5 rounded-full border border-hairline bg-surface-lifted pl-9 pr-3 text-xs text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-primary transition"
@@ -63,10 +66,10 @@ export function SyncBatchToolbar({
         {/* Change Type Filter via Combobox */}
         <div className="w-48">
           <Combobox
-            items={CHANGE_TYPE_OPTIONS}
+            items={changeTypeOptions}
             value={filterType}
             onChange={onFilterChange}
-            placeholder="Loại thay đổi"
+            placeholder={t('changeType')}
             size="sm"
             searchable={false}
           />
@@ -75,11 +78,11 @@ export function SyncBatchToolbar({
 
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="xs" onClick={onExpandAll} className="text-xs">
-          Mở rộng tất cả
+          {t('expandAll')}
         </Button>
         <span className="text-hairline">|</span>
         <Button variant="ghost" size="xs" onClick={onCollapseAll} className="text-xs">
-          Thu gọn tất cả
+          {t('collapseAll')}
         </Button>
 
         {onRefresh && (
@@ -94,7 +97,7 @@ export function SyncBatchToolbar({
               </svg>
             }
           >
-            Làm mới
+            {t('refresh')}
           </Button>
         )}
       </div>

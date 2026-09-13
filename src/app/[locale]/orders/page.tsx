@@ -1,7 +1,8 @@
 'use client';
 
 import { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { useAtom } from 'jotai';
 import {
   useBreadcrumb,
@@ -28,11 +29,12 @@ function OrdersListFallback() {
 
 function OrdersListContent() {
   const { setBreadcrumb } = useBreadcrumb();
+  const t = useTranslations('orders');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    setBreadcrumb([{ label: 'Danh sách' }]);
-  }, [setBreadcrumb]);
+    setBreadcrumb([{ label: t('breadcrumb') }]);
+  }, [setBreadcrumb, t]);
 
   const {
     filters: queryFilters,
@@ -109,7 +111,7 @@ function OrdersListContent() {
       });
       setOrderToDelete(null);
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Xóa đơn hàng thất bại');
+      setErrorMessage(err instanceof Error ? err.message : t('deleteFailed'));
     }
   };
 
@@ -119,10 +121,10 @@ function OrdersListContent() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Danh sách đơn hàng
+            {t('pageTitle')}
           </h1>
           <p className="text-xs text-muted mt-0.5">
-            Xem, tạo mới, chỉnh sửa và quản lý danh mục toàn bộ đơn hàng đa kênh thương mại điện tử.
+            {t('pageDescription')}
           </p>
         </div>
 
@@ -137,7 +139,7 @@ function OrdersListContent() {
               </svg>
             }
           >
-            Đồng bộ Lazada
+            {t('syncLazada')}
           </Button>
 
           <Link href="/orders/new" className="inline-flex shrink-0">
@@ -150,7 +152,7 @@ function OrdersListContent() {
                 </svg>
               }
             >
-              Đơn hàng mới
+              {t('newOrder')}
             </Button>
           </Link>
         </div>
@@ -191,14 +193,16 @@ function OrdersListContent() {
       {/* Delete Confirmation Modal */}
       <ConfirmModal
         open={Boolean(orderToDelete)}
-        title="Xác nhận xóa đơn hàng"
+        title={t('deleteModal.title')}
         description={
           <span>
-            Bạn có chắc chắn muốn xóa đơn hàng <strong>#{orderToDelete?.platformOrderId}</strong>?
-            Hành động này sẽ ẩn đơn hàng khỏi hệ thống.
+            {t.rich('deleteModal.description', {
+              orderId: orderToDelete?.platformOrderId ?? '',
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </span>
         }
-        confirmLabel="Xác nhận xóa"
+        confirmLabel={t('deleteModal.confirm')}
         isDestructive
         isLoading={isDeleting}
         onConfirm={handleDeleteConfirm}

@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { cn } from '@/lib/cn';
 
 export type DatePickerProps = {
@@ -46,28 +47,6 @@ export type DateRangePickerProps = {
   readonly size?: 'sm' | 'md';
 };
 
-const DEFAULT_PRESETS: readonly DateRangePreset[] = [
-  { label: '7 ngày qua', days: 7 },
-  { label: '30 ngày qua', days: 30 },
-  { label: '90 ngày qua', days: 90 },
-];
-
-const DAYS_OF_WEEK = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-const MONTH_NAMES = [
-  'Tháng 1',
-  'Tháng 2',
-  'Tháng 3',
-  'Tháng 4',
-  'Tháng 5',
-  'Tháng 6',
-  'Tháng 7',
-  'Tháng 8',
-  'Tháng 9',
-  'Tháng 10',
-  'Tháng 11',
-  'Tháng 12',
-];
-
 const padZero = (n: number): string => (n < 10 ? `0${n}` : `${n}`);
 
 export const formatDateToISO = (date: Date): string => {
@@ -90,7 +69,7 @@ export const formatDateDisplay = (dateStr?: string): string => {
 export function DatePicker({
   value,
   onChange,
-  placeholder = 'Chọn ngày…',
+  placeholder: placeholderProp,
   label,
   disabled = false,
   className,
@@ -99,6 +78,9 @@ export function DatePicker({
   size = 'md',
   icon,
 }: DatePickerProps) {
+  const t = useTranslations('common.datePicker');
+  const locale = useLocale();
+  const placeholder = placeholderProp ?? t('selectDate');
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonId = useId();
@@ -120,6 +102,24 @@ export function DatePicker({
 
   const currentYear = viewDate.getFullYear();
   const currentMonth = viewDate.getMonth();
+
+  const monthLabel = useMemo(() => {
+    return new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
+      month: 'long',
+      year: 'numeric',
+    }).format(viewDate);
+  }, [locale, viewDate]);
+
+  const daysOfWeek = useMemo(() => {
+    const baseSunday = new Date(2023, 0, 1);
+    return Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date(baseSunday);
+      d.setDate(baseSunday.getDate() + i);
+      return new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
+        weekday: 'narrow',
+      }).format(d);
+    });
+  }, [locale]);
 
   const handlePrevMonth = useCallback(() => {
     setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -254,7 +254,7 @@ export function DatePicker({
               type="button"
               onClick={handlePrevMonth}
               className="flex size-7 items-center justify-center rounded-lg text-muted hover:text-foreground hover:bg-surface-lifted transition cursor-pointer"
-              aria-label="Tháng trước"
+              aria-label={t('prevMonth')}
             >
               <svg aria-hidden="true" className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -262,14 +262,14 @@ export function DatePicker({
             </button>
 
             <span className="text-xs font-semibold text-foreground">
-              {MONTH_NAMES[currentMonth]} {currentYear}
+              {monthLabel}
             </span>
 
             <button
               type="button"
               onClick={handleNextMonth}
               className="flex size-7 items-center justify-center rounded-lg text-muted hover:text-foreground hover:bg-surface-lifted transition cursor-pointer"
-              aria-label="Tháng sau"
+              aria-label={t('nextMonth')}
             >
               <svg aria-hidden="true" className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -278,8 +278,8 @@ export function DatePicker({
           </div>
 
           <div className="grid grid-cols-7 text-center text-[10px] font-semibold text-muted mb-1">
-            {DAYS_OF_WEEK.map((day) => (
-              <span key={day} className="py-1">
+            {daysOfWeek.map((day, idx) => (
+              <span key={idx} className="py-1">
                 {day}
               </span>
             ))}
@@ -321,7 +321,7 @@ export function DatePicker({
               onClick={() => handleSelectDay(todayStr)}
               className="font-medium text-primary hover:underline cursor-pointer"
             >
-              Hôm nay
+              {t('today')}
             </button>
             {value && (
               <button
@@ -332,7 +332,7 @@ export function DatePicker({
                 }}
                 className="text-muted hover:text-foreground cursor-pointer"
               >
-                Xóa
+                {t('clear')}
               </button>
             )}
           </div>
@@ -346,13 +346,25 @@ export function DateRangePicker({
   from = '',
   to = '',
   onChange,
-  presets = DEFAULT_PRESETS,
-  placeholder = 'Chọn khoảng ngày…',
+  presets,
+  placeholder: placeholderProp,
   label,
   disabled = false,
   className,
   size = 'md',
 }: DateRangePickerProps) {
+  const t = useTranslations('common.datePicker');
+  const locale = useLocale();
+  const placeholder = placeholderProp ?? t('selectDateRange');
+
+  const defaultPresets: readonly DateRangePreset[] = useMemo(() => [
+    { label: t('presets.last7Days'), days: 7 },
+    { label: t('presets.last30Days'), days: 30 },
+    { label: t('presets.last90Days'), days: 90 },
+  ], [t]);
+
+  const activePresets = presets ?? defaultPresets;
+
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonId = useId();
@@ -376,6 +388,24 @@ export function DateRangePicker({
 
   const currentYear = viewDate.getFullYear();
   const currentMonth = viewDate.getMonth();
+
+  const monthLabel = useMemo(() => {
+    return new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
+      month: 'long',
+      year: 'numeric',
+    }).format(viewDate);
+  }, [locale, viewDate]);
+
+  const daysOfWeek = useMemo(() => {
+    const baseSunday = new Date(2023, 0, 1);
+    return Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date(baseSunday);
+      d.setDate(baseSunday.getDate() + i);
+      return new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
+        weekday: 'narrow',
+      }).format(d);
+    });
+  }, [locale]);
 
   const handlePrevMonth = useCallback(() => {
     setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -480,10 +510,10 @@ export function DateRangePicker({
       return `${formatDateDisplay(from)} — ${formatDateDisplay(to)}`;
     }
     if (from) {
-      return `${formatDateDisplay(from)} — Chọn ngày kết thúc`;
+      return `${formatDateDisplay(from)} — ${t('selectEndDate')}`;
     }
     return placeholder;
-  }, [from, to, placeholder]);
+  }, [from, to, placeholder, t]);
 
   return (
     <div className={cn('relative w-full', className)} ref={containerRef}>
@@ -532,9 +562,9 @@ export function DateRangePicker({
 
       {isOpen && (
         <div className="absolute left-0 z-50 mt-1 w-72 rounded-2xl border border-hairline bg-surface-card p-3.5 shadow-xl shadow-black/10 animate-in fade-in-0 zoom-in-95">
-          {presets.length > 0 && (
+          {activePresets.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-1.5 pb-2.5 border-b border-hairline">
-              {presets.map((preset) => (
+              {activePresets.map((preset) => (
                 <button
                   key={preset.label}
                   type="button"
@@ -552,7 +582,7 @@ export function DateRangePicker({
               type="button"
               onClick={handlePrevMonth}
               className="flex size-7 items-center justify-center rounded-lg text-muted hover:text-foreground hover:bg-surface-lifted transition cursor-pointer"
-              aria-label="Tháng trước"
+              aria-label={t('prevMonth')}
             >
               <svg aria-hidden="true" className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -560,14 +590,14 @@ export function DateRangePicker({
             </button>
 
             <span className="text-xs font-semibold text-foreground">
-              {MONTH_NAMES[currentMonth]} {currentYear}
+              {monthLabel}
             </span>
 
             <button
               type="button"
               onClick={handleNextMonth}
               className="flex size-7 items-center justify-center rounded-lg text-muted hover:text-foreground hover:bg-surface-lifted transition cursor-pointer"
-              aria-label="Tháng sau"
+              aria-label={t('nextMonth')}
             >
               <svg aria-hidden="true" className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -576,8 +606,8 @@ export function DateRangePicker({
           </div>
 
           <div className="grid grid-cols-7 text-center text-[10px] font-semibold text-muted mb-1">
-            {DAYS_OF_WEEK.map((day) => (
-              <span key={day} className="py-1">
+            {daysOfWeek.map((day, idx) => (
+              <span key={idx} className="py-1">
                 {day}
               </span>
             ))}
@@ -621,7 +651,7 @@ export function DateRangePicker({
 
           <div className="mt-2.5 pt-2 border-t border-hairline flex items-center justify-between text-[11px]">
             <span className="text-muted text-[10px]">
-              {!from ? 'Chọn ngày bắt đầu' : !to ? 'Chọn ngày kết thúc' : 'Đã chọn khoảng'}
+              {!from ? t('selectStartDate') : !to ? t('selectEndDate') : t('rangeSelected')}
             </span>
             {(from || to) && (
               <button
@@ -629,7 +659,7 @@ export function DateRangePicker({
                 onClick={() => onChange?.({ from: '', to: '' })}
                 className="text-muted hover:text-foreground cursor-pointer"
               >
-                Xóa khoảng
+                {t('clearRange')}
               </button>
             )}
           </div>

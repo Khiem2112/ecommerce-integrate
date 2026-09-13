@@ -1,6 +1,7 @@
 'use client';
 
 import { Badge } from '@/components/atoms';
+import { useTranslations } from 'next-intl';
 import { formatVND, parseCategoryList } from '@/utils';
 import type { CustomerFullDetail } from '@/types';
 import { cn } from '@/lib/cn';
@@ -11,12 +12,13 @@ export type CustomerMetricsGridProps = {
 
 export function CustomerMetricsGrid({ customer }: CustomerMetricsGridProps) {
   const categories = parseCategoryList(customer.frequentCategories);
+  const t = useTranslations('customers');
 
   const metrics = [
     {
-      label: 'Tổng chi tiêu tích lũy (LTV)',
+      label: t('metrics.totalSpendLabel'),
       value: formatVND(customer.totalSpend),
-      subtext: 'Giá trị vòng đời khách hàng',
+      subtext: t('metrics.totalSpendDescription'),
       highlight: true,
       icon: (
         <svg aria-hidden="true" className="size-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -25,9 +27,9 @@ export function CustomerMetricsGrid({ customer }: CustomerMetricsGridProps) {
       ),
     },
     {
-      label: 'Tổng số đơn hàng',
-      value: `${customer.orderCount} đơn`,
-      subtext: 'Đã hoàn tất trên hệ thống',
+      label: t('metrics.totalOrdersLabel'),
+      value: t('table.orderCount', { count: customer.orderCount }),
+      subtext: t('metrics.totalOrdersDescription'),
       icon: (
         <svg aria-hidden="true" className="size-4 text-status-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
@@ -35,9 +37,9 @@ export function CustomerMetricsGrid({ customer }: CustomerMetricsGridProps) {
       ),
     },
     {
-      label: 'Giá trị đơn trung bình (AOV)',
+      label: t('metrics.averageOrderValueLabel'),
       value: formatVND(customer.avgOrderValue),
-      subtext: 'Mức chi trả trung bình/đơn',
+      subtext: t('metrics.averageOrderValueDescription'),
       icon: (
         <svg aria-hidden="true" className="size-4 text-status-warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
@@ -45,12 +47,12 @@ export function CustomerMetricsGrid({ customer }: CustomerMetricsGridProps) {
       ),
     },
     {
-      label: 'Thời gian kể từ đơn gần nhất',
+      label: t('metrics.lastOrderLabel'),
       value:
         customer.daysSinceLastOrder !== null && customer.daysSinceLastOrder !== undefined
-          ? `${customer.daysSinceLastOrder} ngày`
+          ? t('metrics.days', { count: customer.daysSinceLastOrder })
           : '—',
-      subtext: 'Chỉ số Recency trong RFM',
+      subtext: t('metrics.lastOrderDescription'),
       icon: (
         <svg aria-hidden="true" className="size-4 text-status-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -58,9 +60,9 @@ export function CustomerMetricsGrid({ customer }: CustomerMetricsGridProps) {
       ),
     },
     {
-      label: 'Tỷ lệ hủy đơn hàng',
+      label: t('metrics.cancellationRateLabel'),
       value: `${(customer.cancellationRate * 100).toFixed(1)}%`,
-      subtext: 'Tỷ lệ hủy từ người mua hoặc sàn',
+      subtext: t('metrics.cancellationRateDescription'),
       alert: customer.cancellationRate > 0.1,
       icon: (
         <svg aria-hidden="true" className="size-4 text-semantic-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -69,9 +71,9 @@ export function CustomerMetricsGrid({ customer }: CustomerMetricsGridProps) {
       ),
     },
     {
-      label: 'Tỷ lệ hoàn tiền / Khiếu nại',
+      label: t('metrics.refundRateLabel'),
       value: `${(customer.refundRate * 100).toFixed(1)}%`,
-      subtext: 'Yêu cầu đổi trả & hoàn tiền',
+      subtext: t('metrics.refundRateDescription'),
       alert: customer.refundRate > 0.05,
       icon: (
         <svg aria-hidden="true" className="size-4 text-semantic-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -80,12 +82,12 @@ export function CustomerMetricsGrid({ customer }: CustomerMetricsGridProps) {
       ),
     },
     {
-      label: 'Chu kỳ mua lại trung bình',
+      label: t('metrics.repeatPurchaseLabel'),
       value:
         customer.repeatPurchaseInterval !== null && customer.repeatPurchaseInterval !== undefined
-          ? `${customer.repeatPurchaseInterval.toFixed(0)} ngày`
+          ? t('metrics.days', { count: customer.repeatPurchaseInterval.toFixed(0) })
           : '—',
-      subtext: 'Khoảng cách giữa 2 lần mua',
+      subtext: t('metrics.repeatPurchaseDescription'),
       icon: (
         <svg aria-hidden="true" className="size-4 text-badge-purple-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -93,9 +95,9 @@ export function CustomerMetricsGrid({ customer }: CustomerMetricsGridProps) {
       ),
     },
     {
-      label: 'Độ nhạy mã giảm giá (Voucher)',
+      label: t('metrics.voucherSensitivityLabel'),
       value: `${(customer.voucherSensitivity * 100).toFixed(0)}%`,
-      subtext: 'Tỷ lệ đơn hàng sử dụng mã',
+      subtext: t('metrics.voucherSensitivityDescription'),
       icon: (
         <svg aria-hidden="true" className="size-4 text-badge-pink-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" />
@@ -142,7 +144,7 @@ export function CustomerMetricsGrid({ customer }: CustomerMetricsGridProps) {
       {/* Frequent Categories and Preferences Panel */}
       <div className="rounded-xl border border-hairline bg-surface-card p-4 shadow-card">
         <h3 className="text-xs font-bold uppercase tracking-wider text-muted">
-          Sở thích & Ngành hàng thường mua sắm (Frequent Categories)
+          {t('metrics.categoriesTitle')}
         </h3>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {categories.length > 0 ? (
@@ -152,7 +154,7 @@ export function CustomerMetricsGrid({ customer }: CustomerMetricsGridProps) {
               </Badge>
             ))
           ) : (
-            <span className="text-xs text-muted">Chưa ghi nhận danh mục mua sắm đặc trưng.</span>
+            <span className="text-xs text-muted">{t('metrics.categoriesEmpty')}</span>
           )}
         </div>
       </div>

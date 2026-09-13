@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import {
   Table,
   TableHeader,
@@ -35,6 +36,7 @@ export function CustomerConversationsTab({
   customer,
 }: CustomerConversationsTabProps) {
   const conversations = customer.conversations ?? [];
+  const t = useTranslations('customers');
 
   if (conversations.length === 0) {
     return (
@@ -49,9 +51,9 @@ export function CustomerConversationsTab({
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a.75.75 0 0 1-.974-.94 4.5 4.5 0 0 0 .762-2.316A8.04 8.04 0 0 1 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
         </svg>
-        <h3 className="mt-3 text-sm font-semibold text-foreground">Chưa có lịch sử hội thoại</h3>
+        <h3 className="mt-3 text-sm font-semibold text-foreground">{t('conversations.emptyTitle')}</h3>
         <p className="mt-1 text-xs text-muted">
-          Khách hàng này chưa có phiên chat hoặc yêu cầu hỗ trợ nào được ghi nhận trên hệ thống.
+          {t('conversations.emptyDescription')}
         </p>
       </div>
     );
@@ -61,7 +63,7 @@ export function CustomerConversationsTab({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold uppercase tracking-wider text-muted">
-          Lịch sử hội thoại & khiếu nại ({conversations.length})
+          {t('conversations.history', { count: conversations.length })}
         </h3>
       </div>
 
@@ -69,13 +71,13 @@ export function CustomerConversationsTab({
         <Table className="min-w-[850px]">
           <TableHeader className="bg-surface-lifted border-b border-hairline">
             <TableRow>
-              <TableHead className="w-24 whitespace-nowrap">Mã phiên</TableHead>
-              <TableHead className="w-36 whitespace-nowrap">Thời điểm</TableHead>
-              <TableHead className="w-44 whitespace-nowrap">Ý định (Intent)</TableHead>
-              <TableHead className="w-28 whitespace-nowrap">Mức ưu tiên</TableHead>
-              <TableHead className="w-44 whitespace-nowrap">Agent phụ trách</TableHead>
-              <TableHead className="w-32 whitespace-nowrap">Trạng thái</TableHead>
-              <TableHead className="w-28 text-right whitespace-nowrap">Thao tác</TableHead>
+              <TableHead className="w-24 whitespace-nowrap">{t('conversations.sessionId')}</TableHead>
+              <TableHead className="w-36 whitespace-nowrap">{t('conversations.time')}</TableHead>
+              <TableHead className="w-44 whitespace-nowrap">{t('conversations.intent')}</TableHead>
+              <TableHead className="w-28 whitespace-nowrap">{t('conversations.priority')}</TableHead>
+              <TableHead className="w-44 whitespace-nowrap">{t('conversations.agent')}</TableHead>
+              <TableHead className="w-32 whitespace-nowrap">{t('conversations.status')}</TableHead>
+              <TableHead className="w-28 text-right whitespace-nowrap">{t('conversations.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -94,7 +96,7 @@ export function CustomerConversationsTab({
                 {/* Intent */}
                 <TableCell>
                   <span className="text-xs font-medium text-foreground">
-                    {conv.intent?.name ?? 'Hỏi đáp chung'}
+                    {conv.intent?.name ?? t('conversations.generalInquiry')}
                   </span>
                 </TableCell>
 
@@ -107,7 +109,7 @@ export function CustomerConversationsTab({
 
                 {/* Agent */}
                 <TableCell className="text-xs text-muted">
-                  {conv.assignedAgent?.name ?? 'Chưa phân công'}
+                  {conv.assignedAgent?.name ?? t('conversations.unassigned')}
                 </TableCell>
 
                 {/* Status */}
@@ -121,7 +123,7 @@ export function CustomerConversationsTab({
                 <TableCell className="text-right">
                   <Link href={`/?conversationId=${conv.id}`}>
                     <Button variant="outline" size="xs">
-                      Mở chat
+                      {t('conversations.openChat')}
                     </Button>
                   </Link>
                 </TableCell>

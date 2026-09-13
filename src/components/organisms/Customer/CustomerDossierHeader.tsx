@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { useClipboard } from '@/hooks';
 import { Badge, Button, IconButton } from '@/components/atoms';
 import { VipTierBadge } from '@/components/molecules';
@@ -20,6 +21,7 @@ export function CustomerDossierHeader({
   hideBackLink = false,
 }: CustomerDossierHeaderProps) {
   const { copy, hasCopied } = useClipboard({ timeout: 1500 });
+  const t = useTranslations('customers');
   const vipScorePct = Math.min(100, Math.max(0, customer.vipScore));
 
   let scoreColor = 'bg-muted';
@@ -39,8 +41,8 @@ export function CustomerDossierHeader({
                 type="button"
                 variant="ghost"
                 size="xs"
-                ariaLabel={hasCopied ? 'Đã sao chép!' : 'Sao chép Buyer ID'}
-                tooltip={hasCopied ? 'Đã sao chép!' : 'Sao chép Buyer ID'}
+                ariaLabel={hasCopied ? t('table.copied') : t('table.copyBuyerId')}
+                tooltip={hasCopied ? t('table.copied') : t('table.copyBuyerId')}
                 onClick={() => copy(customer.platformBuyerId)}
                 className="text-muted hover:text-foreground"
               >
@@ -66,32 +68,38 @@ export function CustomerDossierHeader({
 
             {customer.consentStatus === 'granted' ? (
               <Badge variant="success" size="sm">
-                Quyền riêng tư: Đã cấp
+                {t('header.privacyGranted')}
               </Badge>
             ) : (
               <Badge variant="secondary" size="sm">
-                Quyền riêng tư: Thu hồi
+                {t('header.privacyRevoked')}
               </Badge>
             )}
 
             {customer.preferredLanguage && (
               <Badge variant="info" size="sm">
-                Ngôn ngữ: {customer.preferredLanguage.toUpperCase()}
+                {t('header.language', { language: customer.preferredLanguage.toUpperCase() })}
               </Badge>
             )}
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
             <span>
-              Mã hệ thống: <strong className="font-mono text-foreground">#{customer.id}</strong>
+              {t.rich('header.systemId', { id: customer.id, strong: (chunks) => <strong className="font-mono text-foreground">{chunks}</strong> })}
             </span>
             <span>•</span>
             <span>
-              Tham gia: <strong className="text-foreground">{formatDate(customer.createdAt)}</strong>
+              {t.rich('header.joined', {
+                date: formatDate(customer.createdAt),
+                strong: (chunks) => <strong className="text-foreground">{chunks}</strong>,
+              })}
             </span>
             <span>•</span>
             <span>
-              Cập nhật gần nhất: <strong className="text-foreground">{formatDate(customer.updatedAt)}</strong>
+              {t.rich('header.lastUpdated', {
+                date: formatDate(customer.updatedAt),
+                strong: (chunks) => <strong className="text-foreground">{chunks}</strong>,
+              })}
             </span>
           </div>
         </div>
@@ -102,7 +110,7 @@ export function CustomerDossierHeader({
           <div className="flex items-center gap-3 rounded-lg border border-hairline bg-surface-lifted px-3.5 py-2">
             <div className="flex flex-col">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted">
-                Điểm VIP RFM
+                {t('header.vipRfmScore')}
               </span>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-black font-mono tracking-tight text-foreground">
@@ -132,13 +140,13 @@ export function CustomerDossierHeader({
                 </svg>
               }
             >
-              Chỉnh sửa hồ sơ
+              {t('header.editProfile')}
             </Button>
 
             {!hideBackLink && (
               <Link href="/customers">
                 <Button type="button" variant="outline" size="sm">
-                  Quay lại
+                  {t('header.back')}
                 </Button>
               </Link>
             )}

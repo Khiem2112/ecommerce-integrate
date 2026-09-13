@@ -2,6 +2,7 @@
 
 import { useAtom } from 'jotai';
 import { useDeferredValue, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { inboxFiltersAtom } from '@/atoms/workspaceAtoms';
 import { Badge, Input } from '@/components/atoms';
 import { ConversationRow, InboxFilters } from '@/components/molecules';
@@ -17,6 +18,7 @@ export function ConversationInbox({
   selectedConversationId,
   onSelectConversation,
 }: ConversationInboxProps) {
+  const t = useTranslations('workspace');
   const [filters, setFilters] = useAtom(inboxFiltersAtom);
   const [searchText, setSearchText] = useState(filters.searchQuery ?? '');
   const deferredSearchText = useDeferredValue(searchText);
@@ -35,8 +37,8 @@ export function ConversationInbox({
       <div className="shrink-0 border-b border-hairline px-4 py-5">
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold tracking-tight text-foreground">Conversations</h2>
-            <p className="mt-1 text-sm text-muted">Live customer inbox</p>
+            <h2 className="text-base font-semibold tracking-tight text-foreground">{t('inbox.title')}</h2>
+            <p className="mt-1 text-sm text-muted">{t('inbox.subtitle')}</p>
           </div>
           <Badge
             variant="secondary"
@@ -59,8 +61,8 @@ export function ConversationInbox({
           <Input
             value={searchText}
             onChange={(event) => handleSearchChange(event.target.value)}
-            placeholder="Search ID, intent, message"
-            aria-label="Search conversations"
+            placeholder={t('inbox.searchPlaceholder')}
+            aria-label={t('inbox.searchAria')}
             size="sm"
             className="pl-8.5"
           />
@@ -75,14 +77,14 @@ export function ConversationInbox({
 
       <div
         tabIndex={0}
-        aria-label="Conversation list"
+        aria-label={t('inbox.listAria')}
         className="custom-scrollbar min-h-0 flex-1 overflow-y-auto outline-none"
       >
         {isLoading && <InboxSkeleton />}
         {error && (
           <div className="m-2">
             <ErrorBanner
-              message={`Unable to load the inbox.${error.message ? ` ${error.message}` : ''}`}
+              message={`${t('inbox.loadFailed')}${error.message ? ` ${error.message}` : ''}`}
               onRetry={() => void refetch()}
             />
           </div>
@@ -90,9 +92,9 @@ export function ConversationInbox({
         {!isLoading && !error && conversations.length === 0 && (
           <div className="grid min-h-48 place-items-center px-5 text-center">
             <div>
-              <p className="text-base font-semibold tracking-tight text-foreground">No conversations found</p>
+              <p className="text-base font-semibold tracking-tight text-foreground">{t('inbox.emptyTitle')}</p>
               <p className="mt-1.5 text-sm leading-6 text-muted">
-                Try changing your filters or clearing the search query.
+                {t('inbox.emptyDescription')}
               </p>
             </div>
           </div>
@@ -111,8 +113,9 @@ export function ConversationInbox({
 }
 
 function InboxSkeleton() {
+  const t = useTranslations('workspace');
   return (
-    <div className="divide-y divide-hairline" aria-label="Loading conversations">
+    <div className="divide-y divide-hairline" aria-label={t('inbox.loading')}>
       {Array.from({ length: 6 }, (_, index) => (
         <div
           key={`inbox-skeleton-${index}`}

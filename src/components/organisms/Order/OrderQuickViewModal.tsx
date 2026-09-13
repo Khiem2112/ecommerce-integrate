@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { useOrder, useOrderLookups } from '@/hooks';
 import {
   Dialog,
@@ -27,6 +28,8 @@ export function OrderQuickViewModal({
   onClose,
   initialTab = 'general',
 }: OrderQuickViewModalProps) {
+  const t = useTranslations('orders.modals.quickView');
+  const tc = useTranslations('common');
   const {
     data: order,
     isLoading,
@@ -53,7 +56,7 @@ export function OrderQuickViewModal({
             <div>
               <div className="flex items-center gap-2">
                 <DialogTitle className="text-sm font-semibold text-foreground">
-                  Chi tiết đơn hàng
+                  {t('modalTitle')}
                 </DialogTitle>
                 {order && (
                   <>
@@ -67,7 +70,7 @@ export function OrderQuickViewModal({
                 )}
               </div>
               <DialogDescription className="text-[11px] text-muted">
-                Xem nhanh các dòng sản phẩm, dòng tiền, lịch sử chuyển trạng thái đơn
+                {t('description')}
               </DialogDescription>
             </div>
           </div>
@@ -81,7 +84,7 @@ export function OrderQuickViewModal({
                 className="hidden sm:inline-flex"
               >
                 <Button type="button" variant="outline" size="xs">
-                  <span className="mr-1">Mở trang đầy đủ</span>
+                  <span className="mr-1">{t('openFullPage')}</span>
                   <svg aria-hidden="true" className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                   </svg>
@@ -92,8 +95,8 @@ export function OrderQuickViewModal({
             <IconButton
               variant="ghost"
               size="sm"
-              ariaLabel="Đóng modal"
-              tooltip="Đóng"
+              ariaLabel={tc('close')}
+              tooltip={tc('close')}
               onClick={onClose}
               className="text-muted hover:text-foreground"
               icon={
@@ -112,7 +115,7 @@ export function OrderQuickViewModal({
           {(error || (!isLoading && !order)) && (
             <div className="m-4">
               <ErrorBanner
-                message={`Không thể tải thông tin đơn hàng.${error?.message ? ` ${error.message}` : ''}`}
+                message={`${t('loadFailed')}${error?.message ? ` ${error.message}` : ''}`}
                 onRetry={() => void refetch()}
               />
             </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import { useDebounce } from '@/hooks';
 import { Button, Input, Combobox, type ComboboxItem } from '@/components/atoms';
 import type { OrderFilterParams, OrderLookupOptions } from '@/types';
@@ -18,6 +19,7 @@ export function OrderFilterBar({
   onFilterChange,
   onReset,
 }: OrderFilterBarProps) {
+  const t = useTranslations('orders');
   const [searchInput, setSearchInput] = useState(filters.keyword ?? '');
   const [prevKeyword, setPrevKeyword] = useState(filters.keyword ?? '');
   const debouncedKeyword = useDebounce(searchInput, 400);
@@ -37,20 +39,20 @@ export function OrderFilterBar({
   }, [debouncedKeyword, filters.keyword, onFilterChange]);
 
   const platformOptions: readonly ComboboxItem[] = useMemo(() => [
-    { value: '', label: 'Tất cả sàn' },
+    { value: '', label: t('filters.allPlatforms') },
     ...(lookups?.platforms.map((p) => ({
       value: String(p.id),
       label: p.name,
     })) ?? []),
-  ], [lookups?.platforms]);
+  ], [lookups?.platforms, t]);
 
   const statusOptions: readonly ComboboxItem[] = useMemo(() => [
-    { value: '', label: 'Tất cả trạng thái' },
+    { value: '', label: t('filters.allStatuses') },
     ...(lookups?.statuses.map((s) => ({
       value: String(s.id),
       label: s.name,
     })) ?? []),
-  ], [lookups?.statuses]);
+  ], [lookups?.statuses, t]);
 
   const hasActiveFilters = Boolean(
     filters.keyword ||
@@ -65,7 +67,7 @@ export function OrderFilterBar({
         {/* Search by Order ID / Customer */}
         <div className="relative w-full sm:max-w-xs">
           <Input
-            placeholder="Tìm theo mã đơn hoặc người mua..."
+            placeholder={t('filters.searchPlaceholder')}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="w-full pl-8 text-xs"
@@ -92,8 +94,8 @@ export function OrderFilterBar({
               const parsed = val ? Number(val) : undefined;
               onFilterChange({ platformId: parsed, page: 1 });
             }}
-            placeholder="Tất cả sàn"
-            ariaLabel="Lọc theo sàn thương mại"
+            placeholder={t('filters.allPlatforms')}
+            ariaLabel={t('filters.platformAria')}
           />
         </div>
 
@@ -106,8 +108,8 @@ export function OrderFilterBar({
               const parsed = val ? Number(val) : undefined;
               onFilterChange({ statusId: parsed, page: 1 });
             }}
-            placeholder="Tất cả trạng thái"
-            ariaLabel="Lọc theo trạng thái đơn hàng"
+            placeholder={t('filters.allStatuses')}
+            ariaLabel={t('filters.statusAria')}
           />
         </div>
       </div>
@@ -127,7 +129,7 @@ export function OrderFilterBar({
           <svg aria-hidden="true" className="mr-1 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
           </svg>
-          Đặt lại bộ lọc
+          {t('filters.reset')}
         </Button>
       )}
     </div>

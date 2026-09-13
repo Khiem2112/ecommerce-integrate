@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { useFlashingRow, useClipboard } from '@/hooks';
 import {
   Table,
@@ -35,6 +36,7 @@ export type OrderTableProps = {
 
 function CopyableOrderId({ idText }: { readonly idText: string }) {
   const { copy, hasCopied } = useClipboard({ timeout: 1500 });
+  const t = useTranslations('orders');
 
   return (
     <div className="flex items-center gap-1.5 font-mono text-xs font-medium text-foreground">
@@ -43,8 +45,8 @@ function CopyableOrderId({ idText }: { readonly idText: string }) {
         type="button"
         variant="ghost"
         size="xs"
-        ariaLabel={hasCopied ? 'Đã sao chép!' : 'Sao chép mã đơn'}
-        tooltip={hasCopied ? 'Đã sao chép!' : 'Sao chép mã đơn'}
+        ariaLabel={hasCopied ? t('actions.copied') : t('actions.copyOrderId')}
+        tooltip={hasCopied ? t('actions.copied') : t('actions.copyOrderId')}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -74,12 +76,13 @@ export function OrderTable({
   onDeleteClick,
 }: OrderTableProps) {
   const { isFlashing } = useFlashingRow(3000);
+  const t = useTranslations('orders');
 
   return (
     <div className="flex flex-col gap-3">
       <div className="overflow-hidden rounded-lg border border-hairline-strong bg-surface-card/75 md:hidden">
         {isLoading ? (
-          <div className="divide-y divide-hairline" aria-label="Đang tải đơn hàng">
+          <div className="divide-y divide-hairline" aria-label={t('table.loading')}>
             {Array.from({ length: 5 }).map((_, index) => (
               <div key={`mobile-skeleton-${index}`} className="animate-pulse space-y-3 p-4">
                 <div className="h-3 w-2/5 rounded bg-hairline" />
@@ -90,8 +93,8 @@ export function OrderTable({
           </div>
         ) : orders.length === 0 ? (
           <div className="px-5 py-12 text-center">
-            <p className="text-sm font-semibold text-foreground">Không tìm thấy đơn hàng</p>
-            <p className="mt-1 text-xs text-muted">Thử thay đổi từ khóa hoặc bộ lọc.</p>
+            <p className="text-sm font-semibold text-foreground">{t('table.emptyMobileTitle')}</p>
+            <p className="mt-1 text-xs text-muted">{t('table.emptyMobileDescription')}</p>
           </div>
         ) : (
           <div className="divide-y divide-hairline">
@@ -121,33 +124,33 @@ export function OrderTable({
 
                   <dl className="mt-4 grid min-w-0 grid-cols-2 gap-x-4 gap-y-3 border-y border-hairline py-3 text-xs">
                     <div className="min-w-0">
-                      <dt className="text-muted">Người mua</dt>
+                      <dt className="text-muted">{t('table.buyer')}</dt>
                       <dd className="mt-0.5 truncate">
                         <MaskedBuyerId value={order.customer?.platformBuyerId} />
                       </dd>
                     </div>
                     <div className="min-w-0 text-right">
-                      <dt className="text-muted">Tổng tiền</dt>
+                      <dt className="text-muted">{t('table.total')}</dt>
                       <dd className="mt-0.5 font-semibold text-foreground">
                         {formatVND(order.totalValue)}
                       </dd>
                     </div>
                     <div className="min-w-0">
-                      <dt className="text-muted">Sản phẩm</dt>
-                      <dd className="mt-0.5 text-foreground">{order.items?.length || 0} sản phẩm</dd>
+                      <dt className="text-muted">{t('table.items')}</dt>
+                      <dd className="mt-0.5 text-foreground">{t('table.itemCount', { count: order.items?.length ?? 0 })}</dd>
                     </div>
                     <div className="min-w-0 text-right">
-                      <dt className="text-muted">Ngày tạo</dt>
+                      <dt className="text-muted">{t('table.createdAt')}</dt>
                       <dd className="mt-0.5 break-words text-foreground">{formatDate(order.createdAt)}</dd>
                     </div>
                   </dl>
 
                   <div className="mt-3 flex items-center justify-end gap-1">
                     <Link href={`/orders/${order.id}`}>
-                      <Button variant="ghost" size="xs">Xem</Button>
+                      <Button variant="ghost" size="xs">{t('actions.view')}</Button>
                     </Link>
                     <Link href={`/orders/${order.id}/edit`}>
-                      <Button variant="ghost" size="xs">Sửa</Button>
+                      <Button variant="ghost" size="xs">{t('actions.edit')}</Button>
                     </Link>
                     <Button
                       variant="ghost"
@@ -155,7 +158,7 @@ export function OrderTable({
                       onClick={() => onDeleteClick(order)}
                       className="text-semantic-error"
                     >
-                      Xóa
+                      {t('actions.delete')}
                     </Button>
                   </div>
                 </article>
@@ -172,14 +175,14 @@ export function OrderTable({
         >
           <TableHeader className="sticky top-0 z-10">
             <TableRow>
-              <TableHead className="w-44 whitespace-nowrap">Mã đơn hàng</TableHead>
-              <TableHead className="w-36 whitespace-nowrap">Nền tảng</TableHead>
-              <TableHead className="w-52 whitespace-nowrap">Khách hàng</TableHead>
-              <TableHead className="w-28 text-center whitespace-nowrap">Sản phẩm</TableHead>
-              <TableHead className="w-36 text-right whitespace-nowrap">Tổng tiền</TableHead>
-              <TableHead className="w-36 whitespace-nowrap">Trạng thái</TableHead>
-              <TableHead className="w-40 whitespace-nowrap">Thời gian tạo</TableHead>
-              <TableHead className="w-28 text-right whitespace-nowrap">Thao tác</TableHead>
+              <TableHead className="w-44 whitespace-nowrap">{t('table.orderId')}</TableHead>
+              <TableHead className="w-36 whitespace-nowrap">{t('table.platform')}</TableHead>
+              <TableHead className="w-52 whitespace-nowrap">{t('table.customer')}</TableHead>
+              <TableHead className="w-28 text-center whitespace-nowrap">{t('table.items')}</TableHead>
+              <TableHead className="w-36 text-right whitespace-nowrap">{t('table.total')}</TableHead>
+              <TableHead className="w-36 whitespace-nowrap">{t('table.status')}</TableHead>
+              <TableHead className="w-40 whitespace-nowrap">{t('table.createdAt')}</TableHead>
+              <TableHead className="w-28 text-right whitespace-nowrap">{t('table.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -200,8 +203,8 @@ export function OrderTable({
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
                       </svg>
                     </div>
-                    <p className="text-sm font-medium text-foreground">Không tìm thấy đơn hàng nào</p>
-                    <p className="text-xs text-muted">Thử thay đổi từ khóa hoặc bộ lọc để xem kết quả.</p>
+                    <p className="text-sm font-medium text-foreground">{t('table.emptyTitle')}</p>
+                    <p className="text-xs text-muted">{t('table.emptyDescription')}</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -226,7 +229,7 @@ export function OrderTable({
                       >
                         <CopyableOrderId idText={order.platformOrderId} />
                         <span className="text-xs text-muted group-hover:text-primary transition-colors">
-                          ID hệ thống: #{order.id}
+                          {t('table.systemId', { id: order.id })}
                         </span>
                       </Link>
                     </TableCell>
@@ -247,7 +250,7 @@ export function OrderTable({
                             variant={getVipBadgeVariant(order.customer?.vipTier?.code)}
                             size="sm"
                           >
-                            {order.customer?.vipTier?.name ?? 'Standard'}
+                            {order.customer?.vipTier?.name ?? t('table.standardTier')}
                           </Badge>
                         </div>
                       </div>
@@ -281,7 +284,7 @@ export function OrderTable({
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={`/orders/${order.id}`}>
-                          <IconButton variant="ghost" size="sm" ariaLabel="Xem chi tiết" tooltip="Xem chi tiết">
+                          <IconButton variant="ghost" size="sm" ariaLabel={t('actions.viewDetails')} tooltip={t('actions.viewDetails')}>
                             <svg aria-hidden="true" className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
                               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -289,7 +292,7 @@ export function OrderTable({
                           </IconButton>
                         </Link>
                         <Link href={`/orders/${order.id}/edit`}>
-                          <IconButton variant="ghost" size="sm" ariaLabel="Chỉnh sửa" tooltip="Chỉnh sửa">
+                          <IconButton variant="ghost" size="sm" ariaLabel={t('actions.editOrder')} tooltip={t('actions.editOrder')}>
                             <svg aria-hidden="true" className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                             </svg>
@@ -298,10 +301,10 @@ export function OrderTable({
                         <IconButton
                           variant="ghost"
                           size="sm"
-                          ariaLabel="Xóa"
+                          ariaLabel={t('actions.delete')}
                           onClick={() => onDeleteClick(order)}
                           className="text-muted hover:text-semantic-error"
-                          tooltip="Xóa đơn hàng"
+                          tooltip={t('actions.deleteOrder')}
                         >
                           <svg aria-hidden="true" className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />

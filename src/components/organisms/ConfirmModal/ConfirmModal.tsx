@@ -9,6 +9,8 @@ import {
   Button,
 } from '@/components/atoms';
 
+import { useTranslations } from 'next-intl';
+
 export type ConfirmModalProps = {
   readonly open: boolean;
   readonly title: string;
@@ -25,13 +27,16 @@ export function ConfirmModal({
   open,
   title,
   description,
-  confirmLabel = 'Xác nhận',
-  cancelLabel = 'Hủy',
+  confirmLabel,
+  cancelLabel,
   isDestructive = false,
   isLoading = false,
   onConfirm,
   onClose,
 }: ConfirmModalProps) {
+  const t = useTranslations('common');
+  const resolvedConfirm = confirmLabel ?? t('confirm');
+  const resolvedCancel = cancelLabel ?? t('cancel');
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent hideCloseButton className="max-w-md p-6">
@@ -65,7 +70,7 @@ export function ConfirmModal({
             onClick={onClose}
             disabled={isLoading}
           >
-            {cancelLabel}
+            {resolvedCancel}
           </Button>
           <Button
             type="button"
@@ -74,7 +79,7 @@ export function ConfirmModal({
             onClick={onConfirm}
             disabled={isLoading}
           >
-            {isLoading ? 'Đang xử lý...' : confirmLabel}
+            {isLoading ? t('processing') : resolvedConfirm}
           </Button>
         </div>
       </DialogContent>

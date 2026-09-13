@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { useClipboard } from '@/hooks';
 import {
   Table,
@@ -29,6 +30,7 @@ export type CustomerTableProps = {
 
 function CopyableBuyerId({ idText, platformName }: { readonly idText: string; readonly platformName: string }) {
   const { copy, hasCopied } = useClipboard({ timeout: 1500 });
+  const t = useTranslations('customers');
 
   return (
     <div className="flex flex-col gap-0.5">
@@ -43,8 +45,8 @@ function CopyableBuyerId({ idText, platformName }: { readonly idText: string; re
           type="button"
           variant="ghost"
           size="xs"
-          ariaLabel={hasCopied ? 'Đã sao chép!' : 'Sao chép Buyer ID'}
-          tooltip={hasCopied ? 'Đã sao chép!' : 'Sao chép Buyer ID'}
+          ariaLabel={hasCopied ? t('table.copied') : t('table.copyBuyerId')}
+          tooltip={hasCopied ? t('table.copied') : t('table.copyBuyerId')}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -98,11 +100,12 @@ export function CustomerTable({
   onPageSizeChange,
   onQuickEdit,
 }: CustomerTableProps) {
+  const t = useTranslations('customers');
   return (
     <div className="flex flex-col gap-3">
       <div className="overflow-hidden rounded-lg border border-hairline-strong bg-surface-card/75 md:hidden">
         {isLoading ? (
-          <div className="divide-y divide-hairline" aria-label="Đang tải khách hàng">
+          <div className="divide-y divide-hairline" aria-label={t('table.loading')}>
             {Array.from({ length: 5 }).map((_, index) => (
               <div key={`mobile-skeleton-${index}`} className="animate-pulse space-y-3 p-4">
                 <div className="h-3 w-2/5 rounded bg-hairline" />
@@ -113,8 +116,8 @@ export function CustomerTable({
           </div>
         ) : customers.length === 0 ? (
           <div className="px-5 py-12 text-center">
-            <p className="text-sm font-semibold text-foreground">Không tìm thấy khách hàng</p>
-            <p className="mt-1 text-xs text-muted">Thử thay đổi từ khóa hoặc bộ lọc.</p>
+            <p className="text-sm font-semibold text-foreground">{t('table.emptyMobileTitle')}</p>
+            <p className="mt-1 text-xs text-muted">{t('table.emptyMobileDescription')}</p>
           </div>
         ) : (
           <div className="divide-y divide-hairline">
@@ -132,38 +135,38 @@ export function CustomerTable({
 
                 <dl className="mt-4 grid min-w-0 grid-cols-2 gap-x-4 gap-y-3 border-y border-hairline py-3 text-xs">
                   <div className="min-w-0">
-                    <dt className="text-muted">Điểm VIP</dt>
+                    <dt className="text-muted">{t('table.vipScore')}</dt>
                     <dd className="mt-0.5 font-mono font-semibold text-foreground">
                       {customer.vipScore.toFixed(1)} / 100
                     </dd>
                   </div>
                   <div className="min-w-0 text-right">
-                    <dt className="text-muted">Tổng chi tiêu</dt>
+                    <dt className="text-muted">{t('table.totalSpend')}</dt>
                     <dd className="mt-0.5 font-semibold text-foreground">
                       {formatVND(customer.totalSpend)}
                     </dd>
                   </div>
                   <div className="min-w-0">
-                    <dt className="text-muted">Đơn hàng</dt>
-                    <dd className="mt-0.5 text-foreground">{customer.orderCount} đơn</dd>
+                    <dt className="text-muted">{t('table.orders')}</dt>
+                    <dd className="mt-0.5 text-foreground">{t('table.orderCount', { count: customer.orderCount })}</dd>
                   </div>
                   <div className="min-w-0 text-right">
-                    <dt className="text-muted">Mua gần nhất</dt>
+                    <dt className="text-muted">{t('table.lastPurchase')}</dt>
                     <dd className="mt-0.5 text-foreground">
                       {customer.daysSinceLastOrder === null || customer.daysSinceLastOrder === undefined
-                        ? 'Chưa mua'
-                        : `${customer.daysSinceLastOrder} ngày trước`}
+                        ? t('table.notPurchased')
+                        : t('table.daysAgo', { count: customer.daysSinceLastOrder })}
                     </dd>
                   </div>
                 </dl>
 
                 <div className="mt-3 flex items-center justify-end gap-1">
                   <Link href={`/customers/${customer.id}`}>
-                    <Button variant="ghost" size="xs">Xem hồ sơ</Button>
+                    <Button variant="ghost" size="xs">{t('table.viewProfile')}</Button>
                   </Link>
                   {onQuickEdit && (
                     <Button variant="ghost" size="xs" onClick={() => onQuickEdit(customer)}>
-                      Chỉnh sửa
+                      {t('table.edit')}
                     </Button>
                   )}
                 </div>
@@ -180,15 +183,15 @@ export function CustomerTable({
         >
           <TableHeader className="sticky top-0 z-10">
             <TableRow>
-              <TableHead className="w-48 whitespace-nowrap">Khách hàng</TableHead>
-              <TableHead className="w-32 whitespace-nowrap">Phân hạng</TableHead>
-              <TableHead className="w-32 whitespace-nowrap">Điểm VIP RFM</TableHead>
-              <TableHead className="w-36 text-right whitespace-nowrap">Tổng chi tiêu</TableHead>
-              <TableHead className="w-44 whitespace-nowrap">Tần suất & AOV</TableHead>
-              <TableHead className="w-32 whitespace-nowrap">Mua gần nhất</TableHead>
-              <TableHead className="w-36 whitespace-nowrap">Hủy / Hoàn</TableHead>
-              <TableHead className="w-28 whitespace-nowrap">Quyền riêng tư</TableHead>
-              <TableHead className="w-32 text-right whitespace-nowrap">Thao tác</TableHead>
+              <TableHead className="w-48 whitespace-nowrap">{t('table.customer')}</TableHead>
+              <TableHead className="w-32 whitespace-nowrap">{t('table.tier')}</TableHead>
+              <TableHead className="w-32 whitespace-nowrap">{t('table.vipScore')}</TableHead>
+              <TableHead className="w-36 text-right whitespace-nowrap">{t('table.totalSpend')}</TableHead>
+              <TableHead className="w-44 whitespace-nowrap">{t('table.frequencyAndAov')}</TableHead>
+              <TableHead className="w-32 whitespace-nowrap">{t('table.lastPurchase')}</TableHead>
+              <TableHead className="w-36 whitespace-nowrap">{t('table.cancellationsRefunds')}</TableHead>
+              <TableHead className="w-28 whitespace-nowrap">{t('table.privacy')}</TableHead>
+              <TableHead className="w-32 text-right whitespace-nowrap">{t('table.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -214,7 +217,7 @@ export function CustomerTable({
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
                     </svg>
-                    <span>Không tìm thấy khách hàng nào phù hợp với bộ lọc.</span>
+                    <span>{t('table.emptyTitle')}</span>
                   </div>
                 </TableCell>
               </TableRow>
@@ -265,10 +268,10 @@ export function CustomerTable({
                     <TableCell>
                       <div className="flex flex-col text-xs">
                         <span className="font-medium text-foreground">
-                          {customer.orderCount} đơn hàng
+                          {t('table.orders', { count: customer.orderCount })}
                         </span>
                         <span className="text-[11px] text-muted">
-                          AOV: {formatVND(customer.avgOrderValue)}
+                          {t('table.aov', { value: formatVND(customer.avgOrderValue) })}
                         </span>
                       </div>
                     </TableCell>
@@ -277,8 +280,8 @@ export function CustomerTable({
                     <TableCell>
                       <span className="text-xs text-muted">
                         {customer.daysSinceLastOrder === null || customer.daysSinceLastOrder === undefined
-                          ? 'Chưa mua'
-                          : `${customer.daysSinceLastOrder} ngày trước`}
+                          ? t('table.notPurchased')
+                          : t('table.daysAgo', { count: customer.daysSinceLastOrder })}
                       </span>
                     </TableCell>
 
@@ -293,7 +296,7 @@ export function CustomerTable({
                               : 'text-muted',
                           )}
                         >
-                          Hủy: {cancelPct}%
+                          {t('table.cancelRate', { rate: cancelPct })}
                         </span>
                         <span className="text-muted/40">•</span>
                         <span
@@ -304,7 +307,7 @@ export function CustomerTable({
                               : 'text-muted',
                           )}
                         >
-                          Hoàn: {refundPct}%
+                          {t('table.refundRate', { rate: refundPct })}
                         </span>
                       </div>
                     </TableCell>
@@ -313,11 +316,11 @@ export function CustomerTable({
                     <TableCell>
                       {customer.consentStatus === 'granted' ? (
                         <Badge variant="success" size="sm">
-                          Đã cấp quyền
+                          {t('table.consentGranted')}
                         </Badge>
                       ) : (
                         <Badge variant="secondary" size="sm">
-                          Thu hồi
+                          {t('table.consentRevoked')}
                         </Badge>
                       )}
                     </TableCell>
@@ -325,12 +328,12 @@ export function CustomerTable({
                     {/* Actions */}
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Link href={`/customers/${customer.id}`} title="Xem hồ sơ 360°">
+                        <Link href={`/customers/${customer.id}`} title={t('table.viewProfile')}>
                           <IconButton
                             variant="ghost"
                             size="sm"
-                            ariaLabel="Xem hồ sơ 360°"
-                            tooltip="Xem hồ sơ 360°"
+                            ariaLabel={t('table.viewProfile')}
+                            tooltip={t('table.viewProfile')}
                             className="text-muted hover:text-foreground"
                           >
                             <svg
@@ -352,8 +355,8 @@ export function CustomerTable({
                             type="button"
                             variant="ghost"
                             size="sm"
-                            ariaLabel="Chỉnh sửa nhanh"
-                            tooltip="Chỉnh sửa hồ sơ"
+                            ariaLabel={t('table.quickEdit')}
+                            tooltip={t('table.editProfile')}
                             onClick={() => onQuickEdit(customer)}
                             className="text-muted hover:text-foreground"
                           >
@@ -388,7 +391,7 @@ export function CustomerTable({
           pageSize={pagination.pageSize}
           onPageChange={onPageChange}
           onPageSizeChange={onPageSizeChange}
-          itemLabel="khách hàng"
+          itemLabel={t('table.customer')}
         />
       )}
     </div>

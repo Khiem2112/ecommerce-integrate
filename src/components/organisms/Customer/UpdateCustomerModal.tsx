@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { customerUpdateSchema, type CustomerUpdateFormValues } from '@/forms';
@@ -27,16 +28,6 @@ export type UpdateCustomerModalProps = {
   readonly onSaveSuccess?: () => void;
 };
 
-const CONSENT_OPTIONS: readonly ComboboxItem[] = [
-  { value: 'granted', label: 'Đã cấp quyền (Granted)' },
-  { value: 'revoked', label: 'Thu hồi quyền (Revoked)' },
-];
-
-const LANGUAGE_OPTIONS: readonly ComboboxItem[] = [
-  { value: 'vi', label: 'Tiếng Việt (vi)' },
-  { value: 'en', label: 'Tiếng Anh (en)' },
-];
-
 const formatIsoUpdatedAt = (date: Date | string | null | undefined): string => {
   if (!date) return '';
   if (date instanceof Date) return date.toISOString();
@@ -52,6 +43,15 @@ export function UpdateCustomerModal({
 }: UpdateCustomerModalProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { mutateAsync: updateCustomer, isPending } = useUpdateCustomer();
+  const t = useTranslations('customers');
+  const consentOptions: readonly ComboboxItem[] = [
+    { value: 'granted', label: t('update.consentGranted') },
+    { value: 'revoked', label: t('update.consentRevoked') },
+  ];
+  const languageOptions: readonly ComboboxItem[] = [
+    { value: 'vi', label: t('update.vietnamese') },
+    { value: 'en', label: t('update.english') },
+  ];
 
   const initialCategories = parseCategoryList(customer.frequentCategories);
   const [categoriesInput, setCategoriesInput] = useState(initialCategories.join(', '));
@@ -109,7 +109,7 @@ export function UpdateCustomerModal({
       onSaveSuccess?.();
       handleClose();
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Cập nhật hồ sơ khách hàng thất bại');
+      setErrorMessage(err instanceof Error ? err.message : t('update.failed'));
     }
   };
 
@@ -119,7 +119,7 @@ export function UpdateCustomerModal({
         <div className="flex items-center justify-between border-b border-hairline pb-3">
           <div>
             <DialogTitle className="text-sm font-semibold text-foreground">
-              Chỉnh sửa hồ sơ khách hàng
+              {t('update.title')}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted mt-0.5 font-mono">
               {customer.platformBuyerId} ({customer.platform.name})
@@ -128,7 +128,7 @@ export function UpdateCustomerModal({
           <IconButton
             variant="ghost"
             size="sm"
-            ariaLabel="Đóng"
+            ariaLabel={t('update.close')}
             onClick={handleClose}
             className="text-muted hover:text-foreground"
           >
@@ -151,18 +151,18 @@ export function UpdateCustomerModal({
           {/* Consent Status */}
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Trạng thái quyền riêng tư (Privacy Consent)
+              {t('update.consentLabel')}
             </label>
             <Controller
               control={control}
               name="consentStatus"
               render={({ field }) => (
                 <Combobox
-                  items={CONSENT_OPTIONS}
+                  items={consentOptions}
                   value={field.value ?? 'granted'}
                   onChange={(val) => field.onChange(val as 'granted' | 'revoked')}
-                  placeholder="Chọn trạng thái quyền riêng tư..."
-                  ariaLabel="Chọn trạng thái quyền riêng tư"
+                  placeholder={t('update.consentPlaceholder')}
+                  ariaLabel={t('update.consentAria')}
                 />
               )}
             />
@@ -174,18 +174,18 @@ export function UpdateCustomerModal({
           {/* Preferred Language */}
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Ngôn ngữ ưu tiên hỗ trợ
+              {t('update.languageLabel')}
             </label>
             <Controller
               control={control}
               name="preferredLanguage"
               render={({ field }) => (
                 <Combobox
-                  items={LANGUAGE_OPTIONS}
+                  items={languageOptions}
                   value={field.value ?? 'vi'}
                   onChange={(val) => field.onChange(val)}
-                  placeholder="Chọn ngôn ngữ..."
-                  ariaLabel="Chọn ngôn ngữ ưu tiên"
+                  placeholder={t('update.languagePlaceholder')}
+                  ariaLabel={t('update.languageAria')}
                 />
               )}
             />
@@ -197,7 +197,7 @@ export function UpdateCustomerModal({
           {/* Frequent Categories */}
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Ngành hàng thường mua sắm (phân cách bằng dấu phẩy)
+              {t('update.categoriesLabel')}
             </label>
             <Controller
               control={control}
@@ -211,13 +211,13 @@ export function UpdateCustomerModal({
                     const parsed = parseCategoryList(val);
                     field.onChange(parsed as string[]);
                   }}
-                  placeholder="VD: electronics, fashion, beauty, home_appliances"
+                  placeholder={t('update.categoriesPlaceholder')}
                   className="text-xs font-mono"
                 />
               )}
             />
             <p className="mt-1 text-[11px] text-muted">
-              Được AI Copilot và định tuyến Agent sử dụng để phân loại sở thích khách hàng.
+              {t('update.categoriesDescription')}
             </p>
           </div>
 
@@ -229,7 +229,7 @@ export function UpdateCustomerModal({
               onClick={handleClose}
               disabled={isPending}
             >
-              Hủy
+              {t('update.cancel')}
             </Button>
             <Button
               type="submit"
@@ -237,7 +237,7 @@ export function UpdateCustomerModal({
               size="sm"
               disabled={isPending}
             >
-              {isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+              {isPending ? t('update.saving') : t('update.save')}
             </Button>
           </div>
         </form>

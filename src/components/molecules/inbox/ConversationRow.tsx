@@ -1,6 +1,7 @@
 'use client';
 
 import { Badge, type BadgeVariant } from '@/components/atoms';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/cn';
 import type { ConversationSummary } from '@/types';
 
@@ -10,24 +11,24 @@ type ConversationRowProps = {
   readonly onSelect: (conversationId: number) => void;
 };
 
-const INTENT_LABELS: Record<string, string> = {
-  delivery_status: 'Delivery',
-  refund_request: 'Refund',
-  product_info: 'Product',
-  cancellation: 'Cancel',
-  complaint: 'Complaint',
-  voucher: 'Voucher',
-  repurchase: 'Repurchase',
-  general: 'General',
+const INTENT_LABEL_KEYS: Record<string, string> = {
+  delivery_status: 'row.delivery',
+  refund_request: 'row.refund',
+  product_info: 'row.product',
+  cancellation: 'row.cancellation',
+  complaint: 'row.complaint',
+  voucher: 'row.voucher',
+  repurchase: 'row.repurchase',
+  general: 'row.general',
 };
 
-const STATUS_CONFIG: Record<string, { label: string; variant: BadgeVariant }> = {
-  open: { label: 'Open', variant: 'emerald' },
-  awaiting_reply: { label: 'Awaiting Reply', variant: 'amber' },
-  in_progress: { label: 'In Progress', variant: 'purple' },
-  escalated: { label: 'Escalated', variant: 'rose' },
-  resolved: { label: 'Resolved', variant: 'teal' },
-  closed: { label: 'Closed', variant: 'slate' },
+const STATUS_CONFIG: Record<string, { labelKey: string; variant: BadgeVariant }> = {
+  open: { labelKey: 'filters.open', variant: 'emerald' },
+  awaiting_reply: { labelKey: 'filters.awaitingReply', variant: 'amber' },
+  in_progress: { labelKey: 'filters.inProgress', variant: 'purple' },
+  escalated: { labelKey: 'filters.escalated', variant: 'rose' },
+  resolved: { labelKey: 'filters.resolved', variant: 'teal' },
+  closed: { labelKey: 'filters.closed', variant: 'slate' },
 };
 
 const PRIORITY_DOT_COLORS: Record<string, string> = {
@@ -44,36 +45,23 @@ const VIP_TIER_CONFIG: Record<string, { variant: BadgeVariant }> = {
   standard: { variant: 'slate' },
 };
 
-function formatRelativeTime(timestamp: string): string {
-  const elapsedMs = Date.now() - new Date(timestamp).getTime();
-  const minutes = Math.max(0, Math.floor(elapsedMs / 60_000));
-  if (minutes < 1) return 'now';
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
-  return `${Math.floor(hours / 24)}d`;
-}
-
-function buildTooltipText(conversation: ConversationSummary): string {
-  const lines = [
-    `Priority: ${conversation.priority}`,
-    `Status: ${conversation.status.name}`,
-  ];
-  if (conversation.intent) {
-    lines.push(`Intent: ${conversation.intent.name}`);
-  }
-  lines.push(`VIP: ${conversation.vipTierName}`);
-  lines.push(`Updated: ${formatRelativeTime(conversation.updatedAt)} ago`);
-  return lines.join('\n');
-}
-
 export function ConversationRow({ conversation, isActive, onSelect }: ConversationRowProps) {
-  const preview = conversation.latestMessage?.text ?? 'No messages yet';
+  const t = useTranslations('workspace');
+  const formatRelativeTime = (timestamp: string): string => {
+    const elapsedMs = Date.now() - new Date(timestamp).getTime();
+    const minutes = Math.max(0, Math.floor(elapsedMs / 60_000));
+    if (minutes < 1) return t('row.now');
+    if (minutes < 60) return t('row.minutes', { count: minutes });
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return t('row.hours', { count: hours });
+    return t('row.days', { count: Math.floor(hours / 24) });
+  };
+  const preview = conversation.latestMessage?.text ?? t('row.noMessages');
   const initial = conversation.customerIdentifier.slice(-2).toUpperCase();
 
   const statusCode = conversation.status.code;
   const statusInfo = STATUS_CONFIG[statusCode] ?? {
-    label: conversation.status.name,
+    labelKey: undefined,
     variant: 'slate' as BadgeVariant,
   };
 
@@ -86,14 +74,31 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
 
   /* Intent prefix for preview line */
   const intentLabel = conversation.intent
-    ? INTENT_LABELS[conversation.intent.code] ?? conversation.intent.name
+    ? INTENT_LABEL_KEYS[conversation.intent.code]
+      ? t(INTENT_LABEL_KEYS[conversation.intent.code])
+      : conversation.intent.name
     : null;
+  const relativeTime = formatRelativeTime(conversation.updatedAt);
+  const tooltip = conversation.intent
+    ? t('row.tooltip', {
+        priority: conversation.priority,
+        status: conversation.status.name,
+        intent: conversation.intent.name,
+        tier: conversation.vipTierName,
+        time: relativeTime,
+      })
+    : t('row.tooltipWithoutIntent', {
+        priority: conversation.priority,
+        status: conversation.status.name,
+        tier: conversation.vipTierName,
+        time: relativeTime,
+      });
 
   return (
     <button
       type="button"
       onClick={() => onSelect(conversation.id)}
-      title={buildTooltipText(conversation)}
+      title={tooltip}
       className={cn(
         'group relative w-full min-w-0 cursor-pointer overflow-hidden border-b border-hairline p-3 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-foreground/20',
         isActive
@@ -132,7 +137,7 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
               className="shrink-0 text-xs font-medium tabular-nums text-muted"
               dateTime={conversation.updatedAt}
             >
-              {formatRelativeTime(conversation.updatedAt)}
+              {relativeTime}
             </time>
           </div>
 
@@ -150,7 +155,7 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
               variant={statusInfo.variant}
               size="xs"
               useDot
-              label={statusInfo.label}
+              label={statusInfo.labelKey ? t(statusInfo.labelKey) : conversation.status.name}
             />
 
             {conversation.latestDraft?.status === 'pending' && !conversation.latestDraft?.isOutdated && (
@@ -158,7 +163,7 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
                 variant="warning"
                 size="xs"
                 className="px-1.5 py-0 text-[11px] font-semibold"
-                label="✦ AI Draft"
+                label={t('row.aiDraft')}
               />
             )}
 
@@ -167,7 +172,7 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
                 variant="rose"
                 size="xs"
                 className="px-1.5 py-0 text-[11px] font-semibold"
-                label="⚠️ Outdated"
+                label={t('row.outdated')}
               />
             )}
 
@@ -176,7 +181,7 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
                 variant="success"
                 size="xs"
                 className="px-1.5 py-0 text-[11px] font-semibold"
-                label="✓ AI Saved"
+                label={t('row.aiSaved')}
               />
             )}
 

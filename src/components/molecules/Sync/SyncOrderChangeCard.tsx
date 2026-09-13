@@ -6,7 +6,8 @@
  */
 
 import React from 'react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/atoms';
 import { SyncFieldDiffTable } from './SyncFieldDiffTable';
 import { SyncItemChangeList } from './SyncItemChangeList';
@@ -26,6 +27,7 @@ export function SyncOrderChangeCard({
   onToggle,
   showInternalLink = true,
 }: SyncOrderChangeCardProps) {
+  const t = useTranslations('integrations.diff');
   const { externalOrderId, orderChange, itemChanges } = group;
   const hasHeaderDiffs = orderChange?.changes && Object.keys(orderChange.changes).length > 0;
 
@@ -42,7 +44,7 @@ export function SyncOrderChangeCard({
         <div className="flex items-center gap-3">
           <button
             type="button"
-            aria-label={isExpanded ? 'Thu gọn đơn hàng' : 'Mở rộng đơn hàng'}
+            aria-label={isExpanded ? t('collapseOrder') : t('expandOrder')}
             className="size-6 flex items-center justify-center rounded-md border border-hairline bg-surface-card text-muted hover:text-foreground transition"
           >
             <svg
@@ -75,20 +77,20 @@ export function SyncOrderChangeCard({
                   size="xs"
                 >
                   {orderChange.changeType === 'created'
-                    ? 'Tạo mới đơn hàng'
+                    ? t('createOrder')
                     : orderChange.changeType === 'updated'
-                      ? 'Cập nhật đơn hàng'
-                      : 'Vô hiệu hóa'}
+                      ? t('updateOrder')
+                      : t('inactivateOrder')}
                 </Badge>
               ) : (
                 <Badge variant="secondary" size="xs">
-                  Đơn hàng không đổi
+                  {t('orderUnchanged')}
                 </Badge>
               )}
 
               {itemChanges.length > 0 && (
                 <Badge variant="purple" size="xs">
-                  {itemChanges.length} sản phẩm thay đổi
+                  {t('itemsChanged', { count: itemChanges.length })}
                 </Badge>
               )}
             </div>
@@ -101,7 +103,7 @@ export function SyncOrderChangeCard({
               href={`/orders/${orderChange.internalId}`}
               className="inline-flex items-center gap-1 text-[11px] font-semibold text-status-info hover:underline"
             >
-              <span>Mở đơn #{orderChange.internalId}</span>
+              <span>{t('openOrder', { id: orderChange.internalId })}</span>
               <svg aria-hidden="true" className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
               </svg>
@@ -119,8 +121,8 @@ export function SyncOrderChangeCard({
               diffs={orderChange.changes}
               title={
                 orderChange.changeType === 'created'
-                  ? 'Thông tin đơn hàng khởi tạo (Snapshot)'
-                  : 'Thay đổi thông tin đơn hàng (Header Diff)'
+                  ? t('snapshotTitle')
+                  : t('headerDiffTitle')
               }
             />
           ) : orderChange?.changeType === 'created' ? (
@@ -128,7 +130,7 @@ export function SyncOrderChangeCard({
               <svg aria-hidden="true" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
               </svg>
-              <span>Đơn hàng mới được nạp đầy đủ từ Lazada và khởi tạo trong cơ sở dữ liệu.</span>
+              <span>{t('snapshotDesc')}</span>
             </div>
           ) : null}
 

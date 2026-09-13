@@ -4,7 +4,8 @@
  * Result Summary Display for Batch Order Synchronization.
  */
 
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { Badge, Button } from '@/components/atoms';
 import { cn } from '@/lib/cn';
 import type { SyncResult } from '@/types';
@@ -18,6 +19,7 @@ export type SyncResultSummaryProps = {
 export function SyncResultSummary({ result, onDismiss, onRetryFailed }: SyncResultSummaryProps) {
   const isSuccess = result.status === 'completed';
   const isPartial = result.status === 'partial';
+  const t = useTranslations('syncResult');
 
   return (
     <div className="rounded-xl border border-hairline bg-surface-card p-5 shadow-card space-y-4 animate-in fade-in duration-200">
@@ -43,10 +45,10 @@ export function SyncResultSummary({ result, onDismiss, onRetryFailed }: SyncResu
           </div>
           <div>
             <h4 className="text-sm font-semibold text-foreground">
-              {isSuccess ? 'Đồng bộ đơn hàng thành công' : isPartial ? 'Đồng bộ hoàn tất một phần' : 'Đồng bộ thất bại'}
+              {isSuccess ? t('completed') : isPartial ? t('partial') : t('failed')}
             </h4>
             <p className="text-[11px] text-muted font-mono">
-              Mã đợt: {result.syncId}
+              {t('batchCode', { syncId: result.syncId })}
             </p>
           </div>
         </div>
@@ -62,19 +64,19 @@ export function SyncResultSummary({ result, onDismiss, onRetryFailed }: SyncResu
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <div className="rounded-lg bg-surface-lifted border border-hairline p-3 text-center">
-          <span className="text-[11px] text-muted block mb-0.5">Tạo mới</span>
+          <span className="text-[11px] text-muted block mb-0.5">{t('created')}</span>
           <span className="text-lg font-bold text-status-success">+{result.created}</span>
         </div>
         <div className="rounded-lg bg-surface-lifted border border-hairline p-3 text-center">
-          <span className="text-[11px] text-muted block mb-0.5">Cập nhật</span>
+          <span className="text-[11px] text-muted block mb-0.5">{t('updated')}</span>
           <span className="text-lg font-bold text-status-info">~{result.updated}</span>
         </div>
         <div className="rounded-lg bg-surface-lifted border border-hairline p-3 text-center">
-          <span className="text-[11px] text-muted block mb-0.5">Không đổi</span>
+          <span className="text-[11px] text-muted block mb-0.5">{t('unchanged')}</span>
           <span className="text-lg font-bold text-muted">={result.unchanged}</span>
         </div>
         <div className="rounded-lg bg-surface-lifted border border-hairline p-3 text-center">
-          <span className="text-[11px] text-muted block mb-0.5">Lỗi</span>
+          <span className="text-[11px] text-muted block mb-0.5">{t('errors')}</span>
           <span className={cn('text-lg font-bold', result.failed > 0 ? 'text-semantic-error' : 'text-muted')}>
             ×{result.failed}
           </span>
@@ -86,7 +88,7 @@ export function SyncResultSummary({ result, onDismiss, onRetryFailed }: SyncResu
         <div className="rounded-lg bg-semantic-error/10 border border-semantic-error/20 p-3.5 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-semantic-error">
-              Chi tiết lỗi ({result.errors.length}):
+              {t('errorDetails', { count: result.errors.length })}
             </span>
             {onRetryFailed && (
               <Button
@@ -95,7 +97,7 @@ export function SyncResultSummary({ result, onDismiss, onRetryFailed }: SyncResu
                 onClick={onRetryFailed}
                 className="text-[11px] h-6"
               >
-                Thử lại bản ghi lỗi
+                {t('retryFailed')}
               </Button>
             )}
           </div>
@@ -123,13 +125,13 @@ export function SyncResultSummary({ result, onDismiss, onRetryFailed }: SyncResu
               </svg>
             }
           >
-            Xem chi tiết thay đổi đợt này
+            {t('viewBatchChanges')}
           </Button>
         </Link>
 
         {onDismiss && (
           <Button variant="secondary" size="xs" onClick={onDismiss}>
-            Đóng thông báo
+            {t('dismiss')}
           </Button>
         )}
       </div>

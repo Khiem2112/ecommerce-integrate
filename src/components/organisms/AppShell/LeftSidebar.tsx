@@ -1,15 +1,18 @@
 'use client';
 
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { useAtom } from 'jotai';
 import { cn } from '@/lib/cn';
 import { appSidebarCollapsedAtom } from '@/atoms/workspaceAtoms';
 import { IconButton } from '@/components/atoms';
-import { NAV_GROUPS } from './navConfig';
+import { getNavGroups } from './navConfig';
 import { SidebarNavItem } from './SidebarNavItem';
 
 export function LeftSidebar() {
   const [collapsed, setCollapsed] = useAtom(appSidebarCollapsedAtom);
+  const t = useTranslations('navigation');
+  const navGroups = getNavGroups(t);
 
   return (
     <aside
@@ -27,8 +30,8 @@ export function LeftSidebar() {
       >
         {collapsed ? (
           <IconButton
-            ariaLabel="Expand sidebar"
-            tooltip="Expand sidebar"
+            ariaLabel={t('expandSidebar')}
+            tooltip={t('expandSidebar')}
             variant="ghost"
             size="sm"
             onClick={() => setCollapsed(false)}
@@ -64,8 +67,8 @@ export function LeftSidebar() {
             </Link>
 
             <IconButton
-              ariaLabel="Collapse sidebar"
-              tooltip="Collapse sidebar"
+              ariaLabel={t('collapseSidebar')}
+              tooltip={t('collapseSidebar')}
               variant="ghost"
               size="sm"
               onClick={() => setCollapsed(true)}
@@ -90,7 +93,7 @@ export function LeftSidebar() {
 
       {/* Nav groups — scrollable */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3">
-        {NAV_GROUPS.map((group) => (
+        {navGroups.map((group) => (
           <div key={group.id} className="mb-4">
             {/* Group label — hidden when collapsed */}
             {!collapsed && (

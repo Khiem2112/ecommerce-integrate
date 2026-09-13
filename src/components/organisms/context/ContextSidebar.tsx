@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { IconButton } from '@/components/atoms';
 import { AiResponsePreview } from '@/components/organisms/copilot/AiResponsePreview';
 import { CustomerContextPanel } from '@/components/organisms/context/CustomerContextPanel';
@@ -31,6 +32,8 @@ export function ContextSidebar({
   onDismissDraft,
   onSavedDraft,
 }: ContextSidebarProps) {
+  const t = useTranslations('chat.sidebar');
+  const locale = useLocale();
   const [activeTab, setActiveTab] = useState<SidebarTab>('customer');
   const [dismissedDraftId, setDismissedDraftId] = useState<number | null>(null);
   const [selectedHistoryDraftId, setSelectedHistoryDraftId] = useState<number | null>(null);
@@ -99,13 +102,13 @@ export function ContextSidebar({
       <header className="shrink-0 border-b border-hairline bg-surface-lifted px-3 pt-3 pb-0">
         <div className="mb-2.5 flex items-center justify-between">
           <h2 className="text-base font-semibold tracking-tight text-foreground">
-            {activeTab === 'customer' ? 'Customer context' : 'AI Draft Co-Pilot'}
+            {activeTab === 'customer' ? t('customerContext') : t('aiDraftCopilot')}
           </h2>
           <IconButton
             size="sm"
             variant="ghost"
-            ariaLabel="Collapse sidebar"
-            tooltip="Collapse sidebar"
+            ariaLabel={t('collapse')}
+            tooltip={t('collapse')}
             onClick={onCollapse}
             icon={
               <svg
@@ -144,7 +147,7 @@ export function ContextSidebar({
                 : 'border-transparent text-muted hover:text-foreground',
             )}
           >
-            Customer
+            {t('customerTab')}
           </button>
           <button
             type="button"
@@ -162,7 +165,7 @@ export function ContextSidebar({
             )}
           >
             <span className="inline-flex items-center gap-1.5">
-              ✦ AI Draft
+              {t('aiDraftTab')}
               {/* Notification dot when draft available but viewing customer tab */}
               {hasDraft && activeTab !== 'ai-draft' && (
                 <span className="size-1.5 rounded-full bg-status-warning animate-pulse" />
@@ -190,7 +193,7 @@ export function ContextSidebar({
           >
             {(isDraftLoading || isHistoricalLoading) && !activeDraft ? (
               <div className="grid h-full min-h-48 place-items-center text-center">
-                <div className="text-xs text-muted">Đang tải AI draft...</div>
+                <div className="text-xs text-muted">{t('loadingDraft')}</div>
               </div>
             ) : activeDraft && targetConversationId !== null ? (
               <div className="space-y-3">
@@ -198,14 +201,14 @@ export function ContextSidebar({
                 {draftHistory.length > 1 && (
                   <div className="rounded-xl border border-hairline bg-background/60 p-2 text-xs space-y-1.5 shadow-xs">
                     <div className="flex items-center justify-between text-xs font-medium text-foreground">
-                      <span>Lịch sử ({draftHistory.length} phiên gợi ý)</span>
+                      <span>{t('history', { count: draftHistory.length })}</span>
                       {isViewingHistorical && (
                         <button
                           type="button"
                           onClick={() => setSelectedHistoryDraftId(null)}
                           className="cursor-pointer text-xs text-primary hover:underline"
                         >
-                          ← Về bản mới nhất
+                          {t('backToLatest')}
                         </button>
                       )}
                     </div>
@@ -214,10 +217,13 @@ export function ContextSidebar({
                         const isSelected =
                           (isViewingHistorical && selectedHistoryDraftId === h.id) ||
                           (!isViewingHistorical && dbDraft?.id === h.id);
-                        const time = new Date(h.createdAt).toLocaleTimeString('vi-VN', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        });
+                        const time = new Date(h.createdAt).toLocaleTimeString(
+                          locale === 'vi' ? 'vi-VN' : 'en-US',
+                          {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          },
+                        );
 
                         return (
                           <button
@@ -239,12 +245,12 @@ export function ContextSidebar({
                             </span>
                             <span className="ml-1 shrink-0 text-[11px] font-semibold uppercase tracking-[0.06em]">
                               {h.status === 'applied'
-                                ? '✓ Đã duyệt'
+                                ? t('statusApplied')
                                 : h.status === 'rejected'
-                                  ? '✕ Từ chối'
+                                  ? t('statusRejected')
                                   : h.isOutdated
-                                    ? '⚠️ Hết hạn'
-                                    : '🟡 Chờ duyệt'}
+                                    ? t('statusExpired')
+                                    : t('statusPending')}
                             </span>
                           </button>
                         );
@@ -263,9 +269,9 @@ export function ContextSidebar({
             ) : (
               <div className="grid h-full min-h-48 place-items-center text-center">
                 <div>
-                  <p className="text-sm text-muted">Chưa có AI draft</p>
+                  <p className="text-sm text-muted">{t('noDraft')}</p>
                   <p className="mt-1 text-xs text-muted">
-                    Bấm &quot;Generate AI Response&quot; trong khung chat để tạo câu trả lời gợi ý.
+                    {t('generatePrompt')}
                   </p>
                 </div>
               </div>

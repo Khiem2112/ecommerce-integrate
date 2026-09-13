@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/cn';
 
 export type DateTimePickerProps = {
@@ -24,22 +25,6 @@ export type DateTimePickerProps = {
   readonly icon?: ReactNode;
   readonly minuteStep?: number;
 };
-
-const DAYS_OF_WEEK = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-const MONTH_NAMES = [
-  'Tháng 1',
-  'Tháng 2',
-  'Tháng 3',
-  'Tháng 4',
-  'Tháng 5',
-  'Tháng 6',
-  'Tháng 7',
-  'Tháng 8',
-  'Tháng 9',
-  'Tháng 10',
-  'Tháng 11',
-  'Tháng 12',
-];
 
 const padZero = (n: number): string => (n < 10 ? `0${n}` : `${n}`);
 
@@ -63,7 +48,7 @@ export const parseDateValue = (val?: Date | string | null): Date | null => {
 export function DateTimePicker({
   value,
   onChange,
-  placeholder = 'Chọn ngày & giờ…',
+  placeholder: placeholderProp,
   label,
   disabled = false,
   className,
@@ -73,6 +58,11 @@ export function DateTimePicker({
   icon,
   minuteStep = 5,
 }: DateTimePickerProps) {
+  const t = useTranslations('common.dateTimePicker');
+  const placeholder = placeholderProp ?? t('placeholder');
+  const daysOfWeek = t.raw('daysOfWeek') as readonly string[];
+  const monthNames = t.raw('months') as readonly string[];
+
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const hourScrollRef = useRef<HTMLDivElement>(null);
@@ -280,7 +270,7 @@ export function DateTimePicker({
               onClick={handleClear}
               onKeyDown={(e) => e.key === 'Enter' && handleClear()}
               className="p-0.5 text-muted hover:text-foreground rounded transition cursor-pointer"
-              title="Xóa lựa chọn"
+              title={t('clearSelection')}
             >
               <svg aria-hidden="true" className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -310,7 +300,7 @@ export function DateTimePicker({
                   type="button"
                   onClick={handlePrevMonth}
                   className="flex size-7 items-center justify-center rounded-lg text-muted hover:text-foreground hover:bg-surface-lifted transition cursor-pointer"
-                  aria-label="Tháng trước"
+                  aria-label={t('prevMonth')}
                 >
                   <svg aria-hidden="true" className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -318,14 +308,14 @@ export function DateTimePicker({
                 </button>
 
                 <span className="text-xs font-semibold text-foreground">
-                  {MONTH_NAMES[currentMonth]} {currentYear}
+                  {monthNames[currentMonth]} {currentYear}
                 </span>
 
                 <button
                   type="button"
                   onClick={handleNextMonth}
                   className="flex size-7 items-center justify-center rounded-lg text-muted hover:text-foreground hover:bg-surface-lifted transition cursor-pointer"
-                  aria-label="Tháng sau"
+                  aria-label={t('nextMonth')}
                 >
                   <svg aria-hidden="true" className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -334,7 +324,7 @@ export function DateTimePicker({
               </div>
 
               <div className="grid grid-cols-7 text-center text-[10px] font-semibold text-muted mb-1">
-                {DAYS_OF_WEEK.map((day) => (
+                {daysOfWeek.map((day) => (
                   <span key={day} className="py-1">
                     {day}
                   </span>
@@ -382,7 +372,7 @@ export function DateTimePicker({
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 16 14" />
                   </svg>
-                  Thời gian (24h)
+                  {t('time24h')}
                 </span>
                 <span className="text-[11px] font-mono font-bold text-foreground">
                   {padZero(selectedDateObj?.getHours() ?? 0)}:{padZero(selectedDateObj?.getMinutes() ?? 0)}
@@ -393,7 +383,7 @@ export function DateTimePicker({
                 {/* Hours column */}
                 <div className="flex flex-col flex-1">
                   <span className="text-[10px] font-semibold text-muted text-center uppercase tracking-wider mb-1">
-                    Giờ
+                    {t('hour')}
                   </span>
                   <div
                     ref={hourScrollRef}
@@ -423,7 +413,7 @@ export function DateTimePicker({
                 {/* Minutes column */}
                 <div className="flex flex-col flex-1">
                   <span className="text-[10px] font-semibold text-muted text-center uppercase tracking-wider mb-1">
-                    Phút
+                    {t('minute')}
                   </span>
                   <div
                     ref={minuteScrollRef}
@@ -458,7 +448,7 @@ export function DateTimePicker({
                   onClick={handleSetNow}
                   className="px-2 py-1 rounded-lg text-muted hover:text-foreground hover:bg-surface-lifted transition cursor-pointer font-medium"
                 >
-                  Bây giờ
+                  {t('now')}
                 </button>
                 <button
                   type="button"
@@ -479,7 +469,7 @@ export function DateTimePicker({
                   onClick={() => setIsOpen(false)}
                   className="px-2.5 py-1 rounded-lg bg-primary text-on-primary font-semibold hover:bg-primary-hover transition cursor-pointer shadow-xs"
                 >
-                  Xong
+                  {t('done')}
                 </button>
               </div>
             </div>

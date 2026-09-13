@@ -9,6 +9,7 @@ import {
   TableCell,
   Badge,
 } from '@/components/atoms';
+import { useTranslations } from 'next-intl';
 import { formatDate } from '@/utils';
 import type { CustomerFullDetail } from '@/types';
 import { cn } from '@/lib/cn';
@@ -42,6 +43,7 @@ export function CustomerEvidencesTab({
   customer,
 }: CustomerEvidencesTabProps) {
   const evidences = customer.evidences ?? [];
+  const t = useTranslations('customers');
 
   return (
     <div className="space-y-4">
@@ -54,10 +56,12 @@ export function CustomerEvidencesTab({
         </div>
         <div className="space-y-0.5">
           <h4 className="text-xs font-bold text-foreground">
-            Layer 3 Memory — AI Co-pilot Grounded Evidence Facts
+            {t('evidence.noticeTitle')}
           </h4>
           <p className="text-xs text-muted">
-            Các sự thật hành vi dưới đây được trích xuất tự động từ lịch sử mua sắm và hội thoại của khách hàng để phục vụ AI Co-pilot phản hồi chính xác, chống ảo giác (Anti-Hallucination). Màn hình này đang hoạt động ở chế độ <strong>Read-Only</strong> theo quy định hệ thống.
+            {t.rich('evidence.noticeDescription', {
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </p>
         </div>
       </div>
@@ -74,9 +78,9 @@ export function CustomerEvidencesTab({
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
           </svg>
-          <h3 className="mt-3 text-sm font-semibold text-foreground">Chưa có Evidence Facts nào</h3>
+          <h3 className="mt-3 text-sm font-semibold text-foreground">{t('evidence.emptyTitle')}</h3>
           <p className="mt-1 text-xs text-muted">
-            Hệ thống AI chưa trích xuất hoặc ghi nhận sự thật hành vi nào cho khách hàng này.
+            {t('evidence.emptyDescription')}
           </p>
         </div>
       ) : (
@@ -84,12 +88,12 @@ export function CustomerEvidencesTab({
           <Table className="min-w-[950px]">
             <TableHeader className="bg-surface-lifted border-b border-hairline">
               <TableRow>
-                <TableHead className="w-16 whitespace-nowrap">ID</TableHead>
-                <TableHead className="w-64 whitespace-nowrap">Sự thật hành vi (Fact)</TableHead>
-                <TableHead className="w-80 whitespace-nowrap">Chứng cứ đối chiếu (Evidence)</TableHead>
-                <TableHead className="w-36 whitespace-nowrap">Độ tin cậy</TableHead>
-                <TableHead className="w-36 whitespace-nowrap">Ghi nhận gần nhất</TableHead>
-                <TableHead className="w-24 whitespace-nowrap">Trạng thái</TableHead>
+                <TableHead className="w-16 whitespace-nowrap">{t('evidence.id')}</TableHead>
+                <TableHead className="w-64 whitespace-nowrap">{t('evidence.fact')}</TableHead>
+                <TableHead className="w-80 whitespace-nowrap">{t('evidence.source')}</TableHead>
+                <TableHead className="w-36 whitespace-nowrap">{t('evidence.confidence')}</TableHead>
+                <TableHead className="w-36 whitespace-nowrap">{t('evidence.lastObserved')}</TableHead>
+                <TableHead className="w-24 whitespace-nowrap">{t('evidence.status')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -128,11 +132,11 @@ export function CustomerEvidencesTab({
                   <TableCell>
                     {item.isActive ? (
                       <Badge variant="success" size="sm">
-                        Hiệu lực
+                        {t('evidence.active')}
                       </Badge>
                     ) : (
                       <Badge variant="secondary" size="sm">
-                        Đã tắt
+                        {t('evidence.inactive')}
                       </Badge>
                     )}
                   </TableCell>

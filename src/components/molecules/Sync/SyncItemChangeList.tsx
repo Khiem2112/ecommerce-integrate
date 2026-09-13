@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import { useTranslations, useLocale } from 'next-intl';
 import { Badge } from '@/components/atoms';
 import { SyncFieldDiffTable } from './SyncFieldDiffTable';
 import { cn } from '@/lib/cn';
@@ -22,6 +23,9 @@ export function SyncItemChangeList({
   className,
   showHeader = true,
 }: SyncItemChangeListProps) {
+  const t = useTranslations('integrations.diff');
+  const locale = useLocale();
+
   if (items.length === 0) {
     return null;
   }
@@ -31,10 +35,10 @@ export function SyncItemChangeList({
       {showHeader && (
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-bold text-foreground uppercase tracking-wider">
-            Mặt hàng con thay đổi ({items.length})
+            {t('childItems', { count: items.length })}
           </span>
           <span className="text-[11px] text-muted">
-            (Đối soát authoritative theo externalItemId)
+            {t('authoritativeNote')}
           </span>
         </div>
       )}
@@ -60,15 +64,15 @@ export function SyncItemChangeList({
                     size="xs"
                   >
                     {isCreated
-                      ? '+Thêm mặt hàng'
+                      ? t('addItem')
                       : isUpdated
-                        ? '~Cập nhật mặt hàng'
-                        : '!Vô hiệu hóa'}
+                        ? t('updateItem')
+                        : t('inactivateItem')}
                   </Badge>
                 </div>
 
                 <span className="text-[11px] text-muted font-mono">
-                  {new Date(itemRecord.createdAt).toLocaleTimeString('vi-VN')}
+                  {new Date(itemRecord.createdAt).toLocaleTimeString(locale === 'vi' ? 'vi-VN' : 'en-US')}
                 </span>
               </div>
 
@@ -76,7 +80,7 @@ export function SyncItemChangeList({
                 <SyncFieldDiffTable diffs={itemRecord.changes} size="sm" />
               ) : isCreated ? (
                 <p className="text-xs text-muted">
-                  Mặt hàng mới được thêm vào đơn từ dữ liệu Lazada GetOrderItems.
+                  {t('newItemNote')}
                 </p>
               ) : null}
             </div>

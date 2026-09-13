@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { usePathname } from '@/i18n/navigation';
 import { IconButton } from '@/components/atoms';
 import { Breadcrumb } from '@/components/molecules';
 import { cn } from '@/lib/cn';
@@ -17,6 +18,7 @@ type AppShellProps = {
 export function AppShell({ children }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pathname = usePathname();
+  const t = useTranslations('navigation');
   const isFullBleed = pathname.startsWith('/conversations');
 
   return (
@@ -25,7 +27,7 @@ export function AppShell({ children }: AppShellProps) {
         href="#main-content"
         className="sr-only fixed left-3 top-3 z-[60] rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background focus:not-sr-only"
       >
-        Skip to main content
+        {t('skipToContent')}
       </a>
 
       {/* Collapsible left sidebar */}
@@ -37,8 +39,8 @@ export function AppShell({ children }: AppShellProps) {
           {/* Hamburger / Features drawer trigger */}
           <IconButton
             id="features-menu-trigger"
-            ariaLabel="Open feature menu"
-            tooltip="Feature menu"
+            ariaLabel={t('openFeatureMenu')}
+            tooltip={t('featureMenu')}
             variant="ghost"
             size="sm"
             onClick={() => setDrawerOpen(true)}

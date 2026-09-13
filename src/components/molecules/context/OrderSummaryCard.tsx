@@ -1,3 +1,6 @@
+'use client';
+
+import { useTranslations, useLocale } from 'next-intl';
 import { Badge, IconButton } from '@/components/atoms';
 import { formatVND } from '@/utils';
 import { cn } from '@/lib/cn';
@@ -9,14 +12,17 @@ type OrderSummaryCardProps = {
 };
 
 export function OrderSummaryCard({ order, onViewDetail }: OrderSummaryCardProps) {
+  const t = useTranslations('chat.context');
+  const locale = useLocale();
+
   if (!order) {
     return (
       <section>
         <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
-          Linked order
+          {t('linkedOrder')}
         </h3>
         <div className="rounded-2xl border border-dashed border-hairline bg-surface-card p-3 text-center text-xs text-muted">
-          No order is linked to this conversation.
+          {t('noLinkedOrder')}
         </div>
       </section>
     );
@@ -26,7 +32,7 @@ export function OrderSummaryCard({ order, onViewDetail }: OrderSummaryCardProps)
     <section>
       <div className="mb-2 flex items-center justify-between gap-2">
         <h3 className="text-xs font-bold uppercase tracking-wider text-muted">
-          Linked order
+          {t('linkedOrder')}
         </h3>
         <div className="flex items-center gap-1.5">
           <Badge
@@ -38,8 +44,8 @@ export function OrderSummaryCard({ order, onViewDetail }: OrderSummaryCardProps)
             <IconButton
               size="xs"
               variant="ghost"
-              ariaLabel="Xem chi tiết đơn hàng"
-              tooltip="Xem chi tiết đơn hàng"
+              ariaLabel={t('viewOrderDetail')}
+              tooltip={t('viewOrderDetail')}
               onClick={() => onViewDetail(order.id)}
               className="text-muted hover:text-primary"
               icon={
@@ -88,7 +94,7 @@ export function OrderSummaryCard({ order, onViewDetail }: OrderSummaryCardProps)
             </p>
             {onViewDetail && (
               <span className="shrink-0 text-[10px] font-medium text-primary opacity-0 transition group-hover:opacity-100">
-                Xem chi tiết ↗
+                {t('viewDetailLink')}
               </span>
             )}
           </div>
@@ -108,7 +114,7 @@ export function OrderSummaryCard({ order, onViewDetail }: OrderSummaryCardProps)
                 <span className="absolute -left-4 top-1 size-2 rounded-full border-2 border-surface-card bg-foreground" />
                 <span className="font-semibold text-foreground">{item.status.name}</span>
                 <span className="ml-1 text-muted">
-                  {new Intl.DateTimeFormat('vi-VN', { month: 'short', day: 'numeric' }).format(
+                  {new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { month: 'short', day: 'numeric' }).format(
                     new Date(item.changedAt),
                   )}
                 </span>

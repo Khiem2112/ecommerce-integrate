@@ -7,9 +7,11 @@
  */
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { useSyncChangesByEntity } from '@/hooks';
 import { Badge } from '@/components/atoms';
 import { SyncFieldDiffTable } from '@/components/molecules';
+import { formatDateTime } from '@/utils';
 import type { SyncChangeRecord } from '@/types';
 
 export type OrderSyncHistoryTabProps = {
@@ -17,6 +19,7 @@ export type OrderSyncHistoryTabProps = {
 };
 
 export function OrderSyncHistoryTab({ platformOrderId }: OrderSyncHistoryTabProps) {
+  const t = useTranslations('orders.syncTab');
   const { data, isLoading } = useSyncChangesByEntity({
     externalOrderId: platformOrderId,
     pageSize: 50,
@@ -45,9 +48,9 @@ export function OrderSyncHistoryTab({ platformOrderId }: OrderSyncHistoryTabProp
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
           </svg>
         </div>
-        <h4 className="text-sm font-semibold text-foreground">Chưa có lịch sử đồng bộ sàn</h4>
+        <h4 className="text-sm font-semibold text-foreground">{t('emptyTitle')}</h4>
         <p className="text-xs text-muted max-w-md mx-auto">
-          Đơn hàng này chưa ghi nhận thay đổi nào từ các tiến trình đồng bộ Lazada gần đây hoặc được tạo trực tiếp từ nội bộ.
+          {t('emptyDescription')}
         </p>
       </div>
     );
@@ -57,13 +60,13 @@ export function OrderSyncHistoryTab({ platformOrderId }: OrderSyncHistoryTabProp
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-bold text-foreground">Lịch sử đối soát đồng bộ Lazada</h3>
+          <h3 className="text-sm font-bold text-foreground">{t('title')}</h3>
           <p className="text-xs text-muted mt-0.5">
-            Các lần dữ liệu authoritative từ sàn Lazada được ghi nhận và nạp vào cơ sở dữ liệu.
+            {t('subtitle')}
           </p>
         </div>
         <Badge variant="teal" size="sm">
-          {changes.length} bản ghi audit
+          {t('auditCount', { count: changes.length })}
         </Badge>
       </div>
 
@@ -88,10 +91,10 @@ export function OrderSyncHistoryTab({ platformOrderId }: OrderSyncHistoryTabProp
                       size="xs"
                     >
                       {isCreated
-                        ? 'Khởi tạo từ Lazada'
+                        ? t('createdBadge')
                         : isUpdated
-                          ? 'Cập nhật từ Lazada'
-                          : 'Vô hiệu hóa'}
+                          ? t('updatedBadge')
+                          : t('inactivatedBadge')}
                     </Badge>
 
                     <span className="text-[11px] font-mono text-muted">
@@ -100,7 +103,7 @@ export function OrderSyncHistoryTab({ platformOrderId }: OrderSyncHistoryTabProp
                   </div>
 
                   <span className="text-[11px] font-mono text-muted">
-                    {new Date(change.createdAt).toLocaleString('vi-VN')}
+                    {formatDateTime(change.createdAt)}
                   </span>
                 </div>
 
@@ -109,11 +112,11 @@ export function OrderSyncHistoryTab({ platformOrderId }: OrderSyncHistoryTabProp
                   <SyncFieldDiffTable diffs={change.changes} size="sm" />
                 ) : isCreated ? (
                   <p className="text-xs text-status-success font-medium">
-                    Bản ghi mới được nạp và khởi tạo thành công từ Lazada.
+                    {t('createdMessage')}
                   </p>
                 ) : (
                   <p className="text-xs text-muted">
-                    Ghi nhận thay đổi đối soát thành công.
+                    {t('reconciledMessage')}
                   </p>
                 )}
               </div>

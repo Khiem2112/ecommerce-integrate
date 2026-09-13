@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Combobox, type ComboboxItem } from '@/components/atoms';
 import { cn } from '@/lib/cn';
 import type { OrderLookupOptions } from '@/types';
@@ -8,13 +9,13 @@ import type { OrderLookupOptions } from '@/types';
 export type OrderStatusItem = ComboboxItem;
 
 export const DEFAULT_ORDER_STATUS_ITEMS: readonly ComboboxItem[] = [
-  { value: '', label: 'Tất cả trạng thái' },
-  { value: 'unpaid', label: 'Chờ thanh toán (Unpaid)', dotColor: '#eab308' },
-  { value: 'ready_to_ship', label: 'Sẵn sàng giao (Ready to Ship)', dotColor: '#3b82f6' },
-  { value: 'shipped', label: 'Đang giao hàng (Shipped)', dotColor: '#06b6d4' },
-  { value: 'delivered', label: 'Đã giao thành công (Delivered)', dotColor: '#22c55e' },
-  { value: 'canceled', label: 'Đã hủy (Canceled)', dotColor: '#ef4444' },
-  { value: 'returned', label: 'Đổi trả / Hoàn tiền (Returned)', dotColor: '#f97316' },
+  { value: '', label: 'All' },
+  { value: 'unpaid', label: 'Unpaid', dotColor: '#eab308' },
+  { value: 'ready_to_ship', label: 'Ready to Ship', dotColor: '#3b82f6' },
+  { value: 'shipped', label: 'Shipped', dotColor: '#06b6d4' },
+  { value: 'delivered', label: 'Delivered', dotColor: '#22c55e' },
+  { value: 'canceled', label: 'Canceled', dotColor: '#ef4444' },
+  { value: 'returned', label: 'Returned', dotColor: '#f97316' },
 ];
 
 export type OrderStatusFilterProps = {
@@ -37,14 +38,30 @@ export function OrderStatusFilter({
   onChange,
   lookups,
   items,
-  label = 'Lọc theo trạng thái đơn hàng',
-  placeholder = 'Tất cả trạng thái',
-  ariaLabel = 'Lọc theo trạng thái đơn hàng',
+  label,
+  placeholder: placeholderProp,
+  ariaLabel: ariaLabelProp,
   disabled = false,
   size = 'md',
   searchable = true,
   className,
 }: OrderStatusFilterProps) {
+  const tFilters = useTranslations('orders.filters');
+  const tStatuses = useTranslations('orders.statuses');
+
+  const placeholder = placeholderProp ?? tFilters('allStatuses');
+  const ariaLabel = ariaLabelProp ?? tFilters('statusAria');
+
+  const defaultStatusItems: readonly ComboboxItem[] = useMemo(() => [
+    { value: '', label: tStatuses('all') },
+    { value: 'unpaid', label: tStatuses('pending'), dotColor: '#eab308' },
+    { value: 'ready_to_ship', label: tStatuses('confirmed'), dotColor: '#3b82f6' },
+    { value: 'shipped', label: tStatuses('shipped'), dotColor: '#06b6d4' },
+    { value: 'delivered', label: tStatuses('delivered'), dotColor: '#22c55e' },
+    { value: 'canceled', label: tStatuses('cancelled'), dotColor: '#ef4444' },
+    { value: 'returned', label: tStatuses('return_requested'), dotColor: '#f97316' },
+  ], [tStatuses]);
+
   const statusOptions: readonly ComboboxItem[] = useMemo(() => {
     if (items && items.length > 0) {
       return items;
@@ -66,15 +83,15 @@ export function OrderStatusFilter({
           return {
             value: s.code || String(s.id),
             label: s.name,
-            subLabel: s.isFinal ? 'Kết thúc' : undefined,
+            subLabel: s.isFinal ? tFilters('finalStatus') : undefined,
             dotColor,
           };
         }),
       ];
     }
 
-    return DEFAULT_ORDER_STATUS_ITEMS;
-  }, [items, lookups?.statuses, placeholder]);
+    return defaultStatusItems;
+  }, [items, lookups?.statuses, placeholder, defaultStatusItems]);
 
   return (
     <div className={cn('space-y-1.5', className)}>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { addOrderItemSchema, type AddOrderItemValues } from '@/forms';
 import { useAddOrderItem } from '@/hooks';
@@ -34,6 +35,8 @@ export function AddOrderItemModal({
   onClose,
   onSaveSuccess,
 }: AddOrderItemModalProps) {
+  const t = useTranslations('orders.modals.addOrderItem');
+  const tc = useTranslations('common');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { mutateAsync: addItem, isPending } = useAddOrderItem();
 
@@ -62,12 +65,12 @@ export function AddOrderItemModal({
   });
 
   const categoryOptions: readonly AutocompleteOption[] = useMemo(() => [
-    { value: '', label: 'Chưa phân loại' },
+    { value: '', label: t('uncategorized') },
     ...(lookups?.categories || []).map((c) => ({
       value: String(c.id),
       label: c.name,
     })),
-  ], [lookups?.categories]);
+  ], [lookups?.categories, t]);
 
   useEffect(() => {
     if (open) {
@@ -100,7 +103,7 @@ export function AddOrderItemModal({
       onSaveSuccess?.();
       handleClose();
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Thêm sản phẩm thất bại');
+      setErrorMessage(err instanceof Error ? err.message : t('addFailed'));
     }
   };
 
@@ -110,7 +113,7 @@ export function AddOrderItemModal({
         <div className="flex items-center justify-between border-b border-hairline pb-3">
           <div>
             <DialogTitle className="text-sm font-semibold text-foreground">
-              Thêm sản phẩm vào đơn hàng
+              {t('title')}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted mt-0.5 font-mono">
               #{order.platformOrderId}
@@ -119,7 +122,7 @@ export function AddOrderItemModal({
           <IconButton
             variant="ghost"
             size="sm"
-            ariaLabel="Đóng"
+            ariaLabel={tc('close')}
             onClick={handleClose}
             className="text-muted hover:text-foreground"
           >
@@ -142,7 +145,7 @@ export function AddOrderItemModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-muted mb-1">
-                Mã sản phẩm (Product ID) <span className="text-semantic-error">*</span>
+                {t('productId')} <span className="text-semantic-error">*</span>
               </label>
               <Input
                 {...register('item.productId')}
@@ -155,7 +158,7 @@ export function AddOrderItemModal({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-muted mb-1">SKU</label>
+              <label className="block text-xs font-medium text-muted mb-1">{t('sku')}</label>
               <Input
                 {...register('item.sku')}
                 placeholder="VD: SKU-BLK-M"
@@ -166,11 +169,11 @@ export function AddOrderItemModal({
 
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Tên sản phẩm <span className="text-semantic-error">*</span>
+              {t('productName')} <span className="text-semantic-error">*</span>
             </label>
             <Input
               {...register('item.productName')}
-              placeholder="VD: Tai nghe Bluetooth chống ồn..."
+              placeholder={t('productNamePlaceholder')}
               className="text-xs"
             />
             {errors.item?.productName && (
@@ -181,7 +184,7 @@ export function AddOrderItemModal({
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-medium text-muted mb-1">
-                Danh mục
+                {t('category')}
               </label>
               <Controller
                 control={control}
@@ -191,8 +194,8 @@ export function AddOrderItemModal({
                     options={categoryOptions}
                     value={field.value !== null && field.value !== undefined ? String(field.value) : ''}
                     onChange={(val) => field.onChange(val ? Number(val) : null)}
-                    placeholder="Chọn danh mục..."
-                    searchPlaceholder="Tìm danh mục..."
+                    placeholder={t('selectCategory')}
+                    searchPlaceholder={t('searchCategory')}
                     size="sm"
                   />
                 )}
@@ -201,7 +204,7 @@ export function AddOrderItemModal({
 
             <div>
               <label className="block text-xs font-medium text-muted mb-1">
-                Số lượng <span className="text-semantic-error">*</span>
+                {t('quantity')} <span className="text-semantic-error">*</span>
               </label>
               <Input
                 type="number"
@@ -217,7 +220,7 @@ export function AddOrderItemModal({
 
             <div>
               <label className="block text-xs font-medium text-muted mb-1">
-                Đơn giá (VND) <span className="text-semantic-error">*</span>
+                {t('unitPrice')} <span className="text-semantic-error">*</span>
               </label>
               <Input
                 type="number"
@@ -234,7 +237,7 @@ export function AddOrderItemModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-muted mb-1">Giảm giá dòng (VND)</label>
+              <label className="block text-xs font-medium text-muted mb-1">{t('discount')}</label>
               <Input
                 type="number"
                 {...register('item.discount', {
@@ -245,7 +248,7 @@ export function AddOrderItemModal({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-muted mb-1">Hoàn tiền (VND)</label>
+              <label className="block text-xs font-medium text-muted mb-1">{t('refundAmount')}</label>
               <Input
                 type="number"
                 {...register('item.refundAmount', {
@@ -264,7 +267,7 @@ export function AddOrderItemModal({
               onClick={handleClose}
               disabled={isPending}
             >
-              Hủy
+              {tc('cancel')}
             </Button>
             <Button
               type="submit"
@@ -272,7 +275,7 @@ export function AddOrderItemModal({
               size="sm"
               disabled={isPending}
             >
-              {isPending ? 'Đang thêm...' : 'Thêm sản phẩm'}
+              {isPending ? t('adding') : t('add')}
             </Button>
           </div>
         </form>

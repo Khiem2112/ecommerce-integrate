@@ -1,18 +1,20 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useBreadcrumb, useOrderLookups } from '@/hooks';
 import { OrderForm } from '@/components/organisms';
 
 export default function NewOrderPage() {
   const { setBreadcrumb } = useBreadcrumb();
+  const t = useTranslations('orders');
 
   useEffect(() => {
     setBreadcrumb([
-      { label: 'Danh sách', href: '/orders' },
-      { label: 'Tạo đơn hàng mới' },
+      { label: t('breadcrumb'), href: '/orders' },
+      { label: t('detail.newBreadcrumb') },
     ]);
-  }, [setBreadcrumb]);
+  }, [setBreadcrumb, t]);
 
   const { data: lookups } = useOrderLookups();
 

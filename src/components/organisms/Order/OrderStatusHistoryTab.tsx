@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Badge, Button } from '@/components/atoms';
 import { formatDateTime, getStatusBadgeVariant } from '@/utils';
 import type { OrderWithHistory } from '@/types';
@@ -13,6 +14,7 @@ export function OrderStatusHistoryTab({
   order,
   onOpenUpdateStatusModal,
 }: OrderStatusHistoryTabProps) {
+  const t = useTranslations('orders.historyTab');
   const history = order.statusHistory || [];
 
   return (
@@ -20,9 +22,9 @@ export function OrderStatusHistoryTab({
       <div className="flex items-center justify-between">
         <div>
           <h4 className="text-sm font-semibold text-foreground">
-            Lịch sử chuyển trạng thái đơn hàng
+            {t('title')}
           </h4>
-          <p className="text-xs text-muted">Toàn bộ các bước thay đổi trạng thái và ghi chú kiểm toán.</p>
+          <p className="text-xs text-muted">{t('subtitle')}</p>
         </div>
         <Button
           type="button"
@@ -34,13 +36,13 @@ export function OrderStatusHistoryTab({
           <svg aria-hidden="true" className="mr-1.5 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
           </svg>
-          Chuyển trạng thái mới
+          {t('changeStatus')}
         </Button>
       </div>
 
       <div className="rounded-xl border border-hairline bg-surface-card p-6 shadow-card">
         {history.length === 0 ? (
-          <p className="text-xs text-muted">Chưa ghi nhận lịch sử thay đổi trạng thái nào.</p>
+          <p className="text-xs text-muted">{t('empty')}</p>
         ) : (
           <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-hairline">
             {history.map((h) => {
@@ -57,7 +59,7 @@ export function OrderStatusHistoryTab({
                           {h.status.name}
                         </Badge>
                         <span className="text-xs text-muted">
-                          Bởi: <strong className="text-foreground">{h.changedBy || 'Hệ thống'}</strong>
+                          {t('by')} <strong className="text-foreground">{h.changedBy || t('system')}</strong>
                         </span>
                       </div>
                       <span className="font-mono text-xs text-muted">

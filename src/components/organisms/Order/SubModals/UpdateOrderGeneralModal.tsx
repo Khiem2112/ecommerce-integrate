@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { orderGeneralUpdateSchema, type OrderGeneralUpdateValues } from '@/forms';
 import { useUpdateOrder } from '@/hooks';
@@ -34,6 +35,9 @@ export function UpdateOrderGeneralModal({
   onClose,
   onSaveSuccess,
 }: UpdateOrderGeneralModalProps) {
+  const t = useTranslations('orders.modals.updateGeneral');
+  const tOrders = useTranslations('orders');
+  const tc = useTranslations('common');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { mutateAsync: updateOrder, isPending } = useUpdateOrder();
 
@@ -102,7 +106,7 @@ export function UpdateOrderGeneralModal({
       onSaveSuccess?.();
       handleClose();
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Cập nhật thông tin thất bại');
+      setErrorMessage(err instanceof Error ? err.message : t('updateFailed'));
     }
   };
 
@@ -112,7 +116,7 @@ export function UpdateOrderGeneralModal({
         <div className="flex items-center justify-between border-b border-hairline pb-3">
           <div>
             <DialogTitle className="text-sm font-semibold text-foreground">
-              Chỉnh sửa thông tin chung đơn hàng
+              {t('title')}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted mt-0.5 font-mono">
               #{order.platformOrderId}
@@ -121,7 +125,7 @@ export function UpdateOrderGeneralModal({
           <IconButton
             variant="ghost"
             size="sm"
-            ariaLabel="Đóng"
+            ariaLabel={tc('close')}
             onClick={handleClose}
             className="text-muted hover:text-foreground"
           >
@@ -143,7 +147,7 @@ export function UpdateOrderGeneralModal({
         <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Sàn thương mại điện tử <span className="text-semantic-error">*</span>
+              {t('platform')} <span className="text-semantic-error">*</span>
             </label>
             <Controller
               control={control}
@@ -153,8 +157,8 @@ export function UpdateOrderGeneralModal({
                   options={platformOptions}
                   value={field.value ? String(field.value) : ''}
                   onChange={(val) => field.onChange(val ? Number(val) : 0)}
-                  placeholder="Chọn sàn TMĐT..."
-                  searchPlaceholder="Tìm kiếm sàn..."
+                  placeholder={t('selectPlatform')}
+                  searchPlaceholder={t('searchPlatform')}
                   size="sm"
                 />
               )}
@@ -166,7 +170,7 @@ export function UpdateOrderGeneralModal({
 
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Mã đơn hàng sàn <span className="text-semantic-error">*</span>
+              {t('platformOrderId')} <span className="text-semantic-error">*</span>
             </label>
             <Input
               {...register('platformOrderId')}
@@ -180,7 +184,7 @@ export function UpdateOrderGeneralModal({
 
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Khách hàng (Buyer ID) <span className="text-semantic-error">*</span>
+              {t('customer')} <span className="text-semantic-error">*</span>
             </label>
             <Controller
               control={control}
@@ -190,8 +194,8 @@ export function UpdateOrderGeneralModal({
                   options={customerOptions}
                   value={field.value ? String(field.value) : ''}
                   onChange={(val) => field.onChange(val ? Number(val) : 0)}
-                  placeholder="Chọn khách hàng..."
-                  searchPlaceholder="Tìm kiếm buyer..."
+                  placeholder={t('selectCustomer')}
+                  searchPlaceholder={t('searchCustomer')}
                   size="sm"
                 />
               )}
@@ -202,7 +206,7 @@ export function UpdateOrderGeneralModal({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-muted mb-1">Tiền tệ</label>
+            <label className="block text-xs font-medium text-muted mb-1">{t('currency')}</label>
             <Input
               {...register('currency')}
               placeholder="VND"
@@ -218,7 +222,7 @@ export function UpdateOrderGeneralModal({
               onClick={handleClose}
               disabled={isPending}
             >
-              Hủy
+              {tc('cancel')}
             </Button>
             <Button
               type="submit"
@@ -226,7 +230,7 @@ export function UpdateOrderGeneralModal({
               size="sm"
               disabled={isPending}
             >
-              {isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+              {isPending ? tc('saving') : tc('save')}
             </Button>
           </div>
         </form>

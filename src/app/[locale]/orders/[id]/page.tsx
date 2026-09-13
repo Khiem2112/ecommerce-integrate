@@ -1,8 +1,8 @@
 'use client';
 
 import { use, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useOrder, useOrderLookups, useBreadcrumb } from '@/hooks';
 import { Button } from '@/components/atoms';
 import { OrderDetailContent } from '@/components/organisms';
@@ -13,6 +13,7 @@ export default function OrderDetailPage({
   readonly params: Promise<{ readonly id: string }>;
 }) {
   const router = useRouter();
+  const t = useTranslations('orders');
   const resolvedParams = use(params);
   const orderId = Number(resolvedParams.id);
 
@@ -23,14 +24,14 @@ export default function OrderDetailPage({
   const { setBreadcrumb } = useBreadcrumb();
   useEffect(() => {
     setBreadcrumb([
-      { label: 'Danh sách', href: '/orders' },
+      { label: t('breadcrumb'), href: '/orders' },
       {
         label: order?.platformOrderId
-          ? `Đơn hàng #${order.platformOrderId}`
-          : `Đơn hàng #${orderId}`,
+          ? t('detail.orderLabel', { id: order.platformOrderId })
+          : t('detail.orderLabel', { id: orderId }),
       },
     ]);
-  }, [order?.platformOrderId, orderId, setBreadcrumb]);
+  }, [order?.platformOrderId, orderId, setBreadcrumb, t]);
 
   if (isLoading) {
     return (
@@ -44,13 +45,13 @@ export default function OrderDetailPage({
   if (error || !order) {
     return (
       <div className="rounded-xl border border-hairline bg-surface-card p-12 text-center shadow-card">
-        <h3 className="text-base font-semibold text-foreground">Không tìm thấy đơn hàng</h3>
+        <h3 className="text-base font-semibold text-foreground">{t('detail.notFound')}</h3>
         <p className="mt-1 text-xs text-muted">
-          Đơn hàng không tồn tại hoặc đã bị xóa khỏi hệ thống.
+          {t('detail.notFoundDescription')}
         </p>
         <Link href="/orders" className="mt-4 inline-block">
           <Button variant="outline" size="sm">
-            Quay lại danh sách
+            {t('detail.backToList')}
           </Button>
         </Link>
       </div>

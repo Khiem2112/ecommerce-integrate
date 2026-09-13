@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { IconButton } from '@/components/atoms';
 import { EvidenceFactList, OrderSummaryCard, VipTierBadge, ErrorBanner } from '@/components/molecules';
 import {
@@ -21,6 +22,7 @@ export function CustomerContextPanel({
   onCollapse,
   headerHidden = false,
 }: CustomerContextPanelProps) {
+  const t = useTranslations('chat.context');
   const { data: context, isLoading, error, refetch } = useCustomerContext(conversationId);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
@@ -29,7 +31,7 @@ export function CustomerContextPanel({
     return (
       <div className="grid h-full min-h-96 place-items-center px-6 text-center">
         <p className="text-sm text-muted">
-          Customer context appears when a conversation is selected.
+          {t('empty')}
         </p>
       </div>
     );
@@ -40,7 +42,7 @@ export function CustomerContextPanel({
     return (
       <div className="m-4">
         <ErrorBanner
-          message={`Unable to load customer context.${error?.message ? ` ${error.message}` : ''}`}
+          message={`${t('loadFailed')}${error?.message ? ` ${error.message}` : ''}`}
           onRetry={() => void refetch()}
         />
       </div>
@@ -50,15 +52,15 @@ export function CustomerContextPanel({
   const { customer, unresolvedConversationCount, totalConversationCount } =
     context.dossier;
   const metrics = [
-    { label: 'Total spend', value: formatVND(customer.totalSpend) },
-    { label: 'Orders', value: String(customer.orderCount) },
-    { label: 'Avg. order', value: formatVND(customer.avgOrderValue) },
+    { label: t('totalSpend'), value: formatVND(customer.totalSpend) },
+    { label: t('orders'), value: String(customer.orderCount) },
+    { label: t('avgOrder'), value: formatVND(customer.avgOrderValue) },
     {
-      label: 'Last order',
+      label: t('lastOrder'),
       value:
         customer.daysSinceLastOrder === null
           ? '—'
-          : `${customer.daysSinceLastOrder}d ago`,
+          : t('daysAgo', { days: customer.daysSinceLastOrder }),
     },
   ];
 
@@ -67,14 +69,14 @@ export function CustomerContextPanel({
       {!headerHidden && (
         <header className="flex min-h-14 shrink-0 items-center justify-between border-b border-hairline bg-surface-lifted px-4">
           <div>
-            <h2 className="text-base font-semibold tracking-tight text-foreground">Customer context</h2>
-            <p className="mt-1 text-sm text-muted">Evidence-backed customer intel</p>
+            <h2 className="text-base font-semibold tracking-tight text-foreground">{t('title')}</h2>
+            <p className="mt-1 text-sm text-muted">{t('subtitle')}</p>
           </div>
           <IconButton
             size="sm"
             variant="ghost"
-            ariaLabel="Collapse customer context"
-            tooltip="Collapse customer context"
+            ariaLabel={t('collapse')}
+            tooltip={t('collapse')}
             onClick={onCollapse}
             icon={
               <svg
@@ -112,10 +114,10 @@ export function CustomerContextPanel({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
-                  Customer ID
+                  {t('customerId')}
                 </p>
                 <span className="text-xs font-medium text-primary opacity-0 transition group-hover:opacity-100">
-                  Xem hồ sơ ↗
+                  {t('viewProfile')}
                 </span>
               </div>
               <p className="mt-1 truncate text-sm font-semibold text-foreground group-hover:text-primary">
@@ -128,17 +130,17 @@ export function CustomerContextPanel({
             <span className="text-2xl font-bold tracking-[-0.025em] tabular-nums text-foreground">
               {customer.vipScore.toFixed(1)}
             </span>
-            <span className="text-xs text-muted">VIP score / 100</span>
+            <span className="text-xs text-muted">{t('vipScore')}</span>
           </div>
         </section>
 
         <section>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
-              Customer metrics
+              {t('metrics')}
             </h3>
             <span className="text-xs tabular-nums text-muted">
-              {totalConversationCount} cases · {unresolvedConversationCount} open
+              {t('conversationStats', { total: totalConversationCount, unresolved: unresolvedConversationCount })}
             </span>
           </div>
           <div className="grid grid-cols-2 gap-1.5">

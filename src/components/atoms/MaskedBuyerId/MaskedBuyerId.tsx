@@ -1,11 +1,11 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Tooltip } from '../Tooltip';
 import { cn } from '@/lib/cn';
 
 const MASKED_PATTERN = /[A-Za-z0-9_]+\*+[A-Za-z0-9_]*/;
 const UNKNOWN_VALUES = ['unknown_buyer', 'unknown', ''];
-const MASKED_BUYER_TOOLTIP = 'Thông tin người mua bị ẩn theo chính sách sàn';
 
 function InfoIcon({ className = 'text-muted' }: { readonly className?: string }) {
   return (
@@ -29,11 +29,13 @@ export function MaskedBuyerId({
 }: {
   readonly value: string | null | undefined;
 }) {
+  const t = useTranslations('common.maskedBuyerId');
+
   if (!value || UNKNOWN_VALUES.includes(value.toLowerCase())) {
     return (
-      <Tooltip content={MASKED_BUYER_TOOLTIP} side="right">
+      <Tooltip content={t('tooltip')} side="right">
         <span className="inline-flex items-center gap-1 font-mono text-xs italic text-muted">
-          Ẩn danh (sàn)
+          {t('masked')}
           <InfoIcon />
         </span>
       </Tooltip>
@@ -42,7 +44,7 @@ export function MaskedBuyerId({
 
   if (MASKED_PATTERN.test(value)) {
     return (
-      <Tooltip content={MASKED_BUYER_TOOLTIP} side="right">
+      <Tooltip content={t('tooltip')} side="right">
         <span className="inline-flex items-center gap-1 font-mono text-xs text-foreground">
           {value}
           <InfoIcon />

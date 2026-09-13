@@ -1,7 +1,8 @@
 'use client';
 
 import { use, useEffect } from 'react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { useCustomer, useBreadcrumb } from '@/hooks';
 import { Button } from '@/components/atoms';
 import { CustomerDetailContent } from '@/components/organisms';
@@ -15,22 +16,23 @@ export default function CustomerDetailPage({
   const customerId = Number(resolvedParams.id);
 
   const { data: customer, isLoading, error } = useCustomer(customerId);
+  const t = useTranslations('customers');
 
   const isValidId = !Number.isNaN(customerId) && customerId > 0;
 
   const { setBreadcrumb } = useBreadcrumb();
   useEffect(() => {
     setBreadcrumb([
-      { label: 'Khách hàng', href: '/customers' },
+      { label: t('breadcrumb'), href: '/customers' },
       {
         label: customer?.platformBuyerId
-          ? `Hồ sơ ${customer.platformBuyerId}`
+          ? t('detail.profile', { buyerId: customer.platformBuyerId })
           : isValidId
-          ? `Khách hàng #${customerId}`
-          : 'Hồ sơ khách hàng',
+          ? t('detail.customerId', { id: customerId })
+          : t('detail.customerProfile'),
       },
     ]);
-  }, [customer?.platformBuyerId, customerId, isValidId, setBreadcrumb]);
+  }, [customer?.platformBuyerId, customerId, isValidId, setBreadcrumb, t]);
 
   if (isLoading) {
     return (
@@ -50,13 +52,13 @@ export default function CustomerDetailPage({
   if (error || !customer) {
     return (
       <div className="rounded-xl border border-hairline bg-surface-card p-12 text-center shadow-card">
-        <h3 className="text-base font-semibold text-foreground">Không tìm thấy khách hàng</h3>
+        <h3 className="text-base font-semibold text-foreground">{t('detail.notFound')}</h3>
         <p className="mt-1 text-xs text-muted">
-          Hồ sơ khách hàng không tồn tại hoặc đã bị vô hiệu hóa khỏi hệ thống.
+          {t('detail.notFoundDescription')}
         </p>
         <Link href="/customers" className="mt-4 inline-block">
           <Button variant="outline" size="sm">
-            Quay lại danh sách khách hàng
+            {t('detail.backToList')}
           </Button>
         </Link>
       </div>

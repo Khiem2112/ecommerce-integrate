@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { orderShippingUpdateSchema, type OrderShippingUpdateValues } from '@/forms';
 import { useUpdateOrder } from '@/hooks';
@@ -32,6 +33,8 @@ export function UpdateOrderShippingModal({
   onClose,
   onSaveSuccess,
 }: UpdateOrderShippingModalProps) {
+  const t = useTranslations('orders.modals.updateShipping');
+  const tc = useTranslations('common');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { mutateAsync: updateOrder, isPending } = useUpdateOrder();
 
@@ -54,11 +57,11 @@ export function UpdateOrderShippingModal({
   });
 
   const initiatorOptions: readonly AutocompleteOption[] = useMemo(() => [
-    { value: '', label: 'Không có' },
-    { value: 'buyer', label: 'Người mua (Buyer)' },
-    { value: 'seller', label: 'Người bán (Seller)' },
-    { value: 'system', label: 'Hệ thống (System)' },
-  ], []);
+    { value: '', label: t('initiatorNone') },
+    { value: 'buyer', label: t('initiatorBuyer') },
+    { value: 'seller', label: t('initiatorSeller') },
+    { value: 'system', label: t('initiatorSystem') },
+  ], [t]);
 
   useEffect(() => {
     if (open) {
@@ -92,7 +95,7 @@ export function UpdateOrderShippingModal({
       onSaveSuccess?.();
       handleClose();
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Cập nhật vận chuyển thất bại');
+      setErrorMessage(err instanceof Error ? err.message : t('updateFailed'));
     }
   };
 
@@ -102,7 +105,7 @@ export function UpdateOrderShippingModal({
         <div className="flex items-center justify-between border-b border-hairline pb-3">
           <div>
             <DialogTitle className="text-sm font-semibold text-foreground">
-              Chỉnh sửa vận chuyển & tài chính
+              {t('title')}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted mt-0.5 font-mono">
               #{order.platformOrderId}
@@ -111,7 +114,7 @@ export function UpdateOrderShippingModal({
           <IconButton
             variant="ghost"
             size="sm"
-            ariaLabel="Đóng"
+            ariaLabel={tc('close')}
             onClick={handleClose}
             className="text-muted hover:text-foreground"
           >
@@ -134,7 +137,7 @@ export function UpdateOrderShippingModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-muted mb-1">
-                Phí vận chuyển (VND) <span className="text-semantic-error">*</span>
+                {t('shippingFee')} <span className="text-semantic-error">*</span>
               </label>
               <Input
                 type="number"
@@ -150,7 +153,7 @@ export function UpdateOrderShippingModal({
 
             <div>
               <label className="block text-xs font-medium text-muted mb-1">
-                Giảm giá (VND) <span className="text-semantic-error">*</span>
+                {t('discountAmount')} <span className="text-semantic-error">*</span>
               </label>
               <Input
                 type="number"
@@ -167,7 +170,7 @@ export function UpdateOrderShippingModal({
 
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Bên yêu cầu hủy / hoàn (nếu có)
+              {t('initiator')}
             </label>
             <Controller
               control={control}
@@ -177,7 +180,7 @@ export function UpdateOrderShippingModal({
                   options={initiatorOptions}
                   value={field.value || ''}
                   onChange={(val) => field.onChange((val as 'buyer' | 'seller' | 'system' | '') || '')}
-                  placeholder="Chọn bên yêu cầu..."
+                  placeholder={t('selectInitiator')}
                   searchable={false}
                   size="sm"
                 />
@@ -187,12 +190,12 @@ export function UpdateOrderShippingModal({
 
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Lý do hủy / trả hàng
+              {t('reason')}
             </label>
             <textarea
               {...register('cancellationReason')}
               rows={2}
-              placeholder="Nhập lý do chi tiết..."
+              placeholder={t('reasonPlaceholder')}
               className="w-full rounded-md border border-hairline bg-surface-card p-2.5 text-xs text-foreground outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
             />
           </div>
@@ -205,7 +208,7 @@ export function UpdateOrderShippingModal({
               onClick={handleClose}
               disabled={isPending}
             >
-              Hủy
+              {tc('cancel')}
             </Button>
             <Button
               type="submit"
@@ -213,7 +216,7 @@ export function UpdateOrderShippingModal({
               size="sm"
               disabled={isPending}
             >
-              {isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+              {isPending ? tc('saving') : tc('save')}
             </Button>
           </div>
         </form>

@@ -1,19 +1,19 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, usePathname } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
-import { NAV_GROUPS, type NavItem } from './navConfig';
+import { getNavGroups, type NavItem } from './navConfig';
 
 function hasHref(item: NavItem): item is NavItem & { readonly href: string } {
   return item.href !== undefined;
 }
 
-const MOBILE_NAV_ITEMS = NAV_GROUPS.flatMap((group) => group.items).filter(hasHref);
-
 export function MobileNavigation() {
   const pathname = usePathname();
-  const activeItem = [...MOBILE_NAV_ITEMS]
+  const t = useTranslations('navigation');
+  const mobileNavItems = getNavGroups(t).flatMap((group) => group.items).filter(hasHref);
+  const activeItem = [...mobileNavItems]
     .sort((left, right) => right.href.length - left.href.length)
     .find(
       (item) =>
@@ -23,10 +23,10 @@ export function MobileNavigation() {
 
   return (
     <nav
-      aria-label="Primary navigation"
+      aria-label={t('primaryNavigation')}
       className="fixed inset-x-0 bottom-0 z-40 grid h-16 w-screen grid-cols-5 border-t border-hairline-strong bg-surface-lifted px-1 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
-      {MOBILE_NAV_ITEMS.map((item) => {
+      {mobileNavItems.map((item) => {
         const isActive = item.id === activeItem?.id;
 
         return (

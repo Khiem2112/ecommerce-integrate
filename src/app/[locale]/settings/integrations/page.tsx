@@ -5,6 +5,7 @@
  */
 
 import { useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useBreadcrumb, useIntegrationSummary } from '@/hooks';
 import {
   IntegrationCard,
@@ -13,14 +14,16 @@ import {
 import { Badge } from '@/components/atoms';
 
 export default function IntegrationsPage() {
+  const t = useTranslations('integrations');
+  const tNav = useTranslations('navigation');
   const { setBreadcrumb } = useBreadcrumb();
 
   useEffect(() => {
     setBreadcrumb([
-      { label: 'Cài đặt' },
-      { label: 'Kênh tích hợp' },
+      { label: tNav('settings') },
+      { label: t('title') },
     ]);
-  }, [setBreadcrumb]);
+  }, [setBreadcrumb, t, tNav]);
 
   const { data: lazadaSummary, isLoading: isLoadingLazada } = useIntegrationSummary('lazada');
 
@@ -31,14 +34,14 @@ export default function IntegrationsPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-xl font-bold tracking-tight text-foreground">
-              Trung tâm tích hợp kênh sàn
+              {t('title')}
             </h1>
             <Badge variant="teal" size="xs">
               Ports & Adapters
             </Badge>
           </div>
           <p className="text-xs text-muted max-w-3xl">
-            Quản lý kết nối API sàn thương mại điện tử, kiểm tra tính hợp lệ chữ ký số HMAC-SHA256 và đồng bộ dữ liệu đơn hàng authoritative từ Lazada Open Platform.
+            {t('subtitle')}
           </p>
         </div>
       </div>
@@ -46,7 +49,7 @@ export default function IntegrationsPage() {
       {/* Platform Cards Grid */}
       <div className="space-y-4">
         <h2 className="text-sm font-bold tracking-tight text-foreground">
-          Danh sách kết nối kênh bán hàng
+          {t('connectionsList')}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -91,16 +94,16 @@ export default function IntegrationsPage() {
               </div>
 
               <Badge variant="secondary" size="sm" useDot dotClassName="bg-muted">
-                <span>Sẵn sàng kết nối</span>
+                <span>{t('readyToConnect')}</span>
               </Badge>
             </div>
 
             <div className="border-y border-hairline py-3 text-xs text-muted">
-              Được thiết kế theo chuẩn Ports & Adapters. Có thể cắm thêm `ShopifyConnector` mà không ảnh hưởng luồng nghiệp vụ.
+              {t('shopifyDesc')}
             </div>
 
             <div className="pt-2 border-t border-hairline flex justify-end">
-              <Badge variant="outline" size="xs">Port Adapter Sẵn Sàng</Badge>
+              <Badge variant="outline" size="xs">{t('portAdapterReady')}</Badge>
             </div>
           </div>
 
@@ -127,16 +130,16 @@ export default function IntegrationsPage() {
               </div>
 
               <Badge variant="secondary" size="sm" useDot dotClassName="bg-muted">
-                <span>Chờ kích hoạt</span>
+                <span>{t('waitingActivation')}</span>
               </Badge>
             </div>
 
             <div className="border-y border-hairline py-3 text-xs text-muted">
-              Hỗ trợ kiến trúc đa kênh, đồng bộ đơn hàng và tin nhắn chăm sóc khách hàng VIP trên TikTok Shop.
+              {t('tiktokDesc')}
             </div>
 
             <div className="pt-2 border-t border-hairline flex justify-end">
-              <Badge variant="outline" size="xs">Port Adapter Sẵn Sàng</Badge>
+              <Badge variant="outline" size="xs">{t('portAdapterReady')}</Badge>
             </div>
           </div>
         </div>
@@ -147,10 +150,10 @@ export default function IntegrationsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-sm font-bold tracking-tight text-foreground">
-              Nhật ký lịch sử đồng bộ đơn hàng
+              {t('historyTitle')}
             </h2>
             <p className="text-xs text-muted mt-0.5">
-              Theo dõi chi tiết các đợt đồng bộ, số lượng tạo mới, cập nhật, và chi tiết lỗi nếu có.
+              {t('historySubtitle')}
             </p>
           </div>
         </div>

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { orderFormSchema, type OrderFormValues } from '@/forms';
@@ -38,6 +38,7 @@ export function OrderForm({
   lookups,
   onSaveSuccess,
 }: OrderFormProps) {
+  const t = useTranslations('orders.form');
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -121,13 +122,13 @@ export function OrderForm({
 
   const categoryOptions: readonly AutocompleteOption[] = useMemo(() => {
     return [
-      { value: '', label: 'Chưa phân loại' },
+      { value: '', label: t('uncategorized') },
       ...(lookups?.categories || []).map((c) => ({
         value: String(c.id),
         label: c.name,
       })),
     ];
-  }, [lookups?.categories]);
+  }, [lookups?.categories, t]);
 
   // Real-time calculation of totalValue
   const watchedItems = watch('items');
@@ -168,7 +169,7 @@ export function OrderForm({
         router.push(`/orders/${result.id}`);
       }
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Có lỗi xảy ra khi lưu đơn hàng.');
+      setErrorMessage(err instanceof Error ? err.message : t('saveError'));
     }
   };
 
@@ -181,16 +182,16 @@ export function OrderForm({
         />
       )}
 
-      {/* 1. Thông tin chung đơn hàng */}
+      {/* 1. Platform & Buyer Section */}
       <div className="rounded-xl border border-hairline bg-surface-card p-5 shadow-card space-y-4">
         <h3 className="text-sm font-semibold text-foreground border-b border-hairline pb-2.5">
-          1. Thông tin nền tảng & Khách hàng
+          {t('sectionPlatformBuyer')}
         </h3>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Sàn thương mại điện tử <span className="text-semantic-error">*</span>
+              {t('platform')} <span className="text-semantic-error">*</span>
             </label>
             <Controller
               control={control}
@@ -200,8 +201,8 @@ export function OrderForm({
                   options={platformOptions}
                   value={field.value ? String(field.value) : ''}
                   onChange={(val) => field.onChange(val ? Number(val) : 0)}
-                  placeholder="Chọn sàn TMĐT..."
-                  searchPlaceholder="Tìm kiếm sàn..."
+                  placeholder={t('selectPlatform')}
+                  searchPlaceholder={t('searchPlatform')}
                   size="sm"
                 />
               )}
@@ -213,11 +214,11 @@ export function OrderForm({
 
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Mã đơn hàng sàn <span className="text-semantic-error">*</span>
+              {t('platformOrderId')} <span className="text-semantic-error">*</span>
             </label>
             <Input
               {...register('platformOrderId')}
-              placeholder="VD: ORD-998811..."
+              placeholder={t('platformOrderIdPlaceholder')}
               className="text-xs"
             />
             {errors.platformOrderId && (
@@ -227,7 +228,7 @@ export function OrderForm({
 
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Khách hàng (Buyer ID) <span className="text-semantic-error">*</span>
+              {t('buyer')} <span className="text-semantic-error">*</span>
             </label>
             <Controller
               control={control}
@@ -237,8 +238,8 @@ export function OrderForm({
                   options={customerOptions}
                   value={field.value ? String(field.value) : ''}
                   onChange={(val) => field.onChange(val ? Number(val) : 0)}
-                  placeholder="Chọn khách hàng..."
-                  searchPlaceholder="Tìm kiếm theo Buyer ID..."
+                  placeholder={t('selectBuyer')}
+                  searchPlaceholder={t('searchBuyer')}
                   size="sm"
                 />
               )}
@@ -250,7 +251,7 @@ export function OrderForm({
 
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Trạng thái ban đầu <span className="text-semantic-error">*</span>
+              {t('initialStatus')} <span className="text-semantic-error">*</span>
             </label>
             <Controller
               control={control}
@@ -260,8 +261,8 @@ export function OrderForm({
                   options={statusOptions}
                   value={field.value ? String(field.value) : ''}
                   onChange={(val) => field.onChange(val ? Number(val) : 0)}
-                  placeholder="Chọn trạng thái..."
-                  searchPlaceholder="Tìm trạng thái..."
+                  placeholder={t('selectStatus')}
+                  searchPlaceholder={t('searchStatus')}
                   size="sm"
                 />
               )}
@@ -273,11 +274,11 @@ export function OrderForm({
         </div>
       </div>
 
-      {/* 2. Danh sách sản phẩm (Dynamic Items) */}
+      {/* 2. Order Items Section */}
       <div className="rounded-xl border border-hairline bg-surface-card p-5 shadow-card space-y-4">
         <div className="flex items-center justify-between border-b border-hairline pb-2.5">
           <h3 className="text-sm font-semibold text-foreground">
-            2. Chi tiết các sản phẩm trong đơn ({fields.length})
+            {t('sectionItems', { count: fields.length })}
           </h3>
           <Button
             type="button"
@@ -301,7 +302,7 @@ export function OrderForm({
               </svg>
             }
           >
-            Thêm sản phẩm
+            {t('addItem')}
           </Button>
         </div>
 
@@ -323,14 +324,14 @@ export function OrderForm({
               >
                 <div className="flex items-center justify-between border-b border-hairline/60 pb-2">
                   <span className="font-mono text-xs font-medium text-foreground">
-                    Mặt hàng #{index + 1}
+                    {t('itemNumber', { number: index + 1 })}
                   </span>
                   {fields.length > 1 && (
                     <IconButton
                       type="button"
                       variant="ghost"
                       size="sm"
-                      ariaLabel="Xóa dòng"
+                      ariaLabel={t('deleteRow')}
                       onClick={() => remove(index)}
                       className="text-muted hover:text-semantic-error"
                     >
@@ -344,7 +345,7 @@ export function OrderForm({
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <div>
                     <label className="block text-xs font-medium text-muted mb-0.5">
-                      Mã sản phẩm (ID) <span className="text-semantic-error">*</span>
+                      {t('productId')} <span className="text-semantic-error">*</span>
                     </label>
                     <Input
                       {...register(`items.${index}.productId`)}
@@ -360,11 +361,11 @@ export function OrderForm({
 
                   <div>
                     <label className="block text-xs font-medium text-muted mb-0.5">
-                      Tên sản phẩm <span className="text-semantic-error">*</span>
+                      {t('productName')} <span className="text-semantic-error">*</span>
                     </label>
                     <Input
                       {...register(`items.${index}.productName`)}
-                      placeholder="VD: Chuột không dây Logitech..."
+                      placeholder={t('productNamePlaceholder')}
                       className="text-xs"
                     />
                     {errors.items?.[index]?.productName && (
@@ -384,7 +385,7 @@ export function OrderForm({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-muted mb-0.5">Danh mục</label>
+                    <label className="block text-xs font-medium text-muted mb-0.5">{t('category')}</label>
                     <Controller
                       control={control}
                       name={`items.${index}.categoryId`}
@@ -393,8 +394,8 @@ export function OrderForm({
                           options={categoryOptions}
                           value={catField.value !== null && catField.value !== undefined ? String(catField.value) : ''}
                           onChange={(val) => catField.onChange(val ? Number(val) : null)}
-                          placeholder="Chọn danh mục..."
-                          searchPlaceholder="Tìm danh mục..."
+                          placeholder={t('selectCategory')}
+                          searchPlaceholder={t('searchCategory')}
                           size="sm"
                         />
                       )}
@@ -405,7 +406,7 @@ export function OrderForm({
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 pt-1">
                   <div>
                     <label className="block text-xs font-medium text-muted mb-0.5">
-                      Số lượng <span className="text-semantic-error">*</span>
+                      {t('quantity')} <span className="text-semantic-error">*</span>
                     </label>
                     <Input
                       type="number"
@@ -418,7 +419,7 @@ export function OrderForm({
 
                   <div>
                     <label className="block text-xs font-medium text-muted mb-0.5">
-                      Đơn giá (VND) <span className="text-semantic-error">*</span>
+                      {t('unitPrice')} <span className="text-semantic-error">*</span>
                     </label>
                     <Input
                       type="number"
@@ -430,7 +431,7 @@ export function OrderForm({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-muted mb-0.5">Giảm giá dòng</label>
+                    <label className="block text-xs font-medium text-muted mb-0.5">{t('itemDiscount')}</label>
                     <Input
                       type="number"
                       {...register(`items.${index}.discount`, {
@@ -441,7 +442,7 @@ export function OrderForm({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-muted mb-0.5">Thành tiền dòng</label>
+                    <label className="block text-xs font-medium text-muted mb-0.5">{t('lineTotal')}</label>
                     <div className="flex h-9 items-center rounded-md bg-surface-card px-3 font-mono text-xs font-semibold text-foreground border border-hairline">
                       {formatVND(rowTotal)}
                     </div>
@@ -453,16 +454,16 @@ export function OrderForm({
         </div>
       </div>
 
-      {/* 3. Vận chuyển, giảm giá & Tổng tiền */}
+      {/* 3. Payment & Shipping */}
       <div className="rounded-xl border border-hairline bg-surface-card p-5 shadow-card space-y-4">
         <h3 className="text-sm font-semibold text-foreground border-b border-hairline pb-2.5">
-          3. Thanh toán & Vận chuyển
+          {t('sectionPaymentShipping')}
         </h3>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Phí vận chuyển (VND) <span className="text-semantic-error">*</span>
+              {t('shippingFee')} <span className="text-semantic-error">*</span>
             </label>
             <Input
               type="number"
@@ -475,7 +476,7 @@ export function OrderForm({
 
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Tổng mã giảm giá (VND) <span className="text-semantic-error">*</span>
+              {t('totalDiscount')} <span className="text-semantic-error">*</span>
             </label>
             <Input
               type="number"
@@ -488,10 +489,10 @@ export function OrderForm({
 
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Tổng giá trị đơn hàng (Tự động tính)
+              {t('orderTotalAuto')}
             </label>
             <div className="flex h-9 items-center justify-between rounded-md bg-surface-lifted px-3.5 font-mono text-sm font-bold text-foreground border border-hairline">
-              <span>Tổng cộng:</span>
+              <span>{t('totalLabel')}</span>
               <span className="text-primary">{formatVND(watch('totalValue') || 0)}</span>
             </div>
           </div>
@@ -502,11 +503,11 @@ export function OrderForm({
       <div className="flex items-center justify-end gap-3 rounded-xl border border-hairline bg-surface-card p-4 shadow-card">
         <Link href={orderId ? `/orders/${orderId}` : '/orders'}>
           <Button type="button" variant="outline" size="sm" disabled={isSubmitting}>
-            Hủy bỏ
+            {t('cancel')}
           </Button>
         </Link>
         <Button type="submit" variant="primary" size="sm" disabled={isSubmitting}>
-          {isSubmitting ? 'Đang lưu...' : mode === 'EDIT' ? 'Cập nhật đơn hàng' : 'Tạo đơn hàng'}
+          {isSubmitting ? t('saving') : mode === 'EDIT' ? t('updateOrder') : t('createOrder')}
         </Button>
       </div>
     </form>

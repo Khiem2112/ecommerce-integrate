@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
 import { useDebounce } from '@/hooks';
 import { Button, Input, Combobox, type ComboboxItem } from '@/components/atoms';
 import type { CustomerFilterParams, CustomerLookupOptions } from '@/types';
@@ -18,6 +19,7 @@ export function CustomerFilterBar({
   onFilterChange,
   onReset,
 }: CustomerFilterBarProps) {
+  const t = useTranslations('customers');
   const [searchInput, setSearchInput] = useState(filters.keyword ?? '');
   const [prevKeyword, setPrevKeyword] = useState(filters.keyword ?? '');
   const debouncedKeyword = useDebounce(searchInput, 400);
@@ -37,29 +39,33 @@ export function CustomerFilterBar({
   }, [debouncedKeyword, searchInput, filters.keyword, onFilterChange]);
 
   const platformOptions: readonly ComboboxItem[] = useMemo(() => [
-    { value: '', label: 'Tất cả sàn' },
+    { value: '', label: t('filters.allPlatforms') },
     ...(lookups?.platforms.map((p) => ({
       value: String(p.id),
       label: p.name,
     })) ?? []),
-  ], [lookups?.platforms]);
+  ], [lookups?.platforms, t]);
 
   const vipTierOptions: readonly ComboboxItem[] = useMemo(() => [
-    { value: '', label: 'Tất cả hạng VIP' },
-    ...(lookups?.vipTiers.map((t) => ({
-      value: String(t.id),
-      label: `${t.name} (Điểm: ${t.minScore}-${t.maxScore})`,
+    { value: '', label: t('filters.allVipTiers') },
+    ...(lookups?.vipTiers.map((tier) => ({
+      value: String(tier.id),
+      label: t('filters.vipTierRange', {
+        name: tier.name,
+        min: tier.minScore,
+        max: tier.maxScore,
+      }),
     })) ?? []),
-  ], [lookups?.vipTiers]);
+  ], [lookups?.vipTiers, t]);
 
   const sortOptions: readonly ComboboxItem[] = useMemo(() => [
-    { value: 'totalSpend_desc', label: 'Chi tiêu cao nhất' },
-    { value: 'vipScore_desc', label: 'Điểm VIP cao nhất' },
-    { value: 'orderCount_desc', label: 'Số đơn nhiều nhất' },
-    { value: 'avgOrderValue_desc', label: 'AOV cao nhất' },
-    { value: 'createdAt_desc', label: 'Khách hàng mới nhất' },
-    { value: 'daysSinceLastOrder_asc', label: 'Mua gần đây nhất' },
-  ], []);
+    { value: 'totalSpend_desc', label: t('filters.highestSpend') },
+    { value: 'vipScore_desc', label: t('filters.highestVipScore') },
+    { value: 'orderCount_desc', label: t('filters.mostOrders') },
+    { value: 'avgOrderValue_desc', label: t('filters.highestAov') },
+    { value: 'createdAt_desc', label: t('filters.newestCustomers') },
+    { value: 'daysSinceLastOrder_asc', label: t('filters.mostRecentPurchase') },
+  ], [t]);
 
   const currentSortValue = `${filters.sortBy ?? 'totalSpend'}_${filters.sortOrder ?? 'desc'}`;
 
@@ -78,7 +84,7 @@ export function CustomerFilterBar({
         {/* Search by Platform Buyer ID */}
         <div className="relative w-full sm:max-w-xs">
           <Input
-            placeholder="Tìm theo Buyer ID sàn..."
+            placeholder={t('filters.searchPlaceholder')}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="w-full pl-8 text-xs font-mono"
@@ -105,8 +111,8 @@ export function CustomerFilterBar({
               const parsed = val ? Number(val) : undefined;
               onFilterChange({ platformId: parsed, page: 1 });
             }}
-            placeholder="Tất cả sàn"
-            ariaLabel="Lọc theo sàn thương mại"
+            placeholder={t('filters.allPlatforms')}
+            ariaLabel={t('filters.platformAria')}
           />
         </div>
 
@@ -119,8 +125,8 @@ export function CustomerFilterBar({
               const parsed = val ? Number(val) : undefined;
               onFilterChange({ vipTierId: parsed, page: 1 });
             }}
-            placeholder="Tất cả hạng VIP"
-            ariaLabel="Lọc theo hạng VIP"
+            placeholder={t('filters.allVipTiers')}
+            ariaLabel={t('filters.vipTierAria')}
           />
         </div>
 
@@ -137,8 +143,8 @@ export function CustomerFilterBar({
               ];
               onFilterChange({ sortBy, sortOrder, page: 1 });
             }}
-            placeholder="Sắp xếp theo"
-            ariaLabel="Sắp xếp danh sách khách hàng"
+            placeholder={t('filters.sortBy')}
+            ariaLabel={t('filters.sortAria')}
           />
         </div>
       </div>
@@ -158,7 +164,7 @@ export function CustomerFilterBar({
           <svg aria-hidden="true" className="mr-1 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
           </svg>
-          Đặt lại bộ lọc
+          {t('filters.reset')}
         </Button>
       )}
     </div>

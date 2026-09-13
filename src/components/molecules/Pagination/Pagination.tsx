@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button, Combobox, type ComboboxItem } from '@/components/atoms';
 import { cn } from '@/lib/cn';
 
@@ -112,9 +113,10 @@ export function Pagination({
   pageSize,
   onPageChange,
   onPageSizeChange,
-  itemLabel = 'đơn hàng',
+  itemLabel,
   className,
 }: PaginationProps) {
+  const t = useTranslations('pagination');
   const [jumpInput, setJumpInput] = useState('');
   const safeTotalPages = Math.max(1, totalPages);
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -154,19 +156,19 @@ export function Pagination({
     <div className={cn('flex flex-wrap items-center justify-between gap-3 px-1', className)}>
       {/* Row count summary */}
       <div className="text-xs text-muted">
-        Hiển thị{' '}
-        <span className="font-medium text-foreground">{from}</span>
-        {' – '}
-        <span className="font-medium text-foreground">{to}</span>
-        {' trên tổng số '}
-        <span className="font-medium text-foreground">{total}</span> {itemLabel}
+        {t('summary', {
+          from,
+          to,
+          total,
+          itemLabel: itemLabel ?? t('orders'),
+        })}
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
         {/* Page size selector — Combobox atom */}
         {onPageSizeChange && (
           <div className="flex items-center gap-1.5 text-xs text-muted">
-            <span>Dòng / trang:</span>
+            <span>{t('rowsPerPage')}</span>
             <span className="w-[4.5rem]">
               <Combobox
                 items={pageSizeItems}
@@ -174,7 +176,7 @@ export function Pagination({
                 onChange={(val) => onPageSizeChange(Number(val))}
                 size="sm"
                 searchable={false}
-                ariaLabel="Chọn số dòng mỗi trang"
+                ariaLabel={t('rowsPerPageAria')}
                 placement="top"
                 menuClassName="min-w-[4.5rem]"
               />
@@ -192,7 +194,7 @@ export function Pagination({
                 size="icon"
                 onClick={() => onPageChange(page - 1)}
                 disabled={page <= 1}
-                aria-label="Trang trước"
+                aria-label={t('previousPage')}
                 className="size-7"
               >
                 <ChevronLeft />
@@ -214,7 +216,7 @@ export function Pagination({
                     type="button"
                     onClick={() => onPageChange(item)}
                     disabled={item === page}
-                    aria-label={`Trang ${item}`}
+                    aria-label={t('page', { page: item })}
                     aria-current={item === page ? 'page' : undefined}
                     className={cn(
                       'flex size-7 cursor-pointer items-center justify-center rounded-full text-xs font-medium transition duration-150 select-none',
@@ -235,7 +237,7 @@ export function Pagination({
                 size="icon"
                 onClick={() => onPageChange(page + 1)}
                 disabled={page >= safeTotalPages}
-                aria-label="Trang sau"
+                aria-label={t('nextPage')}
                 className="size-7"
               >
                 <ChevronRight />
@@ -244,7 +246,7 @@ export function Pagination({
 
             {/* Jump to page */}
             <label className="flex items-center gap-1.5 text-xs text-muted">
-              <span>Đến trang:</span>
+              <span>{t('goToPage')}</span>
               <input
                 type="number"
                 min={1}
@@ -259,7 +261,7 @@ export function Pagination({
                 onBlur={handleJump}
                 className="h-7 w-16 rounded-lg border border-hairline bg-surface-card px-2 text-center text-xs text-foreground outline-none transition focus-visible:border-foreground focus-visible:ring-2 focus-visible:ring-foreground/10"
                 placeholder={String(page)}
-                aria-label="Nhảy đến trang"
+                aria-label={t('jumpToPage')}
               />
             </label>
           </>

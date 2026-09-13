@@ -3,6 +3,7 @@
 import { useAtom } from 'jotai';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { selectedConversationIdAtom, sidebarCollapsedAtom } from '@/atoms/workspaceAtoms';
 import { IconButton } from '@/components/atoms';
 import { ChatPanel } from '@/components/organisms/chat/ChatPanel';
@@ -14,6 +15,7 @@ import { cn } from '@/lib/cn';
 import type { MultiDraftRagDraft } from '@/types';
 
 export function AgentWorkspace() {
+  const t = useTranslations('workspace');
   const queryClient = useQueryClient();
   const [selectedConversationId, setSelectedConversationId] = useAtom(selectedConversationIdAtom);
   const [sidebarCollapsed, setSidebarCollapsed] = useAtom(sidebarCollapsedAtom);
@@ -100,8 +102,8 @@ export function AgentWorkspace() {
 
         {/* Collapse inbox toggle */}
         <IconButton
-          ariaLabel="Collapse inbox"
-          tooltip="Collapse inbox"
+          ariaLabel={t('collapseInbox')}
+          tooltip={t('collapseInbox')}
           variant="ghost"
           size="xs"
           onClick={() => setInboxCollapsed(true)}
@@ -133,8 +135,8 @@ export function AgentWorkspace() {
         {/* Expand inbox toggle — shown only when inbox is collapsed on desktop */}
         {inboxCollapsed && (
           <IconButton
-            ariaLabel="Expand inbox"
-            tooltip="Expand inbox"
+            ariaLabel={t('expandInbox')}
+            tooltip={t('expandInbox')}
             variant="subtle"
             size="xs"
             onClick={() => setInboxCollapsed(false)}
@@ -176,7 +178,7 @@ export function AgentWorkspace() {
         <>
           <button
             type="button"
-            aria-label="Close customer context"
+            aria-label={t('closeCustomerContext')}
             onClick={() => setSidebarCollapsed(true)}
             className="absolute inset-0 z-20 hidden cursor-default bg-canvas-deep/20 sm:block 2xl:hidden"
           />

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import {
   useDeleteOrder,
   useDeleteOrderItem,
@@ -41,6 +42,7 @@ export function OrderDetailContent({
   initialTab = 'general',
   onOrderDeleted,
 }: OrderDetailContentProps) {
+  const t = useTranslations('orders');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<OrderTabKey>(initialTab);
@@ -56,9 +58,9 @@ export function OrderDetailContent({
     setRefreshSuccessMsg(null);
     try {
       const res = await refreshFromLazada(order.platformOrderId);
-      setRefreshSuccessMsg(`Đã làm mới dữ liệu từ Lazada thành công (${res.outcome}).`);
+      setRefreshSuccessMsg(t('detail.refreshSuccess', { outcome: res.outcome }));
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Làm mới từ Lazada thất bại');
+      setErrorMessage(err instanceof Error ? err.message : t('detail.refreshFailed'));
     }
   };
 
@@ -69,7 +71,7 @@ export function OrderDetailContent({
       close('delete');
       onOrderDeleted?.();
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Xóa đơn hàng thất bại');
+      setErrorMessage(err instanceof Error ? err.message : t('detail.deleteFailed'));
     }
   };
 
@@ -84,17 +86,17 @@ export function OrderDetailContent({
       });
       setItemToDelete(null);
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Xóa sản phẩm thất bại');
+      setErrorMessage(err instanceof Error ? err.message : t('detail.deleteItemFailed'));
     }
   };
 
   const tabs: readonly { readonly key: OrderTabKey; readonly label: string; readonly count?: number }[] = [
-    { key: 'general', label: 'Thông tin chung' },
-    { key: 'items', label: 'Sản phẩm', count: order.items.length },
-    { key: 'history', label: 'Lịch sử trạng thái', count: order.statusHistory?.length },
-    { key: 'shipping', label: 'Vận chuyển & Tài chính' },
+    { key: 'general', label: t('detail.general') },
+    { key: 'items', label: t('detail.items'), count: order.items.length },
+    { key: 'history', label: t('detail.statusHistory'), count: order.statusHistory?.length },
+    { key: 'shipping', label: t('detail.shipping') },
     ...(order.platformOrderId
-      ? [{ key: 'syncAudit' as const, label: 'Đồng bộ sàn' }]
+      ? [{ key: 'syncAudit' as const, label: t('detail.syncAudit') }]
       : []),
   ];
 
@@ -129,11 +131,12 @@ export function OrderDetailContent({
             </Badge>
           </div>
           <p className="text-xs text-muted mt-1">
-            Khách hàng:{' '}
-            <strong className="font-mono text-foreground">
-              {order.customer?.platformBuyerId ?? 'N/A'}
-            </strong>{' '}
-            ({order.customer?.vipTier?.name ?? 'Standard'}) • ID hệ thống: #{order.id}
+            {t.rich('detail.customerSummary', {
+              buyerId: order.customer?.platformBuyerId ?? t('detail.notAvailable'),
+              tier: order.customer?.vipTier?.name ?? t('detail.standardTier'),
+              id: order.id,
+              strong: (chunks) => <strong className="font-mono text-foreground">{chunks}</strong>,
+            })}
           </p>
         </div>
 
@@ -152,7 +155,7 @@ export function OrderDetailContent({
                 </svg>
               }
             >
-              Làm mới từ Lazada
+              {t('detail.refresh')}
             </Button>
           )}
 
@@ -163,13 +166,13 @@ export function OrderDetailContent({
             size="sm"
             onClick={() => open('status')}
           >
-            Đổi trạng thái
+            {t('detail.changeStatus')}
           </Button>
 
           {/* Full Edit Link */}
           <Link href={`/orders/${order.id}/edit`}>
             <Button type="button" variant="primary" size="sm">
-              Sửa đơn hàng
+              {t('detail.editOrder')}
             </Button>
           </Link>
 
@@ -181,7 +184,7 @@ export function OrderDetailContent({
             onClick={() => open('delete')}
             className="text-semantic-error hover:bg-semantic-error/10 hover:border-semantic-error/30"
           >
-            Xóa đơn
+            {t('detail.deleteOrder')}
           </Button>
         </div>
       </div>
@@ -284,13 +287,16 @@ export function OrderDetailContent({
       {/* Delete Order Confirm Modal */}
       <ConfirmModal
         open={isOpen('delete')}
-        title="Xác nhận xóa đơn hàng"
+        title={t('detail.deleteTitle')}
         description={
           <span>
-            Bạn có chắc chắn muốn xóa đơn hàng <strong>#{order.platformOrderId}</strong>?
+            {t.rich('detail.deleteDescription', {
+              id: order.platformOrderId,
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </span>
         }
-        confirmLabel="Xác nhận xóa"
+        confirmLabel={t('detail.deleteConfirm')}
         isDestructive
         isLoading={isDeletingOrder}
         onConfirm={handleDeleteConfirm}
@@ -300,9 +306,9 @@ export function OrderDetailContent({
       {/* Delete Item Confirm Modal */}
       <ConfirmModal
         open={Boolean(itemToDelete)}
-        title="Xác nhận xóa sản phẩm"
-        description="Bạn có chắc chắn muốn xóa sản phẩm này khỏi đơn hàng?"
-        confirmLabel="Xóa sản phẩm"
+        title={t('detail.deleteItemTitle')}
+        description={t('detail.deleteItemDescription')}
+        confirmLabel={t('detail.deleteItemConfirm')}
         isDestructive
         isLoading={isDeletingItem}
         onConfirm={handleDeleteItemConfirm}

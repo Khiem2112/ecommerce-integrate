@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, usePathname } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 
 export type BreadcrumbItem = {
@@ -17,17 +17,20 @@ export type BreadcrumbProps = {
  * Route-to-label mapping for the first path segment.
  * Max 2 breadcrumb segments are shown.
  */
-const SECTION_LABELS: Record<string, string> = {
-  conversations: 'Workspace',
-  orders: 'Orders',
-  customers: 'Customers',
-  settings: 'Settings',
-  integrations: 'Integrations',
-  lazada: 'Lazada',
-  new: 'New Order',
+const SECTION_LABEL_KEYS: Record<string, string> = {
+  conversations: 'workspace',
+  orders: 'orders',
+  customers: 'customers',
+  settings: 'settings',
+  integrations: 'integrations',
+  lazada: 'lazada',
+  new: 'new',
 };
 
-function deriveItems(pathname: string): readonly BreadcrumbItem[] {
+function deriveItems(
+  pathname: string,
+  translate: (key: string) => string,
+): readonly BreadcrumbItem[] {
   // Split and filter empty segments
   const segments = pathname.split('/').filter(Boolean);
 
@@ -35,7 +38,8 @@ function deriveItems(pathname: string): readonly BreadcrumbItem[] {
 
   // Flatten: always use section label for first segment
   const sectionKey = segments[0];
-  const sectionLabel = SECTION_LABELS[sectionKey] ?? sectionKey;
+  const sectionLabelKey = SECTION_LABEL_KEYS[sectionKey];
+  const sectionLabel = sectionLabelKey ? translate(sectionLabelKey) : sectionKey;
 
   if (segments.length === 1) {
     return [{ label: sectionLabel }];
@@ -43,7 +47,12 @@ function deriveItems(pathname: string): readonly BreadcrumbItem[] {
 
   // Second segment: prefer label mapping, fallback to ID display
   const childKey = segments[segments.length - 1];
-  const childLabel = SECTION_LABELS[childKey] ?? (childKey.length > 12 ? `#${childKey.slice(0, 8)}…` : `#${childKey}`);
+  const childLabelKey = SECTION_LABEL_KEYS[childKey];
+  const childLabel = childLabelKey
+    ? translate(childLabelKey)
+    : childKey.length > 12
+      ? `#${childKey.slice(0, 8)}…`
+      : `#${childKey}`;
 
   return [
     { label: sectionLabel, href: `/${sectionKey}` },
@@ -53,7 +62,8 @@ function deriveItems(pathname: string): readonly BreadcrumbItem[] {
 
 export function Breadcrumb({ className }: BreadcrumbProps) {
   const pathname = usePathname();
-  const items = deriveItems(pathname);
+  const t = useTranslations('breadcrumb');
+  const items = deriveItems(pathname, t);
 
   if (items.length === 0) return null;
 
@@ -74,7 +84,7 @@ export function Breadcrumb({ className }: BreadcrumbProps) {
 
   return (
     <nav
-      aria-label="Breadcrumb"
+      aria-label={t('label')}
       className={cn('flex flex-wrap items-center gap-1.5 text-sm', className)}
     >
       {items.map((item, index) => {

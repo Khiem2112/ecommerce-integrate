@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Table,
   TableHeader,
@@ -31,6 +32,7 @@ export function SyncFieldDiffTable({
   className,
   title,
 }: SyncFieldDiffTableProps) {
+  const t = useTranslations('integrations.diff');
   const entries = Object.entries(diffs);
 
   if (entries.length === 0) {
@@ -51,13 +53,13 @@ export function SyncFieldDiffTable({
           <TableHeader>
             <TableRow className={cn(isSmall && 'bg-surface-lifted')}>
               <TableHead className={cn('w-1/3 text-muted', isSmall && 'py-1.5 text-[11px]')}>
-                Trường dữ liệu
+                {t('fieldName')}
               </TableHead>
               <TableHead className={cn('w-1/3 text-muted', isSmall && 'py-1.5 text-[11px]')}>
-                Trước đồng bộ (Before)
+                {t('before')}
               </TableHead>
               <TableHead className={cn('w-1/3 text-foreground font-semibold', isSmall && 'py-1.5 text-[11px]')}>
-                Sau đồng bộ (After)
+                {t('after')}
               </TableHead>
             </TableRow>
           </TableHeader>

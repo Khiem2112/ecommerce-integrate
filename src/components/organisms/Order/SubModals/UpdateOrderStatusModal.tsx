@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { orderStatusUpdateSchema, type OrderStatusUpdateValues } from '@/forms';
 import { useUpdateOrder } from '@/hooks';
@@ -34,6 +35,8 @@ export function UpdateOrderStatusModal({
   onClose,
   onSaveSuccess,
 }: UpdateOrderStatusModalProps) {
+  const t = useTranslations('orders.modals.updateStatus');
+  const tc = useTranslations('common');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { mutateAsync: updateOrder, isPending } = useUpdateOrder();
 
@@ -58,9 +61,9 @@ export function UpdateOrderStatusModal({
     return (lookups?.statuses || []).map((st) => ({
       value: String(st.id),
       label: st.name,
-      subLabel: st.isFinal ? 'Trạng thái kết thúc' : undefined,
+      subLabel: st.isFinal ? t('finalStatus') : undefined,
     }));
-  }, [lookups?.statuses]);
+  }, [lookups?.statuses, t]);
 
   useEffect(() => {
     if (open) {
@@ -92,7 +95,7 @@ export function UpdateOrderStatusModal({
       onSaveSuccess?.();
       handleClose();
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Cập nhật trạng thái thất bại');
+      setErrorMessage(err instanceof Error ? err.message : t('updateFailed'));
     }
   };
 
@@ -102,7 +105,7 @@ export function UpdateOrderStatusModal({
         <div className="flex items-center justify-between border-b border-hairline pb-3">
           <div>
             <DialogTitle className="text-sm font-semibold text-foreground">
-              Cập nhật trạng thái đơn hàng
+              {t('title')}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted mt-0.5 font-mono">
               #{order.platformOrderId}
@@ -111,7 +114,7 @@ export function UpdateOrderStatusModal({
           <IconButton
             variant="ghost"
             size="sm"
-            ariaLabel="Đóng"
+            ariaLabel={tc('close')}
             onClick={handleClose}
             className="text-muted hover:text-foreground"
           >
@@ -133,7 +136,7 @@ export function UpdateOrderStatusModal({
         <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Trạng thái mới <span className="text-semantic-error">*</span>
+              {t('newStatus')} <span className="text-semantic-error">*</span>
             </label>
             <Controller
               control={control}
@@ -143,8 +146,8 @@ export function UpdateOrderStatusModal({
                   options={statusOptions}
                   value={field.value ? String(field.value) : ''}
                   onChange={(val) => field.onChange(val ? Number(val) : 0)}
-                  placeholder="Chọn trạng thái..."
-                  searchPlaceholder="Tìm trạng thái..."
+                  placeholder={t('selectStatus')}
+                  searchPlaceholder={t('searchStatus')}
                   size="sm"
                 />
               )}
@@ -156,23 +159,23 @@ export function UpdateOrderStatusModal({
 
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Người thực hiện thay đổi
+              {t('changedBy')}
             </label>
             <Input
               {...register('changedBy')}
-              placeholder="VD: agent, system, seller..."
+              placeholder={t('changedByPlaceholder')}
               className="text-xs"
             />
           </div>
 
           <div>
             <label className="block text-xs font-medium text-muted mb-1">
-              Ghi chú chuyển trạng thái
+              {t('note')}
             </label>
             <textarea
               {...register('note')}
               rows={3}
-              placeholder="Lý do hoặc thông tin cập nhật trạng thái..."
+              placeholder={t('notePlaceholder')}
               className="w-full rounded-md border border-hairline bg-surface-card p-2.5 text-xs text-foreground outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
             />
           </div>
@@ -185,7 +188,7 @@ export function UpdateOrderStatusModal({
               onClick={handleClose}
               disabled={isPending}
             >
-              Hủy
+              {tc('cancel')}
             </Button>
             <Button
               type="submit"
@@ -193,7 +196,7 @@ export function UpdateOrderStatusModal({
               size="sm"
               disabled={isPending}
             >
-              {isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+              {isPending ? tc('saving') : tc('save')}
             </Button>
           </div>
         </form>

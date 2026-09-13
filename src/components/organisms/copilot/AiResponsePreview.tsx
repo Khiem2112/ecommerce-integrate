@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { saveAiResponseAction } from '@/actions/conversationActions';
 import { rejectAiDraftAction } from '@/actions/aiDraftActions';
 import { Badge, Button, type BadgeVariant } from '@/components/atoms';
@@ -20,25 +21,11 @@ type AiResponsePreviewProps = {
   readonly onSaved: () => void;
 };
 
-const actionLabels: Record<SuggestedAction, string> = {
-  auto_reply: 'Auto-reply eligible',
-  await_approval: 'Approval recommended',
-  escalate_to_human: 'Escalate to human',
-};
-
 const actionVariants: Record<SuggestedAction, BadgeVariant> = {
   auto_reply: 'success',
   await_approval: 'warning',
   escalate_to_human: 'rose',
 };
-
-const REJECTION_OPTIONS: { readonly value: string; readonly label: string }[] = [
-  { value: 'manual_reply', label: 'Trả lời thủ công' },
-  { value: 'hallucination', label: 'AI bịa thông tin (Hallucination)' },
-  { value: 'tone_inappropriate', label: 'Giọng điệu không phù hợp' },
-  { value: 'policy_violation', label: 'Vi phạm chính sách sàn' },
-  { value: 'customer_cancelled', label: 'Khách hàng đã hủy yêu cầu' },
-];
 
 function isDetailDto(
   draft: AiDraftDetailDto | MultiDraftRagDraft,
@@ -52,6 +39,8 @@ export function AiResponsePreview({
   onDismiss,
   onSaved,
 }: AiResponsePreviewProps) {
+  const t = useTranslations('chat.preview');
+  const tc = useTranslations('common');
   const isFullDraft = isDetailDto(draft);
   const draftId = isFullDraft ? draft.id : draft.draftId;
   const draftStatus = isFullDraft ? draft.status : 'pending';
@@ -75,6 +64,20 @@ export function AiResponsePreview({
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedRejectReason, setSelectedRejectReason] = useState<string>('manual_reply');
   const [error, setError] = useState<string | null>(null);
+
+  const actionLabels: Record<SuggestedAction, string> = useMemo(() => ({
+    auto_reply: t('actions.auto_reply'),
+    await_approval: t('actions.await_approval'),
+    escalate_to_human: t('actions.escalate_to_human'),
+  }), [t]);
+
+  const rejectionOptions = useMemo(() => [
+    { value: 'manual_reply', label: t('rejectionReasons.manual_reply') },
+    { value: 'hallucination', label: t('rejectionReasons.hallucination') },
+    { value: 'tone_inappropriate', label: t('rejectionReasons.tone_inappropriate') },
+    { value: 'policy_violation', label: t('rejectionReasons.policy_violation') },
+    { value: 'customer_cancelled', label: t('rejectionReasons.customer_cancelled') },
+  ], [t]);
 
   /* Reset draft-specific state whenever the active draft identity changes */
   useEffect(() => {
@@ -212,7 +215,7 @@ export function AiResponsePreview({
           </span>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold tracking-tight text-foreground">
-              AI Multi-Draft Co-Pilot
+              {t('title')}
             </h3>
             {isFullDraft && draft.createdAt && (
               <span className="text-xs tabular-nums text-muted">
@@ -235,16 +238,16 @@ export function AiResponsePreview({
         <div className="flex items-center gap-1.5">
           {/* Status Badge */}
           {draftStatus === 'applied' && (
-            <Badge variant="success" size="xs" label="✓ Đã duyệt lưu" />
+            <Badge variant="success" size="xs" label={t('statusApplied')} />
           )}
           {draftStatus === 'rejected' && (
-            <Badge variant="rose" size="xs" label="✕ Đã từ chối" />
+            <Badge variant="rose" size="xs" label={t('statusRejected')} />
           )}
           {draftStatus === 'pending' && isOutdated && (
-            <Badge variant="rose" size="xs" label="⚠️ Draft Outdated" />
+            <Badge variant="rose" size="xs" label={t('statusOutdated')} />
           )}
           {draftStatus === 'pending' && !isOutdated && (
-            <Badge variant="warning" size="xs" label="🟡 Chờ duyệt" />
+            <Badge variant="warning" size="xs" label={t('statusPending')} />
           )}
 
           {/* Action safety pill */}
@@ -261,7 +264,7 @@ export function AiResponsePreview({
         {triggerMessage?.text && (
           <div className="rounded-xl border border-hairline bg-background p-2.5 text-sm">
             <div className="flex items-center justify-between text-xs tabular-nums text-muted">
-              <span className="font-medium">Tin nhắn kích hoạt ({triggerMessage.senderName}):</span>
+              <span className="font-medium">{t('triggerMessage', { sender: triggerMessage.senderName })}</span>
               <span>{new Date(triggerMessage.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
             <p className="mt-1.5 line-clamp-2 text-sm leading-5 italic text-foreground/80">
@@ -273,7 +276,7 @@ export function AiResponsePreview({
         {/* Outdated Warning Banner */}
         {isOutdated && (
           <div className="rounded-xl border border-semantic-error/30 bg-semantic-error/10 p-3 text-sm leading-5 text-semantic-error">
-            <span className="font-semibold">⚠️ Draft đã lỗi thời:</span> Tin nhắn mới từ khách hàng đã xuất hiện sau khi draft này được tạo. Vui lòng bấm <strong>Generate AI Response</strong> để tạo phương án cập nhật.
+            <span className="font-semibold">{t('outdatedTitle')}</span> {t('outdatedDesc')}
           </div>
         )}
 
@@ -282,7 +285,7 @@ export function AiResponsePreview({
           <div className="flex items-center gap-2 rounded-xl border border-status-warning/20 bg-status-warning/5 px-3 py-2 text-sm text-foreground">
             <span className="text-sm font-bold text-status-warning">💡</span>
             <div className="truncate">
-              <span className="font-semibold text-status-warning">Đề xuất: </span>
+              <span className="font-semibold text-status-warning">{t('recommendation')} </span>
               <span className="text-foreground">{draft.response.recommendationReason}</span>
             </div>
           </div>
@@ -292,7 +295,7 @@ export function AiResponsePreview({
         <div>
           <div className="mb-1.5 flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
-              Chiến lược ({strategies.length} phương án)
+              {t('strategies', { count: strategies.length })}
             </span>
             <span className="text-xs text-muted">
               {activeStrategy.strategy?.tone ? `Tone: ${activeStrategy.strategy.tone}` : ''}
@@ -342,7 +345,7 @@ export function AiResponsePreview({
                           ? 'bg-status-warning text-on-primary'
                           : 'bg-status-warning/15 text-status-warning',
                       )}
-                      label="★ AI đề xuất"
+                      label={t('aiRecommended')}
                     />
                   )}
 
@@ -352,7 +355,7 @@ export function AiResponsePreview({
                       variant="success"
                       size="xs"
                       className="border-0 bg-status-success px-1.5 py-0 text-[11px] font-semibold text-on-primary"
-                      label="✓ Đã duyệt"
+                      label={t('approved')}
                     />
                   )}
 
@@ -362,7 +365,7 @@ export function AiResponsePreview({
                       variant="secondary"
                       size="xs"
                       className="border-0 px-1 py-0 text-[11px]"
-                      label="Dự phòng"
+                      label={t('backup')}
                     />
                   )}
 
@@ -377,7 +380,7 @@ export function AiResponsePreview({
                           ? 'bg-status-success text-on-primary'
                           : 'bg-status-success/15 text-status-success-text',
                       )}
-                      label="🎫 Voucher"
+                      label={t('voucher')}
                     />
                   )}
 
@@ -398,7 +401,7 @@ export function AiResponsePreview({
               onChange={(event) => handleTextChange(event.target.value)}
               rows={3}
               className="block w-full resize-y rounded-xl border border-hairline bg-surface-card p-3 text-base leading-6 text-foreground outline-none transition focus:border-foreground focus:ring-2 focus:ring-foreground/10"
-              aria-label="Edit AI response"
+              aria-label={t('editDraft')}
             />
           ) : (
             <div
@@ -437,8 +440,8 @@ export function AiResponsePreview({
         {draftStatus === 'pending' && !isOutdated && !canApprove && (
           <div className="rounded-xl border border-status-warning/30 bg-status-warning/8 p-3 text-sm leading-5 text-status-warning-text">
             {activeStrategy.suggestedAction === 'escalate_to_human'
-              ? '⚠️ Chiến lược này có rủi ro cao, yêu cầu nhân viên xử lý thủ công.'
-              : '⚠️ Draft này không thể duyệt do chưa đáp ứng yêu cầu grounding/an toàn.'}
+              ? t('highRiskNotice')
+              : t('safetyNotice')}
           </div>
         )}
 
@@ -446,14 +449,14 @@ export function AiResponsePreview({
         {showRejectModal && (
           <div className="space-y-2 rounded-xl border border-semantic-error/30 bg-semantic-error/8 p-3 text-sm">
             <h4 className="font-semibold text-semantic-error">
-              Từ chối AI Draft — Chọn lý do:
+              {t('rejectTitle')}
             </h4>
             <select
               value={selectedRejectReason}
               onChange={(e) => setSelectedRejectReason(e.target.value)}
               className="w-full rounded-lg border border-hairline bg-background p-2 text-sm text-foreground"
             >
-              {REJECTION_OPTIONS.map((opt) => (
+              {rejectionOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -466,7 +469,7 @@ export function AiResponsePreview({
                 onClick={() => setShowRejectModal(false)}
                 disabled={isRejecting}
               >
-                Hủy
+                {tc('cancel')}
               </Button>
               <Button
                 variant="destructive"
@@ -475,7 +478,7 @@ export function AiResponsePreview({
                 disabled={isRejecting}
                 isLoading={isRejecting}
               >
-                Xác nhận từ chối
+                {t('confirmReject')}
               </Button>
             </div>
           </div>
@@ -489,9 +492,9 @@ export function AiResponsePreview({
               size="xs"
               onClick={onDismiss}
               disabled={isSaving}
-              title="Đóng panel tạm thời"
+              title={t('close')}
             >
-              Đóng
+              {t('close')}
             </Button>
             {draftId && (
               <Button
@@ -500,9 +503,9 @@ export function AiResponsePreview({
                 onClick={() => setShowRejectModal(true)}
                 disabled={isSaving}
                 className="text-semantic-error hover:bg-semantic-error/10"
-                title="Từ chối draft này và lưu lý do vào database"
+                title={t('reject')}
               >
-                Từ chối draft
+                {t('reject')}
               </Button>
             )}
             <Button
@@ -510,9 +513,9 @@ export function AiResponsePreview({
               size="xs"
               onClick={toggleEditing}
               disabled={isSaving}
-              title={isEditing ? 'Hủy chỉnh sửa' : 'Chỉnh sửa trước khi duyệt'}
+              title={isEditing ? t('cancelEdit') : t('edit')}
             >
-              {isEditing ? 'Hủy sửa' : 'Sửa văn bản'}
+              {isEditing ? t('cancelEdit') : t('edit')}
             </Button>
             <Button
               variant="primary"
@@ -520,9 +523,9 @@ export function AiResponsePreview({
               onClick={() => void handleApprove()}
               disabled={isSaving || !canApprove}
               isLoading={isSaving}
-              title="Duyệt và lưu tin nhắn nội bộ"
+              title={isEditing ? t('approveEdited') : t('approve')}
             >
-              {isEditing ? 'Duyệt bản chỉnh sửa' : 'Duyệt & Lưu nội bộ'}
+              {isEditing ? t('approveEdited') : t('approve')}
             </Button>
           </div>
         )}
@@ -530,12 +533,15 @@ export function AiResponsePreview({
         {/* Summary audit for applied/rejected drafts */}
         {draftStatus === 'applied' && (
           <div className="rounded-xl border border-status-success/20 bg-status-success/10 p-2 text-center text-xs text-status-success-text">
-            ✓ Draft đã được duyệt và lưu vào hội thoại nội bộ.
+            {t('appliedSuccess')}
           </div>
         )}
         {draftStatus === 'rejected' && isFullDraft && (
           <div className="rounded-xl border border-semantic-error/20 bg-semantic-error/10 p-2 text-center text-xs text-semantic-error">
-            ✕ Draft đã bị từ chối: <strong>{draft.rejectionReason ?? 'Manual review'}</strong>
+            {t.rich('rejectedNotice', {
+              reason: draft.rejectionReason ?? 'Manual review',
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </div>
         )}
       </div>

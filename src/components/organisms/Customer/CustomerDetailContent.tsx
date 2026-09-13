@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useModalState } from '@/hooks';
 import { ErrorBanner } from '@/components/molecules';
 import { CustomerDossierHeader } from './CustomerDossierHeader';
@@ -31,6 +32,7 @@ export function CustomerDetailContent({
   initialTab = 'metrics',
   onViewOrder,
 }: CustomerDetailContentProps) {
+  const t = useTranslations('customers');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<CustomerTabKey>(initialTab);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
@@ -45,10 +47,10 @@ export function CustomerDetailContent({
   };
 
   const tabs: readonly { readonly key: CustomerTabKey; readonly label: string; readonly count?: number }[] = [
-    { key: 'metrics', label: 'Chỉ số RFM & Sở thích' },
-    { key: 'orders', label: 'Đơn hàng đã mua', count: customer.orders?.length ?? 0 },
-    { key: 'conversations', label: 'Lịch sử hội thoại', count: customer.conversations?.length ?? 0 },
-    { key: 'evidence', label: 'RAG Evidence Facts', count: customer.evidences?.length ?? 0 },
+    { key: 'metrics', label: t('tabs.metrics') },
+    { key: 'orders', label: t('tabs.orders'), count: customer.orders?.length ?? 0 },
+    { key: 'conversations', label: t('tabs.conversations'), count: customer.conversations?.length ?? 0 },
+    { key: 'evidence', label: t('tabs.evidence'), count: customer.evidences?.length ?? 0 },
   ];
 
   return (

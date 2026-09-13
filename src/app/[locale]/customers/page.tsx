@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useAtom } from 'jotai';
 import {
   useBreadcrumb,
@@ -29,12 +30,13 @@ function CustomersListFallback() {
 
 function CustomersListContent() {
   const { setBreadcrumb } = useBreadcrumb();
+  const t = useTranslations('customers');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [customerToEdit, setCustomerToEdit] = useState<CustomerWithRelations | null>(null);
 
   useEffect(() => {
-    setBreadcrumb([{ label: 'Khách hàng' }]);
-  }, [setBreadcrumb]);
+    setBreadcrumb([{ label: t('breadcrumb') }]);
+  }, [setBreadcrumb, t]);
 
   const {
     filters: queryFilters,
@@ -126,17 +128,17 @@ function CustomersListContent() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">
-            Danh bạ & hồ sơ khách hàng 360°
+            {t('title')}
           </h1>
           <p className="text-xs text-muted mt-0.5">
-            Tra cứu, phân khúc RFM, theo dõi LTV và quản lý hồ sơ 360 độ khách hàng VIP trên toàn sàn.
+            {t('description')}
           </p>
         </div>
       </div>
 
       {(errorMessage || error) && (
         <ErrorBanner
-          message={errorMessage || error?.message || 'Có lỗi xảy ra khi tải dữ liệu'}
+          message={errorMessage || error?.message || t('loadFailed')}
           onDismiss={() => setErrorMessage(null)}
         />
       )}
