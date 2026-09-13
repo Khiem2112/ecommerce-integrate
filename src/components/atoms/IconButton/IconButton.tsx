@@ -2,6 +2,7 @@
 
 import { type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
+import { Tooltip } from '../Tooltip';
 
 export type IconButtonVariant = 'ghost' | 'primary' | 'secondary' | 'outline' | 'subtle' | 'ai';
 export type IconButtonSize = 'xs' | 'sm' | 'md' | 'lg';
@@ -48,11 +49,10 @@ export function IconButton({
 }: IconButtonProps) {
   const content = icon ?? children;
 
-  return (
+  const button = (
     <button
       type="button"
       aria-label={ariaLabel}
-      title={tooltip ?? ariaLabel}
       disabled={disabled || isLoading}
       className={cn(
         'inline-grid place-items-center transition duration-150 focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-40 select-none cursor-pointer',
@@ -89,4 +89,10 @@ export function IconButton({
       )}
     </button>
   );
+
+  if (tooltip) {
+    return <Tooltip content={tooltip}>{button}</Tooltip>;
+  }
+
+  return button;
 }

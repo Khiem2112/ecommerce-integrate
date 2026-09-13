@@ -12,6 +12,7 @@ import {
   Badge,
   Button,
   IconButton,
+  MaskedBuyerId,
 } from '@/components/atoms';
 import {
   formatVND,
@@ -120,8 +121,8 @@ export function OrderTable({
                   <dl className="mt-4 grid min-w-0 grid-cols-2 gap-x-4 gap-y-3 border-y border-hairline py-3 text-xs">
                     <div className="min-w-0">
                       <dt className="text-muted">Người mua</dt>
-                      <dd className="mt-0.5 truncate font-mono text-foreground">
-                        {order.customer?.platformBuyerId ?? 'N/A'}
+                      <dd className="mt-0.5 truncate">
+                        <MaskedBuyerId value={order.customer?.platformBuyerId} />
                       </dd>
                     </div>
                     <div className="min-w-0 text-right">
@@ -239,9 +240,7 @@ export function OrderTable({
                     {/* Customer Info */}
                     <TableCell>
                       <div className="flex flex-col gap-1">
-                        <span className="font-mono text-xs text-foreground">
-                          {order.customer?.platformBuyerId ?? 'N/A'}
-                        </span>
+                        <MaskedBuyerId value={order.customer?.platformBuyerId} />
                         <div className="flex items-center gap-1.5">
                           <Badge
                             variant={getVipBadgeVariant(order.customer?.vipTier?.code)}
