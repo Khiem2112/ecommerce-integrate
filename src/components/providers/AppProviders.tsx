@@ -3,7 +3,7 @@
 import { Provider as JotaiProvider } from 'jotai';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
-import { TooltipProvider } from '@/components/atoms';
+import { TooltipProvider } from '@/components/atoms/Tooltip';
 
 type AppProvidersProps = {
   readonly children: ReactNode;

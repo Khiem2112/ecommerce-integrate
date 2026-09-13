@@ -1,7 +1,7 @@
 'use client';
 
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
-import { type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
 export type TooltipSide = 'top' | 'right' | 'bottom' | 'left';
@@ -21,7 +21,13 @@ export function Tooltip({
   delayDuration = 400,
   className,
 }: TooltipProps) {
-  if (!content) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!content || !isMounted) {
     return <>{children}</>;
   }
 
