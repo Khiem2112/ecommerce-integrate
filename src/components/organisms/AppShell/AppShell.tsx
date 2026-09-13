@@ -1,28 +1,39 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { IconButton } from '@/components/atoms';
 import { Breadcrumb } from '@/components/molecules';
+import { cn } from '@/lib/cn';
 import { LeftSidebar } from './LeftSidebar';
 import { FeaturesDrawer } from './FeaturesDrawer';
 import { GlobalSyncWidget } from './GlobalSyncWidget';
+import { MobileNavigation } from './MobileNavigation';
 
-interface AppShellProps {
+type AppShellProps = {
   readonly children: ReactNode;
-}
+};
 
 export function AppShell({ children }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const pathname = usePathname();
+  const isFullBleed = pathname.startsWith('/conversations');
 
   return (
     <div className="flex h-dvh w-full overflow-hidden bg-background text-foreground">
+      <a
+        href="#main-content"
+        className="sr-only fixed left-3 top-3 z-[60] rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background focus:not-sr-only"
+      >
+        Skip to main content
+      </a>
+
       {/* Collapsible left sidebar */}
       <LeftSidebar />
 
       {/* Main layout container */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Slim top bar — 44px */}
-        <header className="sticky top-0 z-30 flex h-11 shrink-0 items-center gap-3 border-b border-hairline bg-surface-card px-4">
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-hairline bg-surface-card px-3 sm:px-4">
           {/* Hamburger / Features drawer trigger */}
           <IconButton
             id="features-menu-trigger"
@@ -31,6 +42,7 @@ export function AppShell({ children }: AppShellProps) {
             variant="ghost"
             size="sm"
             onClick={() => setDrawerOpen(true)}
+            className="hidden md:grid"
             icon={
               <svg
                 aria-hidden="true"
@@ -47,20 +59,30 @@ export function AppShell({ children }: AppShellProps) {
             }
           />
 
-          <div className="h-4 w-px bg-hairline" />
+          <div className="hidden h-5 w-px bg-hairline md:block" />
 
           {/* Breadcrumb */}
           <Breadcrumb className="min-w-0 flex-1" />
         </header>
 
         {/* Page content */}
-        <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <main
+          id="main-content"
+          className={cn(
+            'flex min-h-0 flex-1 flex-col',
+            isFullBleed
+              ? 'overflow-hidden pb-16 md:pb-0'
+              : 'custom-scrollbar overflow-y-auto p-4 sm:p-6 pb-20 md:pb-6',
+          )}
+        >
           {children}
         </main>
       </div>
 
       {/* Features slide-in drawer */}
       <FeaturesDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+
+      <MobileNavigation />
 
       {/* Fixed bottom-right sync indicator */}
       <GlobalSyncWidget />

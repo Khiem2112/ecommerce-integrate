@@ -106,7 +106,7 @@ const VARIANT_STYLES: Record<BadgeVariant, { container: string; dot: string }> =
 };
 
 const SIZE_STYLES: Record<BadgeSize, string> = {
-  xs: 'px-2 py-0.5 text-[10px] leading-tight font-medium',
+  xs: 'px-2 py-0.5 text-[11px] leading-tight font-medium',
   sm: 'px-2.5 py-0.5 text-xs leading-none font-medium',
   md: 'px-3 py-1 text-xs leading-normal font-semibold',
 };
@@ -128,7 +128,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 border tracking-tight',
+        'inline-flex items-center gap-1.5 whitespace-nowrap border tracking-tight',
         variantConfig.container,
         SIZE_STYLES[size],
         rounded ? 'rounded-full' : 'rounded-lg',

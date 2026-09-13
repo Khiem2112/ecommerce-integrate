@@ -98,7 +98,7 @@ export function ContextSidebar({
       {/* Sidebar Header with Tabs */}
       <header className="shrink-0 border-b border-hairline bg-surface-lifted px-3 pt-3 pb-0">
         <div className="mb-2.5 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">
+          <h2 className="text-base font-semibold tracking-tight text-foreground">
             {activeTab === 'customer' ? 'Customer context' : 'AI Draft Co-Pilot'}
           </h2>
           <IconButton
@@ -138,7 +138,7 @@ export function ContextSidebar({
             aria-selected={activeTab === 'customer'}
             onClick={() => setActiveTab('customer')}
             className={cn(
-              'flex-1 rounded-full px-3 py-1.5 text-[11px] font-semibold transition duration-150 cursor-pointer',
+              'flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition duration-150 cursor-pointer',
               activeTab === 'customer'
                 ? 'bg-foreground text-background shadow-xs'
                 : 'text-muted hover:text-foreground',
@@ -153,7 +153,7 @@ export function ContextSidebar({
             aria-disabled={!hasDraft}
             onClick={() => hasDraft && setActiveTab('ai-draft')}
             className={cn(
-              'flex-1 rounded-full px-3 py-1.5 text-[11px] font-semibold transition duration-150 relative',
+              'relative flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition duration-150',
               activeTab === 'ai-draft'
                 ? 'bg-foreground text-background shadow-xs'
                 : hasDraft
@@ -197,13 +197,13 @@ export function ContextSidebar({
                 {/* Draft History Selector if multiple drafts exist */}
                 {draftHistory.length > 1 && (
                   <div className="rounded-xl border border-hairline bg-background/60 p-2 text-xs space-y-1.5 shadow-xs">
-                    <div className="flex items-center justify-between text-[11px] font-medium text-foreground">
+                    <div className="flex items-center justify-between text-xs font-medium text-foreground">
                       <span>Lịch sử ({draftHistory.length} phiên gợi ý)</span>
                       {isViewingHistorical && (
                         <button
                           type="button"
                           onClick={() => setSelectedHistoryDraftId(null)}
-                          className="text-[10px] text-primary hover:underline cursor-pointer"
+                          className="cursor-pointer text-xs text-primary hover:underline"
                         >
                           ← Về bản mới nhất
                         </button>
@@ -225,7 +225,7 @@ export function ContextSidebar({
                             type="button"
                             onClick={() => handleSelectHistoryDraft(h.id)}
                             className={cn(
-                              'flex items-center justify-between rounded-lg px-2 py-1 text-left text-[11px] transition duration-150 cursor-pointer',
+                              'flex cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition duration-150',
                               isSelected
                                 ? 'bg-foreground text-background font-semibold'
                                 : 'bg-surface-lifted text-muted hover:text-foreground hover:bg-hairline',
@@ -237,7 +237,7 @@ export function ContextSidebar({
                                 ? `· "${h.triggerMessagePreview.slice(0, 18)}…"`
                                 : ''}
                             </span>
-                            <span className="shrink-0 text-[9px] uppercase tracking-wider ml-1">
+                            <span className="ml-1 shrink-0 text-[11px] font-semibold uppercase tracking-[0.06em]">
                               {h.status === 'applied'
                                 ? '✓ Đã duyệt'
                                 : h.status === 'rejected'

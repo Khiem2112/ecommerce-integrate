@@ -7,7 +7,7 @@
   --ink: #0c0a09;
   --body: #4e4e4e;
   --body-strong: #292524;
-  --muted: #777169;
+  --muted: #696969;
   --muted-soft: #a8a29e;
 
   /* Surfaces & Canvas */
@@ -79,6 +79,13 @@
   --ink-black: var(--ink);
   --slate-gray: var(--muted);
   --dust-taupe: var(--hairline-strong);
+
+  /* Readable operational type scale: body text must not fall below 14px. */
+  --text-caption: 0.8125rem;
+  --text-body-sm: 0.875rem;
+  --text-body: 1rem;
+  --text-body-lg: 1.125rem;
+  --text-page-title: 1.5rem;
 }
 
 @theme inline {
@@ -155,10 +162,22 @@
   --color-slate-gray: var(--slate-gray);
   --color-dust-taupe: var(--dust-taupe);
 
-  --font-sans: var(--font-sans), 'Inter', system-ui, -apple-system, sans-serif;
-  --font-display: 'Waldenburg', 'EB Garamond', 'Times New Roman', serif;
-  --font-serif: 'Waldenburg', 'EB Garamond', 'Times New Roman', serif;
+  --font-sans: var(--font-sans), 'Manrope', system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-sans), 'Manrope', system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-sans), 'Manrope', system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-mono);
+
+  /* Override Tailwind's compact defaults with the workspace reading scale. */
+  --text-xs: var(--text-body-sm);
+  --text-xs--line-height: 1.35;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.45;
+  --text-base: var(--text-body);
+  --text-base--line-height: 1.5;
+  --text-lg: var(--text-body-lg);
+  --text-lg--line-height: 1.4;
+  --text-xl: var(--text-page-title);
+  --text-xl--line-height: 1.25;
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -188,8 +207,12 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
-  font-weight: 400;
-  letter-spacing: 0.01em;
+  font-size: var(--text-body);
+  font-weight: 450;
+  line-height: 1.5;
+  letter-spacing: 0;
+  font-optical-sizing: auto;
+  font-synthesis: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -220,7 +243,7 @@ body {
 /* ElevenLabs Typography Utility Classes */
 .font-display {
   font-family: var(--font-display);
-  font-weight: 300;
+  font-weight: 600;
 }
 
 .text-display-mega {
@@ -228,7 +251,7 @@ body {
   font-size: 4rem;
   /* 64px */
   line-height: 1.05;
-  font-weight: 300;
+  font-weight: 600;
   letter-spacing: -0.03em;
 }
 
@@ -237,7 +260,7 @@ body {
   font-size: 3rem;
   /* 48px */
   line-height: 1.08;
-  font-weight: 300;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 
@@ -246,7 +269,7 @@ body {
   font-size: 2.25rem;
   /* 36px */
   line-height: 1.17;
-  font-weight: 300;
+  font-weight: 600;
   letter-spacing: -0.01em;
 }
 
@@ -255,7 +278,7 @@ body {
   font-size: 2rem;
   /* 32px */
   line-height: 1.13;
-  font-weight: 300;
+  font-weight: 600;
   letter-spacing: -0.01em;
 }
 
@@ -264,13 +287,13 @@ body {
   font-size: 1.5rem;
   /* 24px */
   line-height: 1.2;
-  font-weight: 300;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
 .text-caption-uppercase {
-  font-size: 0.75rem;
-  /* 12px */
+  font-size: var(--text-caption);
+  /* 13px */
   line-height: 1.4;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -343,4 +366,12 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--muted-soft, #a8a29e);
+}
+
+/* Legacy compact labels remain distinguishable but never render at 11px. */
+@layer utilities {
+  .text-\[11px\] {
+    font-size: var(--text-caption);
+    line-height: 1.35;
+  }
 }

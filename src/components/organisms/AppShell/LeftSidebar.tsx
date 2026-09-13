@@ -14,14 +14,14 @@ export function LeftSidebar() {
   return (
     <aside
       className={cn(
-        'flex h-full shrink-0 flex-col border-r border-hairline bg-surface-card transition-[width] duration-200 ease-in-out',
-        collapsed ? 'w-16' : 'w-60',
+        'hidden h-full shrink-0 flex-col border-r border-hairline bg-surface-card transition-[width] duration-200 ease-in-out md:flex',
+        collapsed ? 'w-16' : 'w-56',
       )}
     >
       {/* Logo & Collapsed button*/}
       <div
         className={cn(
-          'flex h-11 shrink-0 items-center border-b border-hairline px-3',
+          'flex h-14 shrink-0 items-center border-b border-hairline px-3',
           collapsed ? 'justify-center' : 'justify-between',
         )}
       >
@@ -55,7 +55,7 @@ export function LeftSidebar() {
               title="OmniCart Recover"
             >
               {/* Logo mark — stylized "O" mark */}
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-black text-on-primary shadow-xs">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-on-primary shadow-xs">
                 O
               </div>
               <span className="truncate text-sm font-semibold tracking-tight text-foreground">
@@ -94,7 +94,7 @@ export function LeftSidebar() {
           <div key={group.id} className="mb-4">
             {/* Group label — hidden when collapsed */}
             {!collapsed && (
-              <p className="mb-1 px-2.5 text-xs font-semibold uppercase tracking-wider text-muted">
+              <p className="mb-1.5 px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
                 {group.label}
               </p>
             )}

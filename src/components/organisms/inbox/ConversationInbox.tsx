@@ -31,12 +31,12 @@ export function ConversationInbox({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="shrink-0 border-b border-hairline p-4">
-        <div className="mb-4 flex items-start justify-between gap-3">
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+      <div className="shrink-0 border-b border-hairline px-4 py-5">
+        <div className="mb-5 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-foreground">Conversations</h2>
-            <p className="mt-0.5 text-xs text-muted">Live customer inbox</p>
+            <h2 className="text-base font-semibold tracking-tight text-foreground">Conversations</h2>
+            <p className="mt-1 text-sm text-muted">Live customer inbox</p>
           </div>
           <Badge
             variant="secondary"
@@ -62,7 +62,7 @@ export function ConversationInbox({
             placeholder="Search ID, intent, message"
             aria-label="Search conversations"
             size="sm"
-            className="pl-8.5 text-[11px]"
+            className="pl-8.5"
           />
         </div>
         <InboxFilters
@@ -90,8 +90,8 @@ export function ConversationInbox({
         {!isLoading && !error && conversations.length === 0 && (
           <div className="grid min-h-48 place-items-center px-5 text-center">
             <div>
-              <p className="text-sm font-medium text-foreground">No conversations found</p>
-              <p className="mt-1 text-xs leading-5 text-muted">
+              <p className="text-base font-semibold tracking-tight text-foreground">No conversations found</p>
+              <p className="mt-1.5 text-sm leading-6 text-muted">
                 Try changing your filters or clearing the search query.
               </p>
             </div>

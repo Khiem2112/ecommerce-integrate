@@ -9,8 +9,8 @@ export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
 };
 
 const SIZE_STYLES: Record<InputSize, string> = {
-  sm: 'h-8 px-2.5 py-1 text-[11px]',
-  md: 'h-9 px-3 py-1.5 text-xs',
+  sm: 'h-8 px-2.5 py-1 text-xs',
+  md: 'h-9 px-3 py-1.5 text-sm',
 };
 
 export function Input({

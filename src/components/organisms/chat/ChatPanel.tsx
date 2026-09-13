@@ -78,7 +78,7 @@ export function ChatPanel({
           ariaLabel="Back to conversations"
           tooltip="Back to conversations"
           onClick={onBack}
-          className="xl:hidden"
+          className="size-11 xl:hidden"
           icon={
             <svg
               aria-hidden="true"
@@ -97,7 +97,7 @@ export function ChatPanel({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="truncate text-sm font-semibold text-foreground">
+            <h2 className="truncate text-base font-semibold tracking-tight text-foreground">
               {conversation.customerIdentifier}
             </h2>
           </div>
@@ -165,14 +165,14 @@ export function ChatPanel({
         {conversation.messages.length === 0 ? (
           <div className="grid h-full min-h-48 place-items-center text-center">
             <div>
-              <p className="text-sm font-semibold text-foreground">Start the conversation</p>
-              <p className="mt-1 text-xs text-muted">
+              <p className="text-base font-semibold tracking-tight text-foreground">Start the conversation</p>
+              <p className="mt-1.5 text-sm leading-6 text-muted">
                 Write a reply or request a grounded AI draft.
               </p>
             </div>
           </div>
         ) : (
-          <div className="mx-auto flex max-w-3xl flex-col gap-3">
+          <div className="mx-auto flex max-w-3xl flex-col gap-4">
             {conversation.messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
             ))}
@@ -185,9 +185,9 @@ export function ChatPanel({
             <button
               type="button"
               onClick={onViewDraft}
-              className="flex w-full cursor-pointer items-center gap-2.5 rounded-2xl border border-status-warning/25 bg-status-warning/8 px-4 py-2.5 text-left text-xs transition duration-150 hover:bg-status-warning/15"
+              className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-status-warning/25 bg-status-warning/8 px-4 py-3 text-left text-sm transition duration-150 hover:bg-status-warning/15"
             >
-              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-foreground text-[10px] font-bold text-background">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-foreground text-xs font-bold text-background">
                 ✦
               </span>
               <span className="flex-1 font-medium text-foreground">

@@ -7,9 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function LazadaDevPage() {
-  return (
-    <main className="min-h-screen bg-background p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-      <LazadaDevPlayground />
-    </main>
-  );
+  return <LazadaDevPlayground />;
 }

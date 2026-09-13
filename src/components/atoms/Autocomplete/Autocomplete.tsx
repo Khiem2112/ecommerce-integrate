@@ -115,11 +115,11 @@ export function Autocomplete({
   }, [isOpen]);
 
   return (
-    <div className={cn('relative w-full', className)} ref={containerRef}>
+    <div className={cn('relative min-w-0 w-full', className)} ref={containerRef}>
       {label && (
         <label
           htmlFor={buttonId}
-          className="mb-1 block text-[11px] font-medium text-muted"
+          className="mb-1 block text-xs font-medium text-muted"
         >
           {label}
         </label>
@@ -135,7 +135,7 @@ export function Autocomplete({
         onClick={() => setIsOpen((prev) => !prev)}
         className={cn(
           'flex w-full items-center justify-between gap-1.5 rounded-full border border-hairline bg-surface-card text-left text-foreground shadow-xs transition duration-150 outline-none hover:border-foreground/30 focus-visible:border-foreground focus-visible:ring-2 focus-visible:ring-foreground/10 cursor-pointer',
-          size === 'sm' ? 'h-8 px-2.5 py-1 text-[11px]' : 'h-9 px-3 py-1.5 text-xs',
+          size === 'sm' ? 'h-8 px-2.5 py-1 text-xs' : 'h-9 px-3 py-1.5 text-sm',
           disabled && 'cursor-not-allowed opacity-50',
           isOpen && 'border-foreground ring-2 ring-foreground/10',
         )}
@@ -188,7 +188,7 @@ export function Autocomplete({
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full rounded-full border border-hairline bg-surface-lifted px-2.5 py-1 text-[11px] text-foreground placeholder:text-muted outline-none focus:border-foreground"
+                className="w-full rounded-full border border-hairline bg-surface-lifted px-2.5 py-1 text-xs text-foreground placeholder:text-muted outline-none focus:border-foreground"
               />
             </div>
           )}
@@ -196,7 +196,7 @@ export function Autocomplete({
           <ul
             className={cn(
               'max-h-48 overflow-y-auto p-1 custom-scrollbar',
-              size === 'sm' ? 'text-[11px]' : 'text-xs',
+              size === 'sm' ? 'text-xs' : 'text-sm',
             )}
           >
             {filteredOptions.length === 0 ? (
@@ -235,7 +235,7 @@ export function Autocomplete({
                       )}
                       <span className="truncate">{option.label}</span>
                       {option.subLabel && (
-                        <span className="text-[10px] text-muted">
+                        <span className="text-[11px] text-muted">
                           {option.subLabel}
                         </span>
                       )}

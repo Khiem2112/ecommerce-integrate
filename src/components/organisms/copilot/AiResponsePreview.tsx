@@ -205,17 +205,17 @@ export function AiResponsePreview({
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-surface-lifted px-1 pb-2">
         <div className="flex items-center gap-2">
           <span
-            className="grid size-5.5 place-items-center rounded-full bg-foreground text-[10px] font-bold text-background"
+            className="grid size-6 place-items-center rounded-full bg-foreground text-xs font-bold text-background"
             aria-hidden="true"
           >
             ✦
           </span>
           <div className="flex items-center gap-2">
-            <h3 className="text-xs font-semibold text-foreground">
+            <h3 className="text-sm font-semibold tracking-tight text-foreground">
               AI Multi-Draft Co-Pilot
             </h3>
             {isFullDraft && draft.createdAt && (
-              <span className="text-[10px] text-muted">
+              <span className="text-xs tabular-nums text-muted">
                 {new Date(draft.createdAt).toLocaleTimeString('vi-VN', {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -259,12 +259,12 @@ export function AiResponsePreview({
       <div className="space-y-2.5 px-0.5 pt-1">
         {/* Trigger Customer Message Context */}
         {triggerMessage?.text && (
-          <div className="rounded-xl border border-hairline bg-background p-2 text-xs">
-            <div className="flex items-center justify-between text-[10px] text-muted">
+          <div className="rounded-xl border border-hairline bg-background p-2.5 text-sm">
+            <div className="flex items-center justify-between text-xs tabular-nums text-muted">
               <span className="font-medium">Tin nhắn kích hoạt ({triggerMessage.senderName}):</span>
               <span>{new Date(triggerMessage.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
-            <p className="mt-1 line-clamp-2 text-xs italic text-foreground/80">
+            <p className="mt-1.5 line-clamp-2 text-sm leading-5 italic text-foreground/80">
               &ldquo;{triggerMessage.text}&rdquo;
             </p>
           </div>
@@ -272,15 +272,15 @@ export function AiResponsePreview({
 
         {/* Outdated Warning Banner */}
         {isOutdated && (
-          <div className="rounded-xl border border-semantic-error/30 bg-semantic-error/10 p-2.5 text-xs leading-5 text-semantic-error">
+          <div className="rounded-xl border border-semantic-error/30 bg-semantic-error/10 p-3 text-sm leading-5 text-semantic-error">
             <span className="font-semibold">⚠️ Draft đã lỗi thời:</span> Tin nhắn mới từ khách hàng đã xuất hiện sau khi draft này được tạo. Vui lòng bấm <strong>Generate AI Response</strong> để tạo phương án cập nhật.
           </div>
         )}
 
         {/* Recommendation Rationale Callout */}
         {draft.response?.recommendationReason && (
-          <div className="flex items-center gap-2 rounded-xl border border-status-warning/20 bg-status-warning/5 px-2.5 py-1.5 text-xs text-foreground">
-            <span className="text-xs font-bold text-status-warning">💡</span>
+          <div className="flex items-center gap-2 rounded-xl border border-status-warning/20 bg-status-warning/5 px-3 py-2 text-sm text-foreground">
+            <span className="text-sm font-bold text-status-warning">💡</span>
             <div className="truncate">
               <span className="font-semibold text-status-warning">Đề xuất: </span>
               <span className="text-foreground">{draft.response.recommendationReason}</span>
@@ -291,10 +291,10 @@ export function AiResponsePreview({
         {/* Horizontal Strategy Segmented Pill Tabs */}
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
               Chiến lược ({strategies.length} phương án)
             </span>
-            <span className="text-[10px] text-muted">
+            <span className="text-xs text-muted">
               {activeStrategy.strategy?.tone ? `Tone: ${activeStrategy.strategy.tone}` : ''}
             </span>
           </div>
@@ -337,7 +337,7 @@ export function AiResponsePreview({
                       variant="warning"
                       size="xs"
                       className={cn(
-                        'px-1.5 py-0 text-[9px] font-bold border-0',
+                        'border-0 px-1.5 py-0 text-[11px] font-semibold',
                         isSelectedTab
                           ? 'bg-status-warning text-on-primary'
                           : 'bg-status-warning/15 text-status-warning',
@@ -351,7 +351,7 @@ export function AiResponsePreview({
                     <Badge
                       variant="success"
                       size="xs"
-                      className="border-0 bg-status-success px-1.5 py-0 text-[9px] font-bold text-on-primary"
+                      className="border-0 bg-status-success px-1.5 py-0 text-[11px] font-semibold text-on-primary"
                       label="✓ Đã duyệt"
                     />
                   )}
@@ -361,7 +361,7 @@ export function AiResponsePreview({
                     <Badge
                       variant="secondary"
                       size="xs"
-                      className="border-0 px-1 py-0 text-[8px]"
+                      className="border-0 px-1 py-0 text-[11px]"
                       label="Dự phòng"
                     />
                   )}
@@ -372,7 +372,7 @@ export function AiResponsePreview({
                       variant="success"
                       size="xs"
                       className={cn(
-                        'px-1.5 py-0 text-[9px] font-bold border-0',
+                        'border-0 px-1.5 py-0 text-[11px] font-semibold',
                         isSelectedTab
                           ? 'bg-status-success text-on-primary'
                           : 'bg-status-success/15 text-status-success-text',
@@ -381,7 +381,7 @@ export function AiResponsePreview({
                     />
                   )}
 
-                  <span className={cn('text-[10px]', isSelectedTab ? 'text-dust-taupe' : 'text-muted')}>
+                  <span className={cn('text-xs tabular-nums', isSelectedTab ? 'text-dust-taupe' : 'text-muted')}>
                     {Math.round(strategy.confidence * 100)}%
                   </span>
                 </button>
@@ -397,13 +397,13 @@ export function AiResponsePreview({
               value={currentText}
               onChange={(event) => handleTextChange(event.target.value)}
               rows={3}
-              className="block w-full resize-y rounded-xl border border-hairline bg-surface-card p-2.5 text-xs leading-5 text-foreground outline-none transition focus:border-foreground focus:ring-2 focus:ring-foreground/10"
+              className="block w-full resize-y rounded-xl border border-hairline bg-surface-card p-3 text-base leading-6 text-foreground outline-none transition focus:border-foreground focus:ring-2 focus:ring-foreground/10"
               aria-label="Edit AI response"
             />
           ) : (
             <div
               className={cn(
-                'custom-scrollbar max-h-32 overflow-y-auto rounded-xl border p-2.5 text-xs leading-5',
+                'custom-scrollbar max-h-48 overflow-y-auto rounded-xl border p-3 text-base leading-6',
                 draftStatus === 'applied' && activeStrategy.id === selectedStrategyCode
                   ? 'border-status-success/40 bg-status-success/5 text-foreground'
                   : 'border-hairline bg-surface-lifted text-foreground',
@@ -435,7 +435,7 @@ export function AiResponsePreview({
 
         {/* Escalate or Invalid Notice */}
         {draftStatus === 'pending' && !isOutdated && !canApprove && (
-          <div className="rounded-xl border border-status-warning/30 bg-status-warning/8 p-2 text-xs leading-5 text-status-warning-text">
+          <div className="rounded-xl border border-status-warning/30 bg-status-warning/8 p-3 text-sm leading-5 text-status-warning-text">
             {activeStrategy.suggestedAction === 'escalate_to_human'
               ? '⚠️ Chiến lược này có rủi ro cao, yêu cầu nhân viên xử lý thủ công.'
               : '⚠️ Draft này không thể duyệt do chưa đáp ứng yêu cầu grounding/an toàn.'}
@@ -444,14 +444,14 @@ export function AiResponsePreview({
 
         {/* Reject Dialog Inline */}
         {showRejectModal && (
-          <div className="rounded-xl border border-semantic-error/30 bg-semantic-error/8 p-3 text-xs space-y-2">
+          <div className="space-y-2 rounded-xl border border-semantic-error/30 bg-semantic-error/8 p-3 text-sm">
             <h4 className="font-semibold text-semantic-error">
               Từ chối AI Draft — Chọn lý do:
             </h4>
             <select
               value={selectedRejectReason}
               onChange={(e) => setSelectedRejectReason(e.target.value)}
-              className="w-full rounded-lg border border-hairline bg-background p-1.5 text-xs text-foreground"
+              className="w-full rounded-lg border border-hairline bg-background p-2 text-sm text-foreground"
             >
               {REJECTION_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>

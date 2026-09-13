@@ -2,7 +2,7 @@
 
 import { useAtom } from 'jotai';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { selectedConversationIdAtom, sidebarCollapsedAtom } from '@/atoms/workspaceAtoms';
 import { IconButton } from '@/components/atoms';
 import { ChatPanel } from '@/components/organisms/chat/ChatPanel';
@@ -25,6 +25,21 @@ export function AgentWorkspace() {
   const { mutate: generateResponse, isPending: isGenerating, error: generateError } =
     useRagGenerate();
   const [draft, setDraft] = useState<MultiDraftRagDraft | null>(null);
+
+  useEffect(() => {
+    const compactWorkspace = window.matchMedia('(max-width: 1535px)');
+
+    function handleWorkspaceWidth(event: MediaQueryListEvent | MediaQueryList) {
+      if (event.matches) {
+        setSidebarCollapsed(true);
+      }
+    }
+
+    handleWorkspaceWidth(compactWorkspace);
+    compactWorkspace.addEventListener('change', handleWorkspaceWidth);
+
+    return () => compactWorkspace.removeEventListener('change', handleWorkspaceWidth);
+  }, [setSidebarCollapsed]);
 
   function selectConversation(conversationId: number) {
     setSelectedConversationId(conversationId);
@@ -69,11 +84,11 @@ export function AgentWorkspace() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 overflow-hidden">
+    <div className="relative flex h-full min-h-0 flex-1 overflow-hidden">
       {/* Inbox panel */}
       <aside
         className={cn(
-          'relative h-full min-h-0 w-full shrink-0 overflow-hidden border-r border-hairline bg-surface-lifted xl:w-80',
+          'relative h-full min-h-0 min-w-0 w-full shrink-0 overflow-hidden border-r border-hairline bg-surface-lifted xl:w-76',
           mobileView === 'inbox' ? 'block' : 'hidden',
           inboxCollapsed ? 'xl:hidden' : 'xl:block',
         )}
@@ -158,19 +173,27 @@ export function AgentWorkspace() {
 
       {/* Context sidebar */}
       {!sidebarCollapsed && (
-        <aside className="hidden h-full min-h-0 w-90 shrink-0 overflow-hidden border-l border-hairline bg-surface-lifted xl:block">
-          <ContextSidebar
-            conversationId={selectedConversationId}
-            onCollapse={() => setSidebarCollapsed(true)}
-            draft={draft}
-            conversationIdForDraft={selectedConversationId}
-            onDismissDraft={() => setDraft(null)}
-            onSavedDraft={() => {
-              setDraft(null);
-              refreshConversation();
-            }}
+        <>
+          <button
+            type="button"
+            aria-label="Close customer context"
+            onClick={() => setSidebarCollapsed(true)}
+            className="absolute inset-0 z-20 hidden cursor-default bg-canvas-deep/20 sm:block 2xl:hidden"
           />
-        </aside>
+          <aside className="absolute inset-y-0 right-0 z-30 h-full min-h-0 w-full shrink-0 overflow-hidden border-l border-hairline bg-surface-lifted shadow-elevated sm:w-96 2xl:relative 2xl:z-auto 2xl:w-80 2xl:shadow-none">
+            <ContextSidebar
+              conversationId={selectedConversationId}
+              onCollapse={() => setSidebarCollapsed(true)}
+              draft={draft}
+              conversationIdForDraft={selectedConversationId}
+              onDismissDraft={() => setDraft(null)}
+              onSavedDraft={() => {
+                setDraft(null);
+                refreshConversation();
+              }}
+            />
+          </aside>
+        </>
       )}
     </div>
   );

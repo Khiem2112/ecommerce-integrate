@@ -67,7 +67,7 @@ export function MessageInput({
         <div className="mb-2 flex items-center justify-between">
           <label
             htmlFor={`composer-${conversationId}`}
-            className="text-[11px] font-semibold text-foreground"
+            className="text-sm font-semibold tracking-tight text-foreground"
           >
             Reply to customer
           </label>
@@ -107,11 +107,11 @@ export function MessageInput({
           onChange={(event) => setText(event.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Write a customer reply…"
-          className="block w-full resize-none bg-transparent text-xs text-foreground outline-none placeholder:text-muted"
+          className="block w-full resize-none bg-transparent text-base leading-6 text-foreground outline-none placeholder:text-muted"
         />
 
         <div className="mt-2 flex items-center justify-between gap-2 border-t border-hairline pt-2">
-          <p className="text-[10px] text-muted">
+          <p className="text-xs text-muted">
             Enter to send · Shift+Enter for new line
           </p>
 

@@ -67,8 +67,8 @@ export function CustomerContextPanel({
       {!headerHidden && (
         <header className="flex min-h-14 shrink-0 items-center justify-between border-b border-hairline bg-surface-lifted px-4">
           <div>
-            <h2 className="text-sm font-semibold text-foreground">Customer context</h2>
-            <p className="mt-0.5 text-xs text-muted">Evidence-backed customer intel</p>
+            <h2 className="text-base font-semibold tracking-tight text-foreground">Customer context</h2>
+            <p className="mt-1 text-sm text-muted">Evidence-backed customer intel</p>
           </div>
           <IconButton
             size="sm"
@@ -111,21 +111,21 @@ export function CustomerContextPanel({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
                   Customer ID
                 </p>
-                <span className="text-[10px] font-medium text-primary opacity-0 transition group-hover:opacity-100">
+                <span className="text-xs font-medium text-primary opacity-0 transition group-hover:opacity-100">
                   Xem hồ sơ ↗
                 </span>
               </div>
-              <p className="mt-0.5 truncate text-xs font-semibold text-foreground group-hover:text-primary">
+              <p className="mt-1 truncate text-sm font-semibold text-foreground group-hover:text-primary">
                 {customer.platformBuyerId}
               </p>
             </div>
             <VipTierBadge code={customer.vipTier.code} name={customer.vipTier.name} />
           </div>
           <div className="mt-2.5 flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-foreground">
+            <span className="text-2xl font-bold tracking-[-0.025em] tabular-nums text-foreground">
               {customer.vipScore.toFixed(1)}
             </span>
             <span className="text-xs text-muted">VIP score / 100</span>
@@ -134,10 +134,10 @@ export function CustomerContextPanel({
 
         <section>
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
               Customer metrics
             </h3>
-            <span className="text-[10px] text-muted">
+            <span className="text-xs tabular-nums text-muted">
               {totalConversationCount} cases · {unresolvedConversationCount} open
             </span>
           </div>
@@ -147,11 +147,11 @@ export function CustomerContextPanel({
                 key={metric.label}
                 className="rounded-2xl border border-hairline bg-surface-card p-2.5 shadow-xs"
               >
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
                   {metric.label}
                 </p>
                 <p
-                  className="mt-0.5 truncate text-xs font-semibold text-foreground"
+                  className="mt-1 truncate text-sm font-semibold tabular-nums text-foreground"
                   title={metric.value}
                 >
                   {metric.value}
@@ -204,4 +204,3 @@ function ContextSkeleton() {
     </div>
   );
 }
-

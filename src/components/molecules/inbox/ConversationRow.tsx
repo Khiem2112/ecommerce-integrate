@@ -95,10 +95,10 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
       onClick={() => onSelect(conversation.id)}
       title={buildTooltipText(conversation)}
       className={cn(
-        'group relative mb-1.5 w-full rounded-2xl p-3 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 border cursor-pointer',
+        'group relative mb-1 min-w-0 w-full overflow-hidden rounded-xl border p-3 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 cursor-pointer',
         isActive
-          ? 'border-foreground bg-surface-card shadow-sm ring-1 ring-foreground/10'
-          : 'border-hairline bg-surface-card hover:border-foreground/25 hover:bg-surface-lifted shadow-xs',
+          ? 'border-foreground bg-surface-card ring-1 ring-foreground/10'
+          : 'border-transparent bg-transparent hover:border-hairline hover:bg-surface-card',
       )}
     >
       <div className="flex items-start gap-2.5">
@@ -125,11 +125,11 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <span className="truncate text-xs font-semibold text-foreground">
+            <span className="truncate text-sm font-semibold tracking-tight text-foreground">
               {conversation.customerIdentifier}
             </span>
             <time
-              className="shrink-0 text-[10px] font-medium text-muted"
+              className="shrink-0 text-xs font-medium tabular-nums text-muted"
               dateTime={conversation.updatedAt}
             >
               {formatRelativeTime(conversation.updatedAt)}
@@ -137,7 +137,7 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
           </div>
 
           {/* Preview line with intent prefix */}
-          <p className="mt-1 line-clamp-1 text-xs text-muted">
+          <p className="mt-1 line-clamp-1 text-sm leading-5 text-muted">
             {intentLabel && (
               <span className="font-medium text-foreground/70">{intentLabel} · </span>
             )}
@@ -157,7 +157,7 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
               <Badge
                 variant="warning"
                 size="xs"
-                className="px-1.5 py-0 text-[9px] font-bold"
+                className="px-1.5 py-0 text-[11px] font-semibold"
                 label="✦ AI Draft"
               />
             )}
@@ -166,7 +166,7 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
               <Badge
                 variant="rose"
                 size="xs"
-                className="px-1.5 py-0 text-[9px] font-bold"
+                className="px-1.5 py-0 text-[11px] font-semibold"
                 label="⚠️ Outdated"
               />
             )}
@@ -175,7 +175,7 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
               <Badge
                 variant="success"
                 size="xs"
-                className="px-1.5 py-0 text-[9px] font-bold"
+                className="px-1.5 py-0 text-[11px] font-semibold"
                 label="✓ AI Saved"
               />
             )}
