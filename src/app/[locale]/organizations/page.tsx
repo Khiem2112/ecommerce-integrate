@@ -10,7 +10,7 @@ export default function OrganizationsPage() {
   const { setBreadcrumb } = useBreadcrumb();
 
   useEffect(() => {
-    setBreadcrumb([{ label: t('organizations.breadcrumb') }]);
+    setBreadcrumb([{ label: t('breadcrumb') }]);
   }, [setBreadcrumb, t]);
 
   return <OrganizationDirectory />;

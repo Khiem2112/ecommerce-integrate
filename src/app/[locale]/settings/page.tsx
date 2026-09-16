@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
+import { useBreadcrumb } from '@/hooks';
 import { cn } from '@/lib/cn';
 
 const LANGUAGE_OPTIONS = [
@@ -13,6 +15,11 @@ export default function SettingsPage() {
   const locale = useLocale();
   const router = useRouter();
   const t = useTranslations('settings');
+  const { setBreadcrumb } = useBreadcrumb();
+
+  useEffect(() => {
+    setBreadcrumb([{ label: t('title') }]);
+  }, [setBreadcrumb, t]);
 
   const handleLocaleChange = (newLocale: 'vi' | 'en'): void => {
     router.replace('/settings', { locale: newLocale });

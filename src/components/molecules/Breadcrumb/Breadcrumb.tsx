@@ -1,69 +1,21 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Link, usePathname } from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
+import { useBreadcrumbValue, type BreadcrumbItem } from '@/hooks';
 import { cn } from '@/lib/cn';
 
-export type BreadcrumbItem = {
-  readonly label: string;
-  readonly href?: string;
-};
+export type { BreadcrumbItem };
 
 export type BreadcrumbProps = {
+  readonly items?: readonly BreadcrumbItem[];
   readonly className?: string;
 };
 
-/**
- * Route-to-label mapping for the first path segment.
- * Max 2 breadcrumb segments are shown.
- */
-const SECTION_LABEL_KEYS: Record<string, string> = {
-  conversations: 'workspace',
-  orders: 'orders',
-  customers: 'customers',
-  settings: 'settings',
-  integrations: 'integrations',
-  lazada: 'lazada',
-  new: 'new',
-};
-
-function deriveItems(
-  pathname: string,
-  translate: (key: string) => string,
-): readonly BreadcrumbItem[] {
-  // Split and filter empty segments
-  const segments = pathname.split('/').filter(Boolean);
-
-  if (segments.length === 0) return [];
-
-  // Flatten: always use section label for first segment
-  const sectionKey = segments[0];
-  const sectionLabelKey = SECTION_LABEL_KEYS[sectionKey];
-  const sectionLabel = sectionLabelKey ? translate(sectionLabelKey) : sectionKey;
-
-  if (segments.length === 1) {
-    return [{ label: sectionLabel }];
-  }
-
-  // Second segment: prefer label mapping, fallback to ID display
-  const childKey = segments[segments.length - 1];
-  const childLabelKey = SECTION_LABEL_KEYS[childKey];
-  const childLabel = childLabelKey
-    ? translate(childLabelKey)
-    : childKey.length > 12
-      ? `#${childKey.slice(0, 8)}…`
-      : `#${childKey}`;
-
-  return [
-    { label: sectionLabel, href: `/${sectionKey}` },
-    { label: childLabel },
-  ];
-}
-
-export function Breadcrumb({ className }: BreadcrumbProps) {
-  const pathname = usePathname();
+export function Breadcrumb({ items: propItems, className }: BreadcrumbProps) {
+  const atomItems = useBreadcrumbValue();
+  const items = propItems ?? atomItems;
   const t = useTranslations('breadcrumb');
-  const items = deriveItems(pathname, t);
 
   if (items.length === 0) return null;
 
@@ -89,8 +41,10 @@ export function Breadcrumb({ className }: BreadcrumbProps) {
     >
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
+        const itemKey = `breadcrumb-${item.label}-${item.href ?? index}`;
+
         return (
-          <div key={`bc-${index}`} className="flex items-center gap-1.5">
+          <div key={itemKey} className="flex items-center gap-1.5">
             {index > 0 && separator}
             {item.href && !isLast ? (
               <Link
@@ -115,3 +69,4 @@ export function Breadcrumb({ className }: BreadcrumbProps) {
     </nav>
   );
 }
+

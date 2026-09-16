@@ -11,11 +11,14 @@ import { ContextSidebar } from '@/components/organisms/context/ContextSidebar';
 import { ConversationInbox } from '@/components/organisms/inbox/ConversationInbox';
 import { useConversationDetail } from '@/hooks/useConversationDetail';
 import { useRagGenerate } from '@/hooks/useRagGenerate';
+import { useBreadcrumb } from '@/hooks';
 import { cn } from '@/lib/cn';
 import type { MultiDraftRagDraft } from '@/types';
 
 export function AgentWorkspace() {
   const t = useTranslations('workspace');
+  const tBreadcrumb = useTranslations('breadcrumb');
+  const { setBreadcrumb } = useBreadcrumb();
   const queryClient = useQueryClient();
   const [selectedConversationId, setSelectedConversationId] = useAtom(selectedConversationIdAtom);
   const [sidebarCollapsed, setSidebarCollapsed] = useAtom(sidebarCollapsedAtom);
@@ -27,6 +30,10 @@ export function AgentWorkspace() {
   const { mutate: generateResponse, isPending: isGenerating, error: generateError } =
     useRagGenerate();
   const [draft, setDraft] = useState<MultiDraftRagDraft | null>(null);
+
+  useEffect(() => {
+    setBreadcrumb([{ label: tBreadcrumb('workspace') }]);
+  }, [setBreadcrumb, tBreadcrumb]);
 
   useEffect(() => {
     const compactWorkspace = window.matchMedia('(max-width: 1535px)');
