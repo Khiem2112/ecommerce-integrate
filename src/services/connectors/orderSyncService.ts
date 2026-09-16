@@ -4,7 +4,7 @@
  */
 
 import { prisma, runWithTx } from '@/lib/prisma';
-import { Prisma, type OrderItem } from '@prisma/client';
+import { type OrderItem } from '@prisma/client';
 import type {
   DbClient,
   FetchOrdersParams,
@@ -22,6 +22,7 @@ import type {
 
 import * as connectorFactory from './connectorFactory';
 import { ensurePlatformConnectionService } from '@/services/platformConnectionService';
+import { getCurrentOrganizationIdService } from '@/services/organizationContextService';
 import {
   computeOrderHeaderDiff,
   computeOrderItemDiff,
@@ -540,10 +541,11 @@ export async function getPreviewOrdersPageService(
   const platformRecord = await tx.platformCatalog.findUnique({
     where: { code: platform },
   });
+  const organizationId = await getCurrentOrganizationIdService(tx);
 
   const connection = platformRecord
-    ? await tx.platformConnection.findUnique({
-        where: { platformId: platformRecord.id },
+    ? await tx.platformConnection.findFirst({
+        where: { organizationId, platformId: platformRecord.id, isActive: true },
       })
     : null;
 
@@ -678,14 +680,15 @@ export async function getIntegrationSummaryService(
   const platformRecord = await tx.platformCatalog.findUnique({
     where: { code: platform },
   });
+  const organizationId = await getCurrentOrganizationIdService(tx);
 
   let totalOrders = 0;
   let lastSyncedAt: string | undefined = undefined;
   let failedRecords = 0;
 
   if (platformRecord) {
-    const connection = await tx.platformConnection.findUnique({
-      where: { platformId: platformRecord.id },
+    const connection = await tx.platformConnection.findFirst({
+      where: { organizationId, platformId: platformRecord.id, isActive: true },
     });
 
     if (connection) {

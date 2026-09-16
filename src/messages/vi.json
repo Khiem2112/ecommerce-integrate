@@ -21,7 +21,8 @@
       "customers": "Khách hàng",
       "allCustomers": "Tất cả khách hàng",
       "integrations": "Tích hợp",
-      "settings": "Cài đặt"
+      "settings": "Cài đặt",
+      "organizations": "Tổ chức"
     }
   },
   "breadcrumb": {
@@ -572,6 +573,7 @@
     "confirm": "Xác nhận",
     "cancel": "Hủy",
     "close": "Đóng",
+    "notifications": "Thông báo",
     "save": "Lưu thay đổi",
     "saving": "Đang lưu...",
     "processing": "Đang xử lý...",
@@ -1262,6 +1264,124 @@
       "statusPending": "🟡 Chờ duyệt",
       "noDraft": "Chưa có AI draft",
       "generatePrompt": "Bấm \"Generate AI Response\" trong khung chat để tạo câu trả lời gợi ý."
+    }
+  },
+  "organizations": {
+    "title": "Tổ chức",
+    "description": "Quản lý các workspace vận hành độc lập và thành viên của chúng.",
+    "breadcrumb": "Tổ chức",
+    "new": "Tạo tổ chức",
+    "edit": "Sửa tổ chức",
+    "search": "Tìm tên hoặc slug…",
+    "allStatuses": "Tất cả trạng thái",
+    "empty": "Không có tổ chức nào khớp bộ lọc này.",
+    "loadFailed": "Không thể tải danh sách tổ chức.",
+    "notFound": "Tổ chức này không khả dụng.",
+    "back": "Quay lại danh sách tổ chức",
+    "name": "Tên tổ chức",
+    "slug": "Slug",
+    "status": "Trạng thái",
+    "role": "Vai trò của tôi",
+    "members": "Thành viên",
+    "shops": "Gian hàng đã kết nối",
+    "view": "Xem chi tiết",
+    "save": "Lưu thay đổi",
+    "create": "Tạo tổ chức",
+    "saving": "Đang lưu…",
+    "created": "Đã tạo tổ chức.",
+    "overviewTitle": "Thông tin workspace",
+    "governanceTitle": "Quản trị trạng thái",
+    "lastUpdated": "Cập nhật lần cuối",
+    "basicInfo": "Thông tin cơ bản",
+    "membersSectionTitle": "Danh sách người dùng",
+    "form": {
+      "name": "Tên hiển thị",
+      "slug": "Slug",
+      "timezone": "Múi giờ",
+      "currency": "Tiền tệ cơ sở",
+      "logo": "URL logo",
+      "legalName": "Tên pháp nhân",
+      "country": "Mã quốc gia",
+      "required": "Hãy kiểm tra các trường bắt buộc rồi thử lại.",
+      "invalid": "Thông tin tổ chức cần được kiểm tra lại."
+    },
+    "statuses": {
+      "active": "Đang hoạt động",
+      "suspended": "Tạm ngưng",
+      "archived": "Đã lưu trữ"
+    },
+    "roles": {
+      "owner": "Chủ sở hữu",
+      "admin": "Quản trị viên",
+      "operations_manager": "Quản lý vận hành",
+      "integration_operator": "Nhân viên tích hợp",
+      "data_steward": "Quản lý dữ liệu",
+      "viewer": "Chỉ xem"
+    },
+    "tabs": {
+      "overview": "Tổng quan",
+      "members": "Thành viên",
+      "shops": "Gian hàng đã kết nối"
+    },
+    "context": {
+      "active": "Đang được chọn",
+      "selected": "Đang xem workspace khác",
+      "switch": "Đổi sang tổ chức này",
+      "switching": "Đang chuyển…",
+      "manage": "Quản lý",
+      "connectedShops": "Gian hàng",
+      "configure": "Cấu hình",
+      "switchOrg": "Đổi doanh nghiệp",
+      "switchModalTitle": "Đổi doanh nghiệp",
+      "switchModalDescription": "Chọn doanh nghiệp bạn muốn làm việc trong phiên này.",
+      "currentActive": "Đang hoạt động",
+      "noShops": "Chưa có gian hàng kết nối."
+    },
+    "directory": {
+      "expandShops": "Xem gian hàng",
+      "collapseShops": "Thu gọn gian hàng",
+      "connectedShopsCount": "Gian hàng liên kết ({count})",
+      "noConnectedShops": "Chưa có gian hàng nào được kết nối với tổ chức này."
+    },
+    "membersTab": {
+      "title": "Thành viên tổ chức",
+      "add": "Thêm thành viên",
+      "addDescription": "Chọn người dùng và thiết lập trạng thái / vai trò để thêm vào tổ chức.",
+      "userLabel": "Người dùng",
+      "roleLabel": "Trạng thái",
+      "selectUser": "Chọn người dùng",
+      "selectRole": "Chọn vai trò",
+      "addAction": "Thêm",
+      "remove": "Gỡ",
+      "changeRole": "Đổi vai trò",
+      "empty": "Chưa có thành viên hoạt động.",
+      "currentUser": "Bạn",
+      "mutationFailed": "Không thể cập nhật thành viên này."
+    },
+    "shopsTab": {
+      "title": "Gian hàng đã kết nối",
+      "empty": "Chưa có gian hàng nào được kết nối với tổ chức này.",
+      "lastSync": "Đồng bộ gần nhất: {time}"
+    },
+    "lifecycle": {
+      "suspend": "Tạm ngưng",
+      "archive": "Lưu trữ",
+      "restore": "Khôi phục",
+      "archiveDescription": "Nhập tên tổ chức để lưu trữ.",
+      "confirmation": "Tên tổ chức",
+      "confirm": "Xác nhận",
+      "cancel": "Hủy",
+      "failed": "Không thể thay đổi trạng thái tổ chức."
+    },
+    "errors": {
+      "save": "Không thể lưu tổ chức.",
+      "switch": "Không thể chuyển workspace."
+    },
+    "toast": {
+      "cannotSwitchSuspendedTitle": "Tổ chức đang tạm dừng",
+      "cannotSwitchSuspended": "Không thể chuyển sang tổ chức đang tạm dừng. Vui lòng kích hoạt lại tổ chức để tiếp tục.",
+      "cannotSwitchArchivedTitle": "Tổ chức đã lưu trữ",
+      "cannotSwitchArchived": "Không thể chuyển sang tổ chức đã lưu trữ."
     }
   }
 }

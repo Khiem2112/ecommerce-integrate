@@ -35,10 +35,12 @@ model PlatformCatalog {
   @@map("platform_catalog")
 }
 
-/// One connected shop per platform (MVP: unique on platformId)
+/// Temporary multi-shop model: an Organization may connect multiple shops on one platform.
 model PlatformConnection {
   id             Int      @id @default(autoincrement())
-  platformId     Int      @unique
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  platformId     Int
   platform       PlatformCatalog @relation(fields: [platformId], references: [id])
   externalShopId String?         // Seller/shop id on the platform when known
   shopName       String?
@@ -52,7 +54,164 @@ model PlatformConnection {
   conversations Conversation[]
   syncBatches   SyncBatch[]
 
+  @@unique([platformId, externalShopId])
+  @@index([organizationId, platformId])
+  @@index([organizationId])
+  @@index([platformId])
   @@map("platform_connection")
+}
+
+/// Temporary local identity directory until an external identity provider is integrated.
+model User {
+  id          Int      @id @default(autoincrement())
+  subjectId   String   @unique
+  displayName String
+  email       String   @unique
+  avatarUrl   String?
+  memberships OrganizationMember[]
+  preferences OrganizationContextPreference[]
+  auditEvents OrganizationAuditLog[] @relation("OrganizationAuditActor")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@map("app_user")
+}
+
+model OrganizationStatus {
+  id            Int      @id @default(autoincrement())
+  code          String   @unique
+  name          String
+  isFinal       Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  organizations Organization[]
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  @@map("organization_status")
+}
+
+model OrganizationRoleCatalog {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  name        String
+  sortOrder   Int      @default(0)
+  memberships OrganizationMember[]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@map("organization_role_catalog")
+}
+
+model OrganizationMembershipStatus {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  name        String
+  sortOrder   Int      @default(0)
+  memberships OrganizationMember[]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@map("organization_membership_status")
+}
+
+model Organization {
+  id                   Int      @id @default(autoincrement())
+  displayName          String   @db.VarChar(120)
+  slug                 String   @unique @db.VarChar(63)
+  logoUrl              String?
+  timezone             String   @db.VarChar(64)
+  baseCurrency         String   @db.VarChar(3)
+  legalName            String?  @db.VarChar(191)
+  taxId                String?  @db.VarChar(191)
+  countryCode          String?  @db.VarChar(2)
+  legalAddress         String?  @db.Text
+  statusId             Int
+  status               OrganizationStatus @relation(fields: [statusId], references: [id])
+  version              Int      @default(1)
+  createIdempotencyKey String?  @unique @db.VarChar(191)
+  members              OrganizationMember[]
+  contextPreferences   OrganizationContextPreference[]
+  slugHistory          OrganizationSlugHistory[]
+  auditLogs            OrganizationAuditLog[]
+  connections          PlatformConnection[]
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @default(now()) @updatedAt
+
+  @@index([statusId])
+  @@map("organization")
+}
+
+model OrganizationMember {
+  id                 Int      @id @default(autoincrement())
+  organizationId     Int
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  userId             Int
+  user               User     @relation(fields: [userId], references: [id])
+  roleId             Int
+  role               OrganizationRoleCatalog @relation(fields: [roleId], references: [id])
+  membershipStatusId Int
+  membershipStatus   OrganizationMembershipStatus @relation(fields: [membershipStatusId], references: [id])
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @default(now()) @updatedAt
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([membershipStatusId])
+  @@map("organization_member")
+}
+
+model OrganizationContextPreference {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @unique
+  user           User     @relation(fields: [userId], references: [id])
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  @@index([organizationId])
+  @@map("organization_context_preference")
+}
+
+model OrganizationSlugHistory {
+  id             Int      @id @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  slug           String   @unique @db.VarChar(63)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  @@index([organizationId])
+  @@map("organization_slug_history")
+}
+
+/// Append-only records deliberately omit isActive and updatedAt; corrections are new events.
+model OrganizationAuditLog {
+  id             Int      @id @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  actorUserId    Int?
+  actor          User?    @relation("OrganizationAuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  action         String   @db.VarChar(100)
+  targetType     String   @db.VarChar(100)
+  targetId       String?  @db.VarChar(191)
+  beforeSnapshot Json?    // Redacted object only.
+  afterSnapshot  Json?    // Redacted object only.
+  correlationId  String?  @db.VarChar(191)
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@map("organization_audit_log")
 }
 
 /// VIP tier classifications
@@ -675,4 +834,3 @@ model SyncChange {
   @@index([entityId])
   @@map("sync_change")
 }
-

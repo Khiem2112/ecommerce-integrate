@@ -1,9 +1,9 @@
 'use client';
 
-import { Provider as JotaiProvider } from 'jotai';
+import { Provider as JotaiProvider, getDefaultStore } from 'jotai';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
-import { TooltipProvider } from '@/components/atoms/Tooltip';
+import { TooltipProvider, Toaster } from '@/components/atoms';
 
 type AppProvidersProps = {
   readonly children: ReactNode;
@@ -23,9 +23,12 @@ export function AppProviders({ children }: AppProvidersProps) {
   );
 
   return (
-    <JotaiProvider>
+    <JotaiProvider store={getDefaultStore()}>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>{children}</TooltipProvider>
+        <TooltipProvider>
+          {children}
+          <Toaster />
+        </TooltipProvider>
       </QueryClientProvider>
     </JotaiProvider>
   );

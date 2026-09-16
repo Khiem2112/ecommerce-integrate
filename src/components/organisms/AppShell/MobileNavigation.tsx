@@ -24,7 +24,7 @@ export function MobileNavigation() {
   return (
     <nav
       aria-label={t('primaryNavigation')}
-      className="fixed inset-x-0 bottom-0 z-40 grid h-16 w-screen grid-cols-5 border-t border-hairline-strong bg-surface-lifted px-1 pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 grid h-16 w-screen grid-cols-6 border-t border-hairline-strong bg-surface-lifted px-1 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       {mobileNavItems.map((item) => {
         const isActive = item.id === activeItem?.id;

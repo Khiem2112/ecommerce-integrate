@@ -21,7 +21,8 @@
       "customers": "Customers",
       "allCustomers": "All customers",
       "integrations": "Integrations",
-      "settings": "Settings"
+      "settings": "Settings",
+      "organizations": "Organizations"
     }
   },
   "breadcrumb": {
@@ -572,6 +573,7 @@
     "confirm": "Confirm",
     "cancel": "Cancel",
     "close": "Close",
+    "notifications": "Notifications",
     "save": "Save changes",
     "saving": "Saving...",
     "processing": "Processing...",
@@ -1262,6 +1264,71 @@
       "statusPending": "🟡 Pending approval",
       "noDraft": "No AI draft yet",
       "generatePrompt": "Click \"Generate AI Response\" in the chat box to generate a draft answer."
+    }
+  },
+  "organizations": {
+    "title": "Organizations",
+    "description": "Manage independent operational workspaces and their members.",
+    "breadcrumb": "Organizations",
+    "new": "New organization",
+    "edit": "Edit organization",
+    "search": "Search name or slug…",
+    "allStatuses": "All statuses",
+    "empty": "No organizations match these filters.",
+    "loadFailed": "We could not load organizations.",
+    "notFound": "This organization is unavailable.",
+    "back": "Back to organizations",
+    "name": "Organization name",
+    "slug": "Slug",
+    "status": "Status",
+    "role": "My role",
+    "members": "Members",
+    "shops": "Connected shops",
+    "view": "View details",
+    "save": "Save changes",
+    "create": "Create organization",
+    "saving": "Saving…",
+    "created": "Organization created.",
+    "overviewTitle": "Workspace details",
+    "governanceTitle": "Status governance",
+    "lastUpdated": "Last updated",
+    "basicInfo": "Basic details",
+    "membersSectionTitle": "User list",
+    "form": {
+      "name": "Display name", "slug": "Slug", "timezone": "Timezone", "currency": "Base currency", "logo": "Logo URL", "legalName": "Legal name", "country": "Country code", "required": "Review the required fields and try again.", "invalid": "The organization details need attention."
+    },
+    "statuses": { "active": "Active", "suspended": "Suspended", "archived": "Archived" },
+    "roles": { "owner": "Owner", "admin": "Admin", "operations_manager": "Operations manager", "integration_operator": "Integration operator", "data_steward": "Data steward", "viewer": "Viewer" },
+    "tabs": { "overview": "Overview", "members": "Members", "shops": "Connected shops" },
+    "context": {
+      "active": "Active workspace",
+      "selected": "Viewing a different workspace",
+      "switch": "Switch to this organization",
+      "switching": "Switching…",
+      "manage": "Manage",
+      "connectedShops": "Connected shops",
+      "configure": "Configuration",
+      "switchOrg": "Switch organization",
+      "switchModalTitle": "Switch Organization",
+      "switchModalDescription": "Select the organization you want to work with in this session.",
+      "currentActive": "Active",
+      "noShops": "No connected shops."
+    },
+    "directory": {
+      "expandShops": "View shops",
+      "collapseShops": "Collapse shops",
+      "connectedShopsCount": "Connected shops ({count})",
+      "noConnectedShops": "No connected shops linked to this organization."
+    },
+    "membersTab": { "title": "Organization members", "add": "Add member", "addDescription": "Select a user and assign their role / status to add them to this organization.", "userLabel": "User", "roleLabel": "Status", "selectUser": "Select user", "selectRole": "Select role", "addAction": "Add", "remove": "Remove", "changeRole": "Change role", "empty": "No active members yet.", "currentUser": "You", "mutationFailed": "We could not update this member." },
+    "shopsTab": { "title": "Connected shops", "empty": "No shops are connected to this organization.", "lastSync": "Last sync: {time}" },
+    "lifecycle": { "suspend": "Suspend", "archive": "Archive", "restore": "Restore", "archiveDescription": "Type the organization name to archive it.", "confirmation": "Organization name", "confirm": "Confirm", "cancel": "Cancel", "failed": "We could not change the organization status." },
+    "errors": { "save": "We could not save the organization.", "switch": "We could not switch workspace." },
+    "toast": {
+      "cannotSwitchSuspendedTitle": "Organization is suspended",
+      "cannotSwitchSuspended": "Cannot switch to a suspended organization. Please reactivate the organization to continue.",
+      "cannotSwitchArchivedTitle": "Organization is archived",
+      "cannotSwitchArchived": "Cannot switch to an archived organization."
     }
   }
 }

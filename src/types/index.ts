@@ -27,6 +27,12 @@ export type {
   MessageType,
   AiDraftResponse,
   AiDraftStrategy,
+  Organization,
+  OrganizationStatus,
+  OrganizationRoleCatalog,
+  OrganizationMembershipStatus,
+  OrganizationContextPreference,
+  OrganizationAuditLog,
 } from '@prisma/client';
 
 // Common cross-layer utility types
@@ -186,5 +192,22 @@ export type {
   SyncBatchDetailProgress,
 } from './sync';
 
+export {
+  ORGANIZATION_STATUS_CODES,
+  ORGANIZATION_ROLE_CODES,
+} from './organization';
 
-
+export type {
+  OrganizationStatusCode,
+  OrganizationRoleCode,
+  OrganizationSummaryPayload,
+  OrganizationDetailPayload,
+  OrganizationFilters,
+  OrganizationSummary,
+  OrganizationMember,
+  OrganizationConnection,
+  OrganizationDetail,
+  OrganizationListResult,
+  ActiveOrganizationContext,
+  MockUserOption,
+} from './organization';

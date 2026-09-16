@@ -4,3 +4,4 @@ export * from './aiDraftForm';
 export * from './conversationForm';
 export * from './ragForm';
 export * from './integrationFormSchema';
+export * from './organizationFormSchema';

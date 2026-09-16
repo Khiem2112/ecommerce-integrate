@@ -118,3 +118,15 @@ export {
   type StatusBadgeProps,
   type StatusBadgeType,
 } from './StatusBadge/StatusBadge';
+
+export {
+  Switch,
+  type SwitchProps,
+  type SwitchSize,
+} from './Switch';
+
+export {
+  Toast,
+  Toaster,
+  type ToastProps,
+} from './Toast';

@@ -1,11 +1,11 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/navigation';
 import { useAtom } from 'jotai';
 import { cn } from '@/lib/cn';
 import { appSidebarCollapsedAtom } from '@/atoms/workspaceAtoms';
 import { IconButton } from '@/components/atoms';
+import { OrganizationSwitcher } from '../Organization/OrganizationSwitcher';
 import { getNavGroups } from './navConfig';
 import { SidebarNavItem } from './SidebarNavItem';
 
@@ -51,21 +51,8 @@ export function LeftSidebar() {
             }
           />
         ) : (
-          <>
-            <Link
-              href="/conversations"
-              className="flex min-w-0 items-center gap-2.5"
-              title="OmniCart Recover"
-            >
-              {/* Logo mark — stylized "O" mark */}
-              <div className="relative flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-on-primary">
-                O<span aria-hidden="true" className="absolute right-1 top-1 size-1 rounded-full bg-status-accent" />
-              </div>
-              <span className="truncate text-sm font-semibold tracking-tight text-foreground">
-                OmniCart
-              </span>
-            </Link>
-
+          <div className="flex min-w-0 flex-1 items-center justify-between gap-1">
+            <OrganizationSwitcher />
             <IconButton
               ariaLabel={t('collapseSidebar')}
               tooltip={t('collapseSidebar')}
@@ -87,7 +74,7 @@ export function LeftSidebar() {
                 </svg>
               }
             />
-          </>
+          </div>
         )}
       </div>
 

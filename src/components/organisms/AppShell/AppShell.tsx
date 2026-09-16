@@ -61,8 +61,6 @@ export function AppShell({ children }: AppShellProps) {
             }
           />
 
-          <div className="hidden h-5 w-px bg-hairline md:block" />
-
           {/* Breadcrumb */}
           <Breadcrumb className="min-w-0 flex-1" />
         </header>

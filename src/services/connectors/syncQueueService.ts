@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import type { DbClient, FetchOrdersParams, SyncBatchProgress, SyncedOrderFeedItem } from '@/types';
 import crypto from 'node:crypto';
 import { Prisma } from '@prisma/client';
+import { getCurrentOrganizationIdService } from '@/services/organizationContextService';
 
 /**
  * Enqueues a new sync batch into MySQL in 'queued' status.
@@ -310,9 +311,10 @@ export async function getActiveBatchForPlatformService(
   });
 
   if (!platform || !platform.isActive) return null;
+  const organizationId = await getCurrentOrganizationIdService(tx);
 
-  const connection = await tx.platformConnection.findUnique({
-    where: { platformId: platform.id },
+  const connection = await tx.platformConnection.findFirst({
+    where: { organizationId, platformId: platform.id, isActive: true },
   });
 
   if (!connection || !connection.isActive) return null;
