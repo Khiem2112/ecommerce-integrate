@@ -25,6 +25,8 @@ When writing, refactoring, or reviewing code, consult the dedicated technical sk
 | **Ambiguous Specs** | [`.agents/skills/implement-qa/SKILL.md`](.agents/skills/implement-qa/SKILL.md) | File-based Q&A workflow (`QA/QA-<topic>.md`) when requirements are unclear. |
 | **Business Logic** | [`.agents/skills/business-logic/SKILL.md`](.agents/skills/business-logic/SKILL.md) | Domain business logic catalog (`features/vip_customer_routing.md`, `features/omnicart_recovery.md`). |
 | **i18n** | [`.agents/skills/i18n-check/SKILL.md`](.agents/skills/i18n-check/SKILL.md) | Zero hardcoded UI text, 100% dictionary parity (vi/en), language purity, next-intl rules, `yarn i18n:check`. |
+| **Functional Review** | [`.agents/skills/functional-review/SKILL.md`](.agents/skills/functional-review/SKILL.md) | Requirement-to-implementation traceability used by `code-review` in functional mode. |
+| **Code Review** | [`.agents/skills/code-review/SKILL.md`](.agents/skills/code-review/SKILL.md) | Routes independently selected review modes and code scopes to existing authoritative skills and rules. |
 
 ---
 
@@ -82,6 +84,4 @@ When writing, refactoring, or reviewing code, consult the dedicated technical sk
 | Hardcoded UI text / label / placeholder | Extract to `src/messages/vi.json` and `en.json`, use `useTranslations`, validate with `yarn i18n:check` | `i18n-check` |
 | Direct `next/link` import | Import `Link` from `@/i18n/navigation` to preserve locale route prefixes | `i18n-check` |
 | Asymmetric keys in dictionaries | Keep 100% 1:1 key parity between `vi.json` and `en.json` | `i18n-check` |
-
-
 

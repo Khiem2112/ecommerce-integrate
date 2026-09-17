@@ -111,6 +111,23 @@ migrations, or generates seed/fixture data:
 
 - `.agents/skills/implement-qa/SKILL.md` only when requirements are materially ambiguous.
 
+### Large Spec Implementation & Phase-Gated Review Policy
+
+When executing complex specifications (such as documents in `docs/specs/*` or multi-file domain features):
+
+1. **No Monolithic Implementation**: Agents MUST NOT attempt to implement the entire specification in a single unstructured pass.
+2. **Mandatory Phase-Gated Implementation Plan**: The `implementation_plan.md` MUST divide the work into sequential phases with explicit review checkpoints. Every checkpoint declares the `code-review` mode and scope independently:
+   - Use `mode=functional` to verify the implementation against the target spec, acceptance criteria, branches, failures, and recovery behavior.
+   - Use `mode=convention` to verify only the applicable project convention sources for the changed files.
+   - Use `mode=both` only when the user or approved plan explicitly requests both. Run it as two separate passes, not one blended checklist.
+   - Scope the selected mode with `backend`, `frontend`, `database`, `i18n`, `security`, or `all`; `be`, `fe`, and `db` are accepted aliases. TypeScript is a convention source inside an applicable scope, not a scope.
+   - Select validation proportionately. Do not run TypeScript, lint, i18n, build, or the full test suite merely because a review gate exists.
+3. **Review Gating & Blocker Policy**:
+   - Critical and High findings supported by the selected authoritative sources are blockers. The parent agent fixes them and performs a proportionate re-check before advancing.
+4. **Independent Review**:
+   - Use an in-agent checkpoint by default.
+   - When delegation is already authorized by the user, task, or orchestration instructions, the parent may spawn a read-only reviewer without an additional approval prompt. The parent remains responsible for fixes.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
