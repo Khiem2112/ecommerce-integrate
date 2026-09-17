@@ -1,0 +1,52 @@
+# OmniCart low-risk command allowlist for Codex.
+# This project-local policy is loaded only when the repository is trusted.
+
+# Read-only Git inspection.
+prefix_rule(
+    pattern = ["git", "status"],
+    decision = "allow",
+    justification = "Read-only inspection of the working tree.",
+)
+
+prefix_rule(
+    pattern = ["git", "diff"],
+    decision = "allow",
+    justification = "Read-only inspection of repository changes.",
+)
+
+prefix_rule(
+    pattern = ["git", "log"],
+    decision = "allow",
+    justification = "Read-only inspection of repository history.",
+)
+
+prefix_rule(
+    pattern = ["git", "--no-pager", "log"],
+    decision = "allow",
+    justification = "Read-only inspection of repository history without a pager.",
+)
+
+# Repository-defined checks selected for this project.
+prefix_rule(
+    pattern = ["yarn", "lint"],
+    decision = "allow",
+    justification = "Run the repository's configured ESLint check.",
+)
+
+prefix_rule(
+    pattern = ["yarn", "i18n:check"],
+    decision = "allow",
+    justification = "Run the repository's translation consistency check.",
+)
+
+prefix_rule(
+    pattern = ["yarn", "exec", "tsc", "--noEmit"],
+    decision = "allow",
+    justification = "Run the installed TypeScript compiler without emitting files.",
+)
+
+prefix_rule(
+    pattern = ["npx", "--no-install", "tsc", "--noEmit"],
+    decision = "allow",
+    justification = "Run only the locally installed TypeScript compiler without emitting files.",
+)

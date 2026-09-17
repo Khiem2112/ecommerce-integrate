@@ -1,0 +1,14 @@
+---
+description: OmniCart core rules and skill loading policy
+globs: *
+alwaysApply: true
+---
+
+# OmniCart Cursor Instructions
+
+Before writing or editing code in this repository, you must read and adhere to:
+1. `AGENTS.md` (root) - Master guidance and **Skill Loading Policy**.
+2. `.agents/rules/RULE.md` - Domain guardrails, privacy, and evidence grounding.
+3. `.agents/rules/command-whitelist.md` - Command and file-operation policy (enforced via `.cursor/cli.json`).
+
+Do NOT duplicate or copy skills into `.cursor/` or elsewhere. Consult skills on demand directly from `.agents/skills/` as specified in `AGENTS.md`.

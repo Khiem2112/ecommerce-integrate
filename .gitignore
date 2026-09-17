@@ -11,7 +11,8 @@ setup.ps1
 test/
 .next/
 refactor/
-.claude/
+.claude/*
+!.claude/settings.json
 src/generated/
 .impeccable/critique/
 /plan/

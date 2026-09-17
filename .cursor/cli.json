@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(src/**)",
+      "Read(test/**)",
+      "Read(docs/**)",
+      "Read(scripts/**)",
+      "Read(seed/**)",
+      "Read(public/**)",
+      "Read(design-system/**)",
+      "Read(.agents/**)",
+      "Read(*.md)",
+      "Write(src/**)",
+      "Write(test/**)",
+      "Write(docs/**)",
+      "Write(scripts/**)",
+      "Write(seed/**)",
+      "Write(public/**)",
+      "Write(design-system/**)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Write(.git/**)",
+      "Write(.agents/**)",
+      "Write(.claude/**)",
+      "Write(.cursor/**)",
+      "Write(AGENTS.md)",
+      "Write(CLAUDE.md)"
+    ]
+  }
+}

@@ -1,5 +1,17 @@
 # Project Agent Guidance
 
+## Command Approval Policy
+
+- Always follow the provider-neutral policy at
+  `.agents/rules/command-whitelist.md`. Provider-specific permission files only
+  enforce that shared policy and must not broaden it.
+- Codex command enforcement is project-scoped at `.codex/rules/default.rules`.
+- Invoke allowlisted commands directly and separately so the command policy can
+  match them. Do not use shell wrappers or compound commands to bypass approval.
+- Use the patch/edit tool for workspace file changes. Do not use generic shell
+  write commands merely to avoid approval.
+- Commands not covered by the whitelist keep the normal approval behavior.
+
 ## Skill Loading Policy
 
 Do not read all skills before starting a task. Load the smallest relevant set.
