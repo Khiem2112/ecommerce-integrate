@@ -13,11 +13,14 @@ description: >
 
 ---
 
-## 1. Mandatory Fields — Every Model Must Have These
+## 1. Mandatory Fields — Mutable Models
 
-Every Prisma model (transactional **and** catalog) **must** declare the following
-four fields in **this exact order**, placed at the **bottom** of the field list
-(just above `@@map`):
+Every mutable Prisma model (including transactional, catalog, status, and
+correctable history data) **must** declare the `id` primary key plus the three
+audit fields below. Place the audit fields in **this exact order** at the
+**bottom** of the field list, just above `@@map`. The only exception is a truly
+append-only audit/history event model documented under the Audit / History
+Tables section below.
 
 ```prisma
 isActive  Boolean  @default(true)
@@ -142,6 +145,35 @@ Current precedent: `PlatformConnection` itself holds a `platformId` FK because i
 | Catalog tables | Suffix `Catalog` | `PlatformCatalog`, `VipTierCatalog` |
 | Status tables | Suffix `Status` | `OrderStatus`, `ConversationStatus` |
 
+### ❌ Wrong — Inconsistent casing and redundant naming
+
+```prisma
+model order_status {
+  order_status_id Int                 @id @default(autoincrement()) // Redundant & snake_case
+  ConnectionID    Int                                               // PascalCase / redundant casing
+  VipTier         VipTierCatalog      @relation(fields: [VipTierId], references: [id]) // PascalCase relation name
+  VipTierId       Int                                               // Inverted field ordering
+  @@map("OrderStatus")                                              // PascalCase map instead of snake_case
+}
+```
+
+### ✅ Correct — Clean casing, normalized FK and relation names
+
+```prisma
+model OrderStatus {
+  id           Int                @id @default(autoincrement())
+  connectionId Int
+  connection   PlatformConnection @relation(fields: [connectionId], references: [id])
+  vipTierId    Int
+  vipTier      VipTierCatalog     @relation(fields: [vipTierId], references: [id])
+  isActive     Boolean            @default(true)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @default(now()) @updatedAt
+
+  @@map("order_status")
+}
+```
+
 ---
 
 ## 4. Table Categories and Their Patterns
@@ -153,6 +185,32 @@ Reference/lookup data. Seeded once; rarely mutated.
 - Expose a human-readable `code String @unique` and `name String`.
 - Never store transactional or tenant-specific data here.
 
+```prisma
+// ❌ WRONG — missing unique code, missing audit fields, storing tenant secrets
+model PlatformCatalog {
+  id           Int      @id @default(autoincrement())
+  platformName String   // Missing unique machine code
+  storeApiKey  String?  // WRONG: tenant secrets do not belong in global catalog!
+  createdAt    DateTime @default(now())
+  // Missing updatedAt and isActive
+  @@map("platform_catalog")
+}
+
+// ✅ CORRECT — lookup reference data with unique code and name
+model PlatformCatalog {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique // e.g. "lazada" | "shopify" | "tiktok_shop"
+  name      String           // e.g. "Lazada" | "Shopify" | "TikTok Shop"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  connections PlatformConnection[]
+
+  @@map("platform_catalog")
+}
+```
+
 ### Status Tables (`*Status`)
 Dedicated status tracking.
 
@@ -160,6 +218,31 @@ Dedicated status tracking.
 - Expose `code String @unique` and `name String`.
 - Add `isFinal Boolean @default(false)` for entities with terminal states.
 - Add `sortOrder Int @default(0)` when UI ordering matters.
+
+```prisma
+// ❌ WRONG — missing unique code, terminal flag, and UI ordering
+model OrderStatus {
+  id    Int    @id @default(autoincrement())
+  title String // Missing unique code, isFinal, sortOrder
+  @@map("order_status")
+}
+
+// ✅ CORRECT — dedicated status tracking with terminal flags and sort order
+model OrderStatus {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique // e.g. "pending", "fulfilled", "cancelled"
+  name      String           // e.g. "Pending Approval"
+  isFinal   Boolean  @default(false)
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  orders Order[]
+
+  @@map("order_status")
+}
+```
 
 ### Transactional / Core Tables
 Mutable data owned by a specific merchant shop.
@@ -169,30 +252,137 @@ Mutable data owned by a specific merchant shop.
 - Add `@@index([connectionId])` for performance.
 - Add `@@unique([connectionId, externalId])` to prevent duplicate platform data.
 
-### Audit / History Tables (`*History`, `*Log`, `*Change`)
-Immutable event records.
+```prisma
+// ❌ WRONG — linked to platformId instead of connectionId, missing unique constraint
+model Order {
+  id         Int             @id @default(autoincrement())
+  platformId Int                                              // WRONG: shop-scoped entity
+  platform   PlatformCatalog @relation(fields: [platformId], references: [id])
+  externalId String
+  // Missing compound unique index allowing duplicate external orders per connection
+  isActive   Boolean         @default(true)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @default(now()) @updatedAt
+  @@map("order")
+}
 
+// ✅ CORRECT — linked to connectionId with proper index & unique constraint
+model Order {
+  id              Int                @id @default(autoincrement())
+  connectionId    Int
+  connection      PlatformConnection @relation(fields: [connectionId], references: [id])
+  platformOrderId String             @db.VarChar(100)
+  totalAmount     Decimal            @db.Decimal(12, 2)
+  isActive        Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @default(now()) @updatedAt
+
+  @@unique([connectionId, platformOrderId])
+  @@index([connectionId])
+  @@map("order")
+}
+```
+
+### Audit / History Tables (`*History`, `*Log`, `*Change`)
+Audit/history tables record the immutable, chronological history of operations
+performed on a database-backed resource. They explain who or what changed a
+resource, which operation occurred, and when it occurred; they do not represent
+the resource's current state.
+
+- Each row represents one operation or event against one resource.
+- Link the event to the concrete resource with its typed foreign key, such as
+  `orderId` or `conversationId`; do not rely only on an unvalidated free-form
+  identifier when a relation is available.
+- Store an operation/action code and the actor or system source when that
+  information exists. Store before/after values or structured metadata only
+  when they are required to reconstruct or explain the change.
 - `id` and `createdAt` are always required.
-- Include `isActive` and `updatedAt` if rows may be logically deleted or corrected.
-- For truly append-only audit logs, `isActive`/`updatedAt` may be omitted **with a
-  documented reason in a comment**.
-- Never update audit records; insert new correction rows instead.
+- A truly append-only audit log may omit `isActive` and `updatedAt` because its
+  rows are never mutated or logically deleted. Document that append-only reason
+  in a model comment. This is the only exception to the mandatory-field rule.
+- If audit rows may be corrected or logically deleted, include `isActive` and
+  `updatedAt` and treat the model as mutable history data.
+- Never update an append-only audit record. Insert a new correction event that
+  references or clearly supersedes the earlier event.
+
+```prisma
+// ❌ WRONG — mutating audit logs in place, or untyped loose string identifier
+model OrderAuditLog {
+  id        Int      @id @default(autoincrement())
+  orderRef  String   // Untyped loose string when typed relation is available
+  action    String
+  updatedAt DateTime @updatedAt // WRONG: mutating audit records destroys audit trail integrity!
+  @@map("order_audit_log")
+}
+
+// ✅ CORRECT (Append-Only Event Log) — documented exception omitting isActive/updatedAt
+/// Append-only audit records deliberately omit isActive and updatedAt; corrections are new events.
+model OrderAuditLog {
+  id          Int      @id @default(autoincrement())
+  orderId     Int
+  order       Order    @relation(fields: [orderId], references: [id])
+  actorUserId Int?
+  action      String   @db.VarChar(100) // e.g. "order.status_changed"
+  beforeState Json?    // Redacted snapshot
+  afterState  Json?    // Redacted snapshot
+  createdAt   DateTime @default(now())
+
+  @@index([orderId, createdAt])
+  @@map("order_audit_log")
+}
+
+// ✅ CORRECT (Mutable History Table) — when historical entries can be revised or logically deleted
+model OrganizationSlugHistory {
+  id             Int          @id @default(autoincrement())
+  organizationId Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  slug           String       @unique @db.VarChar(63)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
+
+  @@index([organizationId])
+  @@map("organization_slug_history")
+}
+```
 
 ---
 
 ## 5. Index Conventions
 
+### ❌ Wrong — Missing indexes on foreign keys or wrong order in compound index
+
 ```prisma
-// Index FK fields used in WHERE clauses
-@@index([connectionId])
+model OrderMessage {
+  id             Int      @id @default(autoincrement())
+  conversationId Int      // Missing index for FK used in queries!
+  senderTypeId   Int
+  timestamp      DateTime
 
-// Compound unique index to prevent duplicate platform data per shop
-@@unique([connectionId, platformOrderId])
+  // WRONG: Low-cardinality non-selective field first in compound index:
+  @@index([senderTypeId, conversationId, timestamp])
+}
+```
 
-// Compound query-pattern index (most selective field first)
-@@index([conversationId, senderTypeId, timestamp, id])
-@@index([conversationId, createdAt])
-@@index([conversationId, status])
+### ✅ Correct — FKs indexed and compound indexes ordered by most selective query pattern
+
+```prisma
+model OrderMessage {
+  id             Int      @id @default(autoincrement())
+  conversationId Int
+  senderTypeId   Int
+  timestamp      DateTime
+
+  // Index FK fields used in WHERE clauses & relations:
+  @@index([conversationId])
+
+  // Compound unique index to prevent duplicate platform data per shop:
+  // @@unique([connectionId, platformOrderId])
+
+  // Compound query-pattern index (most selective field first):
+  @@index([conversationId, timestamp, id])
+  @@index([conversationId, senderTypeId, timestamp, id])
+}
 ```
 
 ---
@@ -201,10 +391,27 @@ Immutable event records.
 
 MySQL does not support native arrays. Use `Json?` for list/array data:
 
+### ❌ Wrong — Unannotated JSON or shoving relational 1-to-N entities into JSON
+
 ```prisma
-frequentCategories Json?    // string[] — array of category codes
-groundedFacts      Json?    // string[] — evidence IDs used
-groundingViolations Json?   // GroundingViolation[]
+model Customer {
+  id     Int   @id @default(autoincrement())
+  data   Json? // WRONG: Unannotated JSON shape; callers have no type contract
+  orders Json? // WRONG: Relational entities in JSON prevents indexes, FK integrity, and joins
+}
+```
+
+### ✅ Correct — Annotated JSON for auxiliary unstructured data only
+
+```prisma
+model Customer {
+  id                  Int      @id @default(autoincrement())
+  // Always annotate JSON fields with an inline comment describing the expected shape:
+  frequentCategories  Json?    // string[] — array of category codes
+  groundedFacts       Json?    // string[] — evidence IDs used for AI grounding
+  groundingViolations Json?    // GroundingViolation[] — list of rule violation descriptors
+  metadata            Json?    // Record<string, unknown> — non-queryable platform metadata
+}
 ```
 
 - Always annotate JSON fields with an inline comment describing the expected shape.
@@ -293,9 +500,11 @@ await prisma.conversation.update({
 
 ### Schema (`schema.prisma`)
 - [ ] PK field is named `id` (not `<entityName>Id`)
-- [ ] `isActive Boolean @default(true)` is present
+- [ ] `isActive Boolean @default(true)` is present, unless this is a documented
+      truly append-only audit/history model
 - [ ] `createdAt DateTime @default(now())` is present
-- [ ] `updatedAt DateTime @default(now()) @updatedAt` is present with `@updatedAt`
+- [ ] `updatedAt DateTime @default(now()) @updatedAt` is present with
+      `@updatedAt`, unless the same append-only audit/history exception applies
 - [ ] Shop-scoped entities link to `connectionId`, not `platformId`
 - [ ] `@@map("snake_case_table_name")` is present
 - [ ] Appropriate `@@index` declarations added for FK and query patterns
