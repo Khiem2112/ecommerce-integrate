@@ -50,6 +50,28 @@ For Tailwind class composition and state variants, read `.agents/skills/styling/
 - Ensure loading and empty states preserve layout stability and explain the next useful action.
 - Avoid nested interactions with conflicting click, drag, keyboard, or scroll behavior.
 
+### Action Presentation: Text, Icon, or Overflow
+
+- Use a visible text button for the primary action, an unfamiliar action, or an
+  action whose icon would be ambiguous. Label it with a concise verb and
+  outcome. A long translated label alone is not a reason to hide the primary
+  action behind an icon.
+- Use an icon-only button only for a familiar secondary action in a
+  space-constrained surface. It must have a Tooltip, a localized `aria-label`,
+  and an `aria-hidden="true"` decorative icon. If the symbol is not immediately
+  recognizable, use visible text instead.
+- Keep at most one primary text action prominent on a compact surface. When
+  there are more than two or three secondary actions, move the infrequent ones
+  into an overflow menu instead of wrapping several text buttons or exposing a
+  wall of icons.
+- Keep destructive or rarely used secondary actions in the overflow menu when
+  possible. Apply the recovery or confirmation rule from
+  [flow-errors](../../flow-errors/SKILL.md); hiding an action in a menu is not a
+  substitute for destructive-action safety.
+- Preserve the same action hierarchy across responsive layouts. Controls may
+  collapse into icons or overflow on narrow screens only when their accessible
+  names and discoverability remain intact.
+
 ## E-commerce Checks
 
 - Product cards expose a clear title, price, availability, and primary action.
