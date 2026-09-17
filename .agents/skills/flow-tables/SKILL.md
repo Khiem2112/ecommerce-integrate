@@ -44,6 +44,151 @@ A table is a workspace, not a printout: users scan, sort, select, and act in pla
    - Secondary actions appear on hover at row-end: icon buttons, max 3, plus an overflow `⋯` menu. On touch, the `⋯` is always visible.
    - Hover reveals must not reflow the row — reserve the space.
    - Destructive actions live only inside the overflow menu, confirmed or undoable — never bare on the row.
+
+### Action Ergonomics: Density, Icon-with-Tooltip & Overflow Menus
+
+Long action labels like `"Đặt lại mật khẩu"` (17 chars) or `"Gỡ khỏi tổ chức"` (17 chars) eat 150–200px each when rendered as text buttons. In dense tables or card headers, multiple text buttons wrap awkwardly, blow out column widths, or shove status badges off-screen.
+
+#### Density Rules for Actions
+1. **Row Actions in Tables**:
+   - Always use **`Button size="icon"` + `Tooltip` + `aria-label`** for secondary row actions (max 2–3 icons: e.g. Edit, Reset Key, Delete).
+   - Never render full text strings side-by-side inside table cells.
+   - Screen-reader requirement: Every icon button **must** specify `aria-label={t('actionName')}` and the SVG icon must have `aria-hidden="true"`.
+2. **Card / Inspector Header Actions**:
+   - **1 Primary CTA maximum** (e.g. `[Chỉnh sửa]` or `[Thêm mới]`).
+   - Secondary actions (Reset password, Detach, Resend) should either be:
+     - Compact icon buttons with tooltips, OR
+     - Consolidated inside an overflow `⋯` dropdown menu (`DropdownMenu`).
+3. **Destructive Action Safety**:
+   - Destructive actions (e.g. Remove member, Delete order) must use `hover:text-semantic-error` / `hover:bg-semantic-error/10` and always trigger a confirmation dialog.
+
+#### Examples: Row & Header Action Design
+
+##### 1. i18n Message Dictionaries (`messages/vi.json` & `en.json`)
+
+```json
+// src/messages/vi.json
+{
+  "users": {
+    "table": {
+      "edit": "Chỉnh sửa",
+      "resetPassword": "Đặt lại mật khẩu",
+      "remove": "Gỡ khỏi tổ chức"
+    }
+  }
+}
+
+// src/messages/en.json
+{
+  "users": {
+    "table": {
+      "edit": "Edit",
+      "resetPassword": "Reset password",
+      "remove": "Remove from organization"
+    }
+  }
+}
+```
+
+##### 2. Component Implementation (Card Header / Row Actions)
+
+```tsx
+// ❌ BAD: Rendering these long strings as multiple wide text buttons side-by-side
+// File: src/components/organisms/User/UserAccessDetail.tsx
+const t = useTranslations('users.table');
+
+<div className="flex flex-wrap items-center gap-2">
+  <Button variant="outline" size="sm" onClick={() => setIsEditOpen(true)}>
+    {t('edit')} {/* "Chỉnh sửa" */}
+  </Button>
+  <Button variant="outline" size="sm" onClick={() => setIsResetOpen(true)}>
+    {t('resetPassword')} {/* "Đặt lại mật khẩu" -> Takes 150px, wraps on small screens */}
+  </Button>
+  <Button variant="destructive" size="sm" onClick={() => setIsRemoveOpen(true)}>
+    {t('remove')} {/* "Gỡ khỏi tổ chức" -> Competing visual weight */}
+  </Button>
+</div>
+
+// ✅ GOOD: 1 Primary text action + Icon buttons with tooltips (or overflow menu)
+const t = useTranslations('users.table');
+
+<div className="flex items-center gap-1.5">
+  <Button variant="outline" size="sm" onClick={() => setIsEditOpen(true)}>
+    <Pencil className="size-3.5 mr-1.5" aria-hidden="true" />
+    {t('edit')}
+  </Button>
+
+  <Tooltip content={t('resetPassword')}>
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      aria-label={t('resetPassword')}
+      onClick={() => setIsResetOpen(true)}
+      className="size-8 text-muted hover:text-foreground"
+    >
+      <KeyRound className="size-4" aria-hidden="true" />
+    </Button>
+  </Tooltip>
+
+  <Tooltip content={t('remove')}>
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      aria-label={t('remove')}
+      onClick={() => setIsRemoveOpen(true)}
+      className="size-8 text-muted hover:text-semantic-error hover:bg-semantic-error/10"
+    >
+      <UserMinus className="size-4" aria-hidden="true" />
+    </Button>
+  </Tooltip>
+</div>
+```
+
+```tsx
+// ✅ GOOD: Standard table row action pattern (proven by UserDirectory.tsx)
+<div className="flex items-center justify-end gap-1">
+  {member.canEdit && (
+    <Tooltip content={tTable('edit')}>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label={tTable('edit')}
+        onClick={() => onEdit(member)}
+      >
+        <Pencil className="size-4" aria-hidden="true" />
+      </Button>
+    </Tooltip>
+  )}
+  {member.canResetPassword && (
+    <Tooltip content={tTable('resetPassword')}>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label={tTable('resetPassword')}
+        onClick={() => onResetPassword(member)}
+      >
+        <KeyRound className="size-4" aria-hidden="true" />
+      </Button>
+    </Tooltip>
+  )}
+  {member.canRemove && (
+    <Tooltip content={tTable('remove')}>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label={tTable('remove')}
+        onClick={() => onRemove(member)}
+        className="text-muted hover:text-semantic-error"
+      >
+        <UserMinus className="size-4" aria-hidden="true" />
+      </Button>
+    </Tooltip>
+  )}
+</div>
+```
+
 6. **Bulk select.**
    - Checkbox column at far left (40–48px wide); row checkbox appears on hover (desktop) or always (touch).
    - Header checkbox selects the visible page, with an explicit "Select all 1,204 matching" link — Gmail's pattern; never silently select the full result set.
@@ -149,3 +294,5 @@ A table is a workspace, not a printout: users scan, sort, select, and act in pla
 | Every cell rendered as a blue link | Row reads as link soup; primary action unclear | One primary link per row; rest plain text |
 | Mixed timestamp formats in one table | Users can't compare times across rows | One format per table, applied consistently |
 | Ungrouped event spam in feeds | 40 rows of "X edited Y"; signal drowns | Group repeated events by actor/object |
+| Multiple wide text buttons in table cells or headers | Causes line wrapping, horizontal scroll, visual clutter | Use icon buttons (size="icon") + Tooltip + aria-label or overflow menu |
+

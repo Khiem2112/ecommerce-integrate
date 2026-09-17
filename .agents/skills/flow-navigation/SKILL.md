@@ -77,6 +77,200 @@ Navigation is a promise about where things live. Pick the pattern that matches p
 - Never trap users: after login or checkout, redirect (replaceState) so Back doesn't resubmit a form or bounce to a dead auth page.
 - A custom in-app back button must agree with system/browser back or explicitly name its different target ("Back to results").
 
+### Back Navigation Economy & Label Conciseness
+
+Never clutter cards, empty states, or page headers with verbose, repetitive back buttons like `"Quay lại danh sách tổ chức"` (27 chars) or `"Back to organizations list"`.
+
+#### Rules for Clean Back Affordances
+1. **Breadcrumbs first**: Rely on the global breadcrumb (`Tổ chức › Chỉnh sửa`) for hierarchical upward navigation whenever the app shell has persistent breadcrumbs.
+2. **Concise label budget**: When a dedicated in-page back button is necessary (e.g. not-found card, empty state, sub-view header), cap the label at **1 verb**: `"Quay lại"` or `"Back"`.
+3. **Universal i18n key in `common`**: Avoid inventing per-feature back keys like `organizations.back` or `users.back`. Share `"common.back": "Quay lại"` / `"Back"`.
+4. **Icon + Tooltip for compact headers**: In tight headers or card action bars, use a compact icon button (`<ChevronLeft />`) with a descriptive `Tooltip` and `aria-label`.
+5. **Ghost / Outline variant**: Back navigation is always secondary or tertiary. Never use filled primary buttons for back links.
+
+#### Examples: Paired i18n Dictionary & Component Implementations
+
+##### ❌ BAD: Verbose per-domain back key in dictionary + massive button in component
+
+1. **Dictionary Definition (`messages/vi.json` & `en.json`)**:
+```json
+// src/messages/vi.json
+{
+  "organizations": {
+    "notFound": "Tổ chức này không khả dụng.",
+    "back": "Quay lại danh sách tổ chức" // ❌ 27 characters! Blows out layout on narrow screens
+  },
+  "users": {
+    "notFound": "Người dùng không tồn tại.",
+    "back": "Quay lại danh sách người dùng trong hệ thống" // ❌ 45 characters!
+  }
+}
+
+// src/messages/en.json
+{
+  "organizations": {
+    "notFound": "This organization is not available.",
+    "back": "Back to organizations" // ❌ Inconsistent phrasing per module
+  }
+}
+```
+
+2. **Component Usage (`EditOrganizationPage.tsx`)**:
+```tsx
+// File: src/app/[locale]/(app)/organizations/[organizationId]/edit/page.tsx
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
+import { Button } from '@/components/atoms';
+
+export default function EditOrganizationPage() {
+  const t = useTranslations('organizations');
+
+  if (!data) {
+    return (
+      <div className="rounded-2xl border border-hairline bg-surface-card p-8 text-center shadow-card">
+        <p className="text-sm text-muted">{t('notFound')}</p>
+        
+        {/* ❌ Renders "Quay lại danh sách tổ chức" — 27 chars wide, wastes screen space */}
+        <Link href="/organizations" className="mt-4 inline-block">
+          <Button variant="outline">{t('back')}</Button>
+        </Link>
+      </div>
+    );
+  }
+}
+```
+
+---
+
+##### ✅ GOOD PATTERN A: Shared concise key in `common` + Compact text button with icon
+
+1. **Dictionary Definition (`messages/vi.json` & `en.json`)**:
+```json
+// src/messages/vi.json
+{
+  "common": {
+    "back": "Quay lại", // ✅ Concise 1 verb (8 chars), universally shared
+    "confirm": "Xác nhận",
+    "cancel": "Hủy"
+  },
+  "organizations": {
+    "notFound": "Tổ chức này không khả dụng."
+  }
+}
+
+// src/messages/en.json
+{
+  "common": {
+    "back": "Back", // ✅ Concise 1 verb (4 chars), 100% parity with vi.json
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
+  "organizations": {
+    "notFound": "This organization is not available."
+  }
+}
+```
+
+2. **Component Usage (`EditOrganizationPage.tsx`)**:
+```tsx
+// File: src/app/[locale]/(app)/organizations/[organizationId]/edit/page.tsx
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
+import { Button } from '@/components/atoms';
+import { ChevronLeft } from 'lucide-react';
+
+export default function EditOrganizationPage() {
+  const t = useTranslations('organizations');
+  const tCommon = useTranslations('common');
+
+  if (!data) {
+    return (
+      <div className="rounded-2xl border border-hairline bg-surface-card p-8 text-center shadow-card">
+        <p className="text-sm text-muted">{t('notFound')}</p>
+        
+        {/* ✅ Concise "Quay lại" with icon, clean footprint */}
+        <Link href="/organizations" className="mt-4 inline-block">
+          <Button variant="outline" size="sm">
+            <ChevronLeft className="size-4 mr-1.5" aria-hidden="true" />
+            {tCommon('back')}
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+}
+```
+
+---
+
+##### ✅ GOOD PATTERN B: Header Icon Button with Tooltip (Zero text clutter)
+
+1. **Dictionary Definition (`messages/vi.json` & `en.json`)**:
+```json
+// src/messages/vi.json
+{
+  "common": {
+    "back": "Quay lại"
+  },
+  "users": {
+    "detail": {
+      "pageTitle": "Hồ sơ thành viên"
+    }
+  }
+}
+
+// src/messages/en.json
+{
+  "common": {
+    "back": "Back"
+  },
+  "users": {
+    "detail": {
+      "pageTitle": "Member Profile"
+    }
+  }
+}
+```
+
+2. **Component Usage (`DetailHeader.tsx`)**:
+```tsx
+// File: src/components/molecules/DetailHeader.tsx
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
+import { Button, Tooltip } from '@/components/atoms';
+import { ChevronLeft } from 'lucide-react';
+
+export function DetailHeader({ title }: { readonly title: string }) {
+  const router = useRouter();
+  const tCommon = useTranslations('common');
+
+  return (
+    <div className="flex items-center gap-3 py-2">
+      {/* ✅ Tooltip displays "Quay lại" on mouse hover; screen reader announces aria-label */}
+      <Tooltip content={tCommon('back')}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={tCommon('back')}
+          onClick={() => router.back()}
+          className="size-8 text-muted hover:text-foreground"
+        >
+          <ChevronLeft className="size-4" aria-hidden="true" />
+        </Button>
+      </Tooltip>
+      <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+    </div>
+  );
+}
+```
+
 ### Deep linking
 - Every screen a user can reach deserves a stable URL/route — including filtered views and selected detail panes (`/issues?assignee=me`, `/inbox/1234`).
 - A deep link into the middle of a hierarchy must render working up-navigation, synthesized from the route — never from session history the visitor doesn't have.
@@ -149,3 +343,5 @@ Navigation is a promise about where things live. Pick the pattern that matches p
 | Four visible layers of nav chrome | Chrome outweighs content; layers indistinguishable | Cap at primary + secondary + tabs; split the object model |
 | Nav label ≠ page title | Users think they mis-clicked and back out | Same words in the nav item and the page heading |
 | Ungrouped sidebar past ~10 items | Wall of items; scanning collapses | Labeled section headers + inline filter |
+| Verbose back button ("Quay lại danh sách X") | Bloats layout, duplicates breadcrumb, wastes screen space | Use breadcrumb or compact ghost back button ("Quay lại" / icon with tooltip) |
+

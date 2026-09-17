@@ -104,6 +104,178 @@ The order is always sidebar → rail → drawer → tab bar. Never skip straight
 - **Banner slot** (offline, trial, incident): above the header, pushes content down, dismissible — never overlays nav or content.
 - Print/export views drop all chrome — main content only.
 
+### Surface Presentation Form: Modal vs Sheet vs Routed Page
+
+Avoid low-density "ghost town" pages where a few inputs float in a 1440px desktop shell. Every presentation form must match information density, task duration, and context preservation needs:
+
+| Form Factor | When to Choose | Typical Dimensions | Best Suited Scenarios |
+|---|---|---|---|
+| **Dialog / Modal** | Focused, atomic task; ≤ 4–5 fields; fast in-and-out; preserving background table/list state is critical. | Width: 400–560px | Quick create/edit (e.g. rename workspace, invite user), confirmations, password resets. |
+| **Sheet / Drawer** | Side-by-side inspection; 5–10 fields; multi-section reading; keeps active list row visible behind scrim or docked on the right. | Width: 440–600px | Master-detail peek (e.g. member access profile, customer info, order line item inspection). |
+| **Routed Page (`/page.tsx`)** | High cognitive load; > 8–10 fields; multiple sub-tabs; deep work; needs unique, bookmarkable URLs. | Full content width (max 1200–1440px or centered 640–720px) | Complex multi-step wizards, full order detail (`/orders/[id]`), integration setups, analytics dashboards. |
+
+#### Density & Context Heuristics
+- **The 400px Viewport Rule**: If an edit form or detail view has so little content that it occupies less than ~400px vertical height on a standard 1080p display, it **must NOT** be an isolated full routed page. Use a Dialog or Sheet.
+- **Context Preservation Rule**: If an operator clicks an item inside a filtered, paginated table to perform a 10-second action, navigating away to a new page destroys visual orientation. Use an in-page Dialog or Sheet so closing it leaves filters, sorting, and pagination intact.
+
+#### Component Encapsulation Architecture (Organism Dialog/Sheet Pattern)
+
+> [!IMPORTANT]
+> **Do NOT inject raw markup or naked forms directly into pages.**
+> Always encapsulate modal/sheet workflows into dedicated **Organisms** under `src/components/organisms/<Domain>/` (e.g. `CreateOrganizationDialog.tsx`, `UserDetailSheet.tsx`).
+> 
+> The architecture consists of 3 distinct layers:
+> 1. **Parent Surface (List/Directory)**: Controls `isOpen` state, triggers the dialog via toolbar/row, and triggers query refetch on success.
+> 2. **Dialog/Sheet Organism (`CreateOrganizationDialog.tsx`)**: Encapsulates `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, and `DialogDescription`. Manages dialog lifecycle and passes cancel/success handlers down.
+> 3. **Form/Detail Component (`OrganizationForm.tsx` / `UserAccessForm.tsx`)**: Encapsulates React Hook Form, Zod validation schema, mutation hooks, inline field errors, and submit/cancel buttons. Supports an `embedded` prop for modal padding adjustments.
+
+#### Examples: Surface Presentation Decisions
+
+```tsx
+// ❌ BAD: Creating a separate routed page for a simple 3-field form
+// Route: src/app/[locale]/(app)/organizations/new/page.tsx
+export default function NewOrganizationPage() {
+  // Disorients user, wipes out list scroll/filters, leaves 85% of 1440px screen empty
+  return (
+    <div className="max-w-xl mx-auto py-12">
+      <OrganizationForm />
+    </div>
+  );
+}
+
+// ✅ GOOD STEP 1: Encapsulate the Dialog Organism
+// File: src/components/organisms/Organization/CreateOrganizationDialog.tsx
+'use client';
+
+import { useTranslations } from 'next-intl';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/atoms';
+import { OrganizationForm } from './OrganizationForm';
+
+export type CreateOrganizationDialogProps = {
+  readonly isOpen: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly onSuccess?: () => void;
+};
+
+export function CreateOrganizationDialog({
+  isOpen,
+  onOpenChange,
+  onSuccess,
+}: CreateOrganizationDialogProps) {
+  const t = useTranslations('organizations');
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg p-6 sm:p-7">
+        <DialogHeader className="mb-4">
+          <DialogTitle>{t('new')}</DialogTitle>
+          <DialogDescription>{t('form.newDescription')}</DialogDescription>
+        </DialogHeader>
+
+        {/* OrganizationForm encapsulates RHF, Zod schema, and mutation hook */}
+        <OrganizationForm
+          mode="create"
+          embedded
+          onSuccess={() => {
+            onOpenChange(false);
+            onSuccess?.();
+          }}
+          onCancel={() => onOpenChange(false)}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ✅ GOOD STEP 2: Trigger & mount inside Parent Directory
+// File: src/components/organisms/Organization/OrganizationDirectory.tsx
+export function OrganizationDirectory() {
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const { data, refetch } = useOrganizations();
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">{t('title')}</h1>
+        <Button onClick={() => setIsCreateOpen(true)}>
+          <Plus className="size-4 mr-1.5" aria-hidden="true" />
+          {t('new')}
+        </Button>
+      </div>
+
+      {/* Main Table */}
+      <OrganizationTable data={data} />
+
+      {/* Encapsulated Dialog: Preserves table filters and scroll on close */}
+      <CreateOrganizationDialog
+        isOpen={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onSuccess={refetch}
+      />
+    </div>
+  );
+}
+```
+
+```tsx
+// ❌ BAD: Full-page navigation just to view a 4-field static profile card
+// Route: src/app/[locale]/(app)/users/[userId]/page.tsx
+export default function UserDetailPage({ params }) {
+  // Empty page with huge whitespace, operator must click browser back to continue triage
+  return (
+    <div className="max-w-4xl mx-auto py-8">
+      <UserAccessDetail userId={userId} />
+    </div>
+  );
+}
+
+// ✅ GOOD: Slide-over Sheet (Drawer) retaining table context
+// File: src/components/organisms/User/UserDetailSheet.tsx
+export function UserDetailSheet({
+  userId,
+  isOpen,
+  onOpenChange,
+}: {
+  readonly userId: number | null;
+  readonly isOpen: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+}) {
+  const t = useTranslations('users.detail');
+
+  return (
+    <Sheet open={isOpen} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto p-6">
+        <SheetHeader className="mb-6">
+          <SheetTitle>{t('pageTitle')}</SheetTitle>
+        </SheetHeader>
+        {userId && <UserAccessDetail userId={userId} />}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// Mounted in UserDirectory.tsx:
+// Clicking any row opens the inspector drawer while the user table stays visible behind
+<TableRow
+  key={member.id}
+  onClick={() => setSelectedUserId(member.userId)}
+  className="cursor-pointer hover:bg-surface-lifted/60"
+>
+  ...
+</TableRow>
+<UserDetailSheet
+  userId={selectedUserId}
+  isOpen={selectedUserId !== null}
+  onOpenChange={(open) => !open && setSelectedUserId(null)}
+/>
+```
+
 ## Quick Reference
 
 | Situation | Shell |
@@ -148,3 +320,5 @@ The order is always sidebar → rail → drawer → tab bar. Never skip straight
 | Full-page spinner on load | The whole app feels down while one query runs | Paint the shell; skeleton content regions |
 | Alert banner overlaying the header | Hides nav exactly when users need it | Banner pushes content down instead |
 | Ultrawide stretching every pane | Panels balloon; eye travel explodes | Clamp panel widths; center the content column |
+| Low-density page for quick tasks (≤4 fields) | Wastes 80% screen space, destroys table filters/scroll context | Use Dialog (modal) or right-side Sheet (drawer) in place |
+

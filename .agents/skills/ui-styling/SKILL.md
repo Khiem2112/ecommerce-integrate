@@ -58,6 +58,39 @@ Do not load this skill for backend, API, data, business-logic-only work, or a si
 - Keep component behavior, keyboard handling, focus management, and state semantics aligned with `rules/web-rules.md`.
 - Read only the reference that answers the current implementation question.
 
+### Accessible Icon Button + Tooltip Pattern
+
+Any button rendered without visible text (`size="icon"`) must be accessible to both mouse hover users (via Tooltip) and screen reader users (via `aria-label`).
+
+```tsx
+// ❌ BAD: Naked icon button without tooltip or accessible name
+<Button variant="ghost" size="icon" onClick={handleReset}>
+  <KeyRound className="size-4" />
+</Button>
+
+// ❌ BAD: Tooltip without aria-label (screen readers will announce unlabelled button)
+<Tooltip content="Reset password">
+  <Button variant="ghost" size="icon" onClick={handleReset}>
+    <KeyRound className="size-4" />
+  </Button>
+</Tooltip>
+
+// ✅ GOOD: Accessible composition with Tooltip, aria-label, and aria-hidden icon
+<Tooltip content={t('resetPassword')}>
+  <Button
+    type="button"
+    variant="ghost"
+    size="icon"
+    aria-label={t('resetPassword')}
+    onClick={handleReset}
+    className="size-8 text-muted hover:text-foreground"
+  >
+    <KeyRound className="size-4" aria-hidden="true" />
+  </Button>
+</Tooltip>
+```
+
+
 ## Focused References
 
 | Need | Read |
