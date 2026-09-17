@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type JSX } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import {
@@ -12,23 +12,36 @@ import {
   Input,
   Tooltip,
 } from '@/components/atoms';
-import { OrganizationRoleBadge } from '@/components/molecules';
+import {
+  OrganizationOptionCard,
+  UserIdentityBadge,
+} from '@/components/molecules';
 import {
   useActiveOrganizationContext,
   useOrganizations,
   useSwitchActiveOrganization,
 } from '@/hooks';
+import { useAuthentication } from '@/hooks/useAuthentication';
 import { cn } from '@/lib/cn';
+import { PasswordChangeModal } from '../Authentication/PasswordChangeModal';
 
 export type OrganizationSwitcherProps = {
   readonly className?: string;
+  readonly compact?: boolean;
 };
 
-export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
+export function OrganizationSwitcher({
+  className,
+  compact = false,
+}: OrganizationSwitcherProps): JSX.Element {
   const t = useTranslations('organizations');
+  const tSession = useTranslations('authentication.session');
+  const tSettings = useTranslations('settings');
+  const { user, logout, isLoggingOut } = useAuthentication();
   const [isOpen, setIsOpen] = useState(false);
   const [isShopsHovered, setIsShopsHovered] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const menuRef = useRef<HTMLDivElement>(null);
@@ -70,6 +83,8 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
   const activeOrg = orgItems.find((org) => org.id === active?.organizationId);
   const activeDisplayName = activeOrg?.displayName ?? active?.displayName ?? t('title');
   const connectedShops = activeOrg?.connections ?? [];
+  const userDisplayName = user?.displayName ?? user?.email ?? activeDisplayName;
+  const userInitial = userDisplayName.charAt(0).toUpperCase();
 
   const filteredOrgs = searchQuery.trim()
     ? orgItems.filter(
@@ -96,49 +111,72 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
           setIsOpen((prev) => !prev);
           setIsShopsHovered(false);
         }}
+        aria-label={tSession('userMenu')}
         className={cn(
-          'flex h-9 w-full min-w-0 items-center justify-between gap-1.5 rounded-xl border border-hairline bg-surface-card px-2 text-xs transition-colors hover:bg-surface-lifted/70 focus:outline-none focus:ring-1 focus:ring-primary',
+          'flex min-w-0 items-center justify-between gap-2 rounded-xl border border-hairline bg-surface-card px-2 text-xs transition-colors hover:bg-surface-lifted/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+          compact ? 'size-8 justify-center rounded-full p-0' : 'h-10 w-full',
           isOpen && 'border-hairline-strong bg-surface-lifted/80',
         )}
         aria-expanded={isOpen}
         aria-haspopup="menu"
       >
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <div className="flex size-5 shrink-0 items-center justify-center rounded-md border border-hairline bg-surface-lifted text-[11px] font-semibold text-foreground">
-            {activeDisplayName.charAt(0).toUpperCase()}
-          </div>
-          <div className="min-w-0 flex-1">
-            <Tooltip content={activeDisplayName} side="bottom">
-              <span className="block truncate text-left text-xs font-medium text-foreground">
-                {activeDisplayName}
-              </span>
-            </Tooltip>
-          </div>
-        </div>
+        {compact ? (
+          <span className="text-xs font-semibold text-foreground">{userInitial}</span>
+        ) : (
+          <>
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <div className="flex size-6 shrink-0 items-center justify-center rounded-md border border-hairline bg-surface-lifted text-xs font-semibold text-foreground">
+                {activeDisplayName.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1 text-left">
+                <Tooltip content={activeDisplayName} side="bottom">
+                  <span className="block truncate text-xs font-semibold text-foreground">
+                    {activeDisplayName}
+                  </span>
+                </Tooltip>
+                <Tooltip content={userDisplayName} side="bottom">
+                  <span className="block truncate text-[11px] text-muted">
+                    {userDisplayName}
+                  </span>
+                </Tooltip>
+              </div>
+            </div>
 
-        <svg
-          aria-hidden="true"
-          className={cn(
-            'size-3.5 shrink-0 text-muted transition-transform duration-200',
-            isOpen && 'rotate-180 text-foreground',
-          )}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+            <svg
+              aria-hidden="true"
+              className={cn(
+                'size-3.5 shrink-0 text-muted transition-transform duration-200',
+                isOpen && 'rotate-180 text-foreground',
+              )}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </>
+        )}
       </button>
 
       {/* Dropdown Menu Options */}
       {isOpen && (
         <div
           role="menu"
-          className="absolute left-0 top-full z-50 mt-1.5 w-56 rounded-xl border border-hairline bg-surface-card p-1 shadow-elevated"
+          className={cn(
+            'absolute top-full z-50 mt-1.5 w-64 rounded-xl border border-hairline bg-surface-card p-1.5 shadow-elevated animate-in fade-in zoom-in-95 duration-100',
+            compact ? 'right-0' : 'left-0',
+          )}
         >
+          {user && (
+            <div className="border-b border-hairline px-2.5 py-2">
+              <UserIdentityBadge user={user} size="sm" showRole />
+            </div>
+          )}
+
+          <div className="space-y-0.5 py-1">
           {/* Option 1: Connected shops (Hover flyout) */}
           <div
             className="relative"
@@ -294,6 +332,63 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
             </svg>
             <span>{t('context.switchOrg')}</span>
           </button>
+          </div>
+
+          <div className="border-t border-hairline py-1">
+            <Link
+              href="/settings"
+              onClick={() => {
+                setIsOpen(false);
+                setIsShopsHovered(false);
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium text-foreground transition-colors hover:bg-surface-lifted"
+            >
+              <svg
+                aria-hidden="true"
+                className="size-4 text-muted"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+              <span>{tSettings('title')}</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                setIsShopsHovered(false);
+                setIsPasswordModalOpen(true);
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium text-foreground transition-colors hover:bg-surface-lifted"
+            >
+              <svg aria-hidden="true" className="size-4 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <span>{tSession('changePassword')}</span>
+            </button>
+          </div>
+
+          <div className="border-t border-hairline pt-1">
+            <button
+              type="button"
+              disabled={isLoggingOut}
+              onClick={() => void logout()}
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium text-semantic-error transition-colors hover:bg-semantic-error/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <svg aria-hidden="true" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span>{isLoggingOut ? tSession('signingOut') : tSession('signOut')}</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -321,51 +416,21 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
                 const isActive = org.id === active?.organizationId;
 
                 return (
-                  <button
+                  <OrganizationOptionCard
                     key={org.id}
-                    type="button"
+                    organization={org}
+                    isSelected={isActive}
                     disabled={switchMutation.isPending}
-                    onClick={() => {
+                    onSelect={(id) => {
                       if (!isActive) {
-                        switchMutation.mutate(org.id, {
+                        switchMutation.mutate(id, {
                           onSuccess: () => setIsModalOpen(false),
                         });
                       } else {
                         setIsModalOpen(false);
                       }
                     }}
-                    className={cn(
-                      'flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition-all',
-                      isActive
-                        ? 'border-primary/70 bg-primary/5 shadow-xs ring-1 ring-primary/20'
-                        : 'border-hairline bg-surface-card hover:border-hairline-strong hover:bg-surface-lifted/60',
-                    )}
-                  >
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
-                      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-hairline bg-surface-lifted text-sm font-semibold text-foreground">
-                        {org.displayName.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="truncate text-xs font-semibold text-foreground">
-                            {org.displayName}
-                          </p>
-                          {isActive && (
-                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                              {t('context.currentActive')}
-                            </span>
-                          )}
-                        </div>
-                        <p className="font-mono text-[11px] text-muted">
-                          {org.slug}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="shrink-0">
-                      <OrganizationRoleBadge role={org.role} />
-                    </div>
-                  </button>
+                  />
                 );
               })
             ) : (
@@ -376,6 +441,11 @@ export function OrganizationSwitcher({ className }: OrganizationSwitcherProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <PasswordChangeModal
+        open={isPasswordModalOpen}
+        onOpenChange={setIsPasswordModalOpen}
+      />
     </div>
   );
 }

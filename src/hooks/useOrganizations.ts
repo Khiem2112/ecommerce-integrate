@@ -141,6 +141,7 @@ export function useSwitchActiveOrganization() {
       return res.data;
     },
     onSuccess: () => {
+      queryClient.clear();
       queryClient.invalidateQueries();
     },
   });

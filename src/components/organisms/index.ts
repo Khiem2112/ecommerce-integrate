@@ -79,3 +79,5 @@ export {
 export * from './Integrations';
 export * from './SyncBatchDetail';
 export * from './Organization';
+export * from './Authentication';
+export * from './Settings';

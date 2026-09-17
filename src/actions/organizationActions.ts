@@ -19,6 +19,7 @@ import {
   changeOrganizationLifecycleService,
   createOrganizationForUserService,
   getActiveOrganizationContextService,
+  getAuthenticatedSessionContextService,
   getCurrentMockUserService,
   getMockUsersService,
   getOrganizationDetailForUserService,
@@ -27,6 +28,9 @@ import {
   switchActiveOrganizationContextService,
   updateOrganizationForUserService,
 } from '@/services';
+import { cookies } from 'next/headers';
+import { AUTH_CONFIG } from '@/config/authentication';
+
 import type {
   ActionResponse,
   ActiveOrganizationContext,
@@ -43,6 +47,14 @@ function actionError(error: unknown): string {
   return 'Organization operation failed.';
 }
 
+async function resolveCurrentUser(): Promise<{ id: number }> {
+  const authContext = await getAuthenticatedSessionContextService().catch(() => null);
+  if (authContext?.user?.id) {
+    return { id: authContext.user.id };
+  }
+  return getCurrentMockUserService();
+}
+
 export async function getOrganizationsAction(
   filters: OrganizationFilters = {},
 ): Promise<ActionResponse<OrganizationListResult>> {
@@ -55,7 +67,7 @@ export async function getOrganizationsAction(
       };
     }
 
-    const user = await getCurrentMockUserService();
+    const user = await resolveCurrentUser();
     const data = await listOrganizationsForUserService(user.id, parsed.data);
 
     return {
@@ -82,7 +94,7 @@ export async function getOrganizationDetailAction(
       };
     }
 
-    const user = await getCurrentMockUserService();
+    const user = await resolveCurrentUser();
     const data = await getOrganizationDetailForUserService(
       user.id,
       parsed.data.id,
@@ -111,7 +123,7 @@ export async function getActiveOrganizationContextAction(): Promise<
   ActionResponse<ActiveOrganizationContext>
 > {
   try {
-    const user = await getCurrentMockUserService();
+    const user = await resolveCurrentUser();
     const data = await getActiveOrganizationContextService(user.id);
 
     return {
@@ -160,7 +172,7 @@ export async function createOrganizationAction(
       };
     }
 
-    const user = await getCurrentMockUserService();
+    const user = await resolveCurrentUser();
     const data = await prisma.$transaction(async (tx) => {
       return await createOrganizationForUserService(user.id, parsed.data, tx);
     });
@@ -192,7 +204,7 @@ export async function updateOrganizationAction(
       };
     }
 
-    const user = await getCurrentMockUserService();
+    const user = await resolveCurrentUser();
     const data = await prisma.$transaction(async (tx) => {
       return await updateOrganizationForUserService(user.id, parsed.data, tx);
     });
@@ -225,14 +237,24 @@ export async function switchActiveOrganizationAction(
       };
     }
 
-    const user = await getCurrentMockUserService();
+    const authContext = await getAuthenticatedSessionContextService().catch(() => null);
+    const userId = authContext?.user?.id ?? (await getCurrentMockUserService()).id;
+
     const data = await prisma.$transaction(async (tx) => {
-      return await switchActiveOrganizationContextService(
-        user.id,
+      const switched = await switchActiveOrganizationContextService(
+        userId,
         parsed.data.id,
         tx,
       );
+      return switched;
     });
+
+    const cookieStore = await cookies();
+    cookieStore.set(
+      AUTH_CONFIG.ACTIVE_ORG_COOKIE_NAME,
+      String(parsed.data.id),
+      AUTH_CONFIG.ACTIVE_ORG_COOKIE_OPTIONS,
+    );
 
     revalidatePath('/');
 
@@ -240,6 +262,7 @@ export async function switchActiveOrganizationAction(
       success: true,
       data,
     };
+
   } catch (error) {
     return {
       success: false,
@@ -261,7 +284,7 @@ export async function mutateOrganizationMemberAction(
       };
     }
 
-    const user = await getCurrentMockUserService();
+    const user = await resolveCurrentUser();
     await prisma.$transaction(async (tx) => {
       await mutateOrganizationMembershipService(user.id, parsed.data, tx);
     });
@@ -293,7 +316,7 @@ export async function changeOrganizationLifecycleAction(
       };
     }
 
-    const user = await getCurrentMockUserService();
+    const user = await resolveCurrentUser();
     await prisma.$transaction(async (tx) => {
       await changeOrganizationLifecycleService(user.id, parsed.data, tx);
     });

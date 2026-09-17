@@ -39,3 +39,8 @@ export {
 } from './OrganizationShopsCard';
 
 export { OrganizationDetailSkeleton } from './OrganizationDetailSkeleton';
+
+export {
+  OrganizationOptionCard,
+  type OrganizationOptionCardProps,
+} from './OrganizationOptionCard';

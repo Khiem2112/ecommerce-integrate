@@ -5,3 +5,4 @@ export * from './aiDraftActions';
 export * from './conversationActions';
 export * from './integrationActions';
 export * from './syncBatchActions';
+export * from './authenticationActions';

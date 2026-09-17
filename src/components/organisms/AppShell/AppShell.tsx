@@ -10,6 +10,7 @@ import { LeftSidebar } from './LeftSidebar';
 import { FeaturesDrawer } from './FeaturesDrawer';
 import { GlobalSyncWidget } from './GlobalSyncWidget';
 import { MobileNavigation } from './MobileNavigation';
+import { UserSessionMenu, SessionStateFeedback } from '../Authentication';
 
 type AppShellProps = {
   readonly children: ReactNode;
@@ -63,6 +64,9 @@ export function AppShell({ children }: AppShellProps) {
 
           {/* Breadcrumb */}
           <Breadcrumb className="min-w-0 flex-1" />
+
+          {/* User session profile menu */}
+          <UserSessionMenu className="flex-none md:hidden" />
         </header>
 
         {/* Page content */}
@@ -86,6 +90,9 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Fixed bottom-right sync indicator */}
       <GlobalSyncWidget />
+
+      {/* Session state feedback banner */}
+      <SessionStateFeedback />
     </div>
   );
 }

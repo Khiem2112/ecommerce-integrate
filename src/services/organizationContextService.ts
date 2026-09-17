@@ -30,8 +30,49 @@ export async function getCurrentMockUserService(
 
 export async function getActiveOrganizationContextService(
   userId: number,
-  tx: DbClient = prisma,
+  requestedOrgIdOrTx?: number | null | DbClient,
+  maybeTx?: DbClient,
 ): Promise<ActiveOrganizationContext> {
+  const requestedOrgId =
+    typeof requestedOrgIdOrTx === 'number' ? requestedOrgIdOrTx : null;
+  const tx: DbClient =
+    typeof requestedOrgIdOrTx === 'object' && requestedOrgIdOrTx !== null
+      ? requestedOrgIdOrTx
+      : (maybeTx ?? prisma);
+
+  if (requestedOrgId) {
+    const validRequested = await tx.organizationMember.findFirst({
+
+      where: {
+        userId,
+        organizationId: requestedOrgId,
+        isActive: true,
+        membershipStatus: {
+          code: 'active',
+          isActive: true,
+        },
+        organization: {
+          isActive: true,
+          status: {
+            code: 'active',
+            isActive: true,
+          },
+        },
+      },
+      include: {
+        organization: true,
+      },
+    });
+
+    if (validRequested) {
+      return {
+        organizationId: validRequested.organizationId,
+        displayName: validRequested.organization.displayName,
+        slug: validRequested.organization.slug,
+      };
+    }
+  }
+
   const preference = await tx.organizationContextPreference.findFirst({
     where: {
       userId,
@@ -41,6 +82,7 @@ export async function getActiveOrganizationContextService(
       organization: true,
     },
   });
+
 
   if (preference) {
     const validMembership = await tx.organizationMember.findFirst({
@@ -127,14 +169,36 @@ export async function getActiveOrganizationContextService(
 export async function getCurrentOrganizationIdService(
   tx: DbClient = prisma,
 ): Promise<number> {
-  const user = await getCurrentMockUserService(tx);
-  const context = await getActiveOrganizationContextService(user.id, tx);
-
-  if (!context.organizationId) {
-    throw new Error('No active organization context is available.');
+  // Try retrieving verified organization from active session
+  try {
+    const { getAuthenticatedSessionContextService } = await import(
+      './authentication'
+    );
+    const authContext = await getAuthenticatedSessionContextService(tx);
+    if (authContext?.activeOrganization?.organizationId) {
+      return authContext.activeOrganization.organizationId;
+    }
+  } catch {
+    // Session context not available, proceed to fallback
   }
 
-  return context.organizationId;
+  // Fallback for background sync / cron operations
+  const fallback = await tx.organization.findFirst({
+    where: {
+      isActive: true,
+      status: {
+        code: 'active',
+        isActive: true,
+      },
+    },
+    select: { id: true },
+  });
+
+  if (fallback) {
+    return fallback.id;
+  }
+
+  throw new Error('No active organization context is available.');
 }
 
 export async function switchActiveOrganizationContextService(

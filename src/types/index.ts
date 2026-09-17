@@ -35,6 +35,17 @@ export type {
   OrganizationAuditLog,
 } from '@prisma/client';
 
+
+export type {
+  ComputedSessionState,
+  UserSessionProjection,
+  SessionProjection,
+  ActiveSessionContext,
+  LoginResult,
+  RateLimitStatus,
+  RequestMetadata,
+} from './authentication';
+
 // Common cross-layer utility types
 export type {
   ActionResponse,
