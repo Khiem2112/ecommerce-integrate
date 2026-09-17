@@ -16,3 +16,4 @@ export * from './useRagGenerate';
 export * from './useIntegrations';
 export * from './useToast';
 export * from './useAuthentication';
+export * from './useUsers';

@@ -285,7 +285,7 @@ export async function createOrganizationForUserService(
     }
   }
 
-  const [status, ownerRole, activeMembership] = await Promise.all([
+  const [status, ownerRole, activeMembership, creatorUser] = await Promise.all([
     tx.organizationStatus.findFirst({
       where: {
         code: 'active',
@@ -304,9 +304,13 @@ export async function createOrganizationForUserService(
         isActive: true,
       },
     }),
+    tx.user.findUnique({
+      where: { id: userId },
+      select: { displayName: true },
+    }),
   ]);
 
-  if (!status || !ownerRole || !activeMembership) {
+  if (!status || !ownerRole || !activeMembership || !creatorUser) {
     throw new Error('Organization catalog data is unavailable.');
   }
 
@@ -330,6 +334,7 @@ export async function createOrganizationForUserService(
       userId,
       roleId: ownerRole.id,
       membershipStatusId: activeMembership.id,
+      displayName: creatorUser.displayName,
     },
   });
 

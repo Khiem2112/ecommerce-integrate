@@ -22,7 +22,8 @@
       "allCustomers": "Tất cả khách hàng",
       "integrations": "Tích hợp",
       "settings": "Cài đặt",
-      "organizations": "Tổ chức"
+      "organizations": "Tổ chức",
+      "users": "Người dùng"
     }
   },
   "breadcrumb": {
@@ -33,7 +34,8 @@
     "settings": "Cài đặt",
     "integrations": "Tích hợp",
     "lazada": "Lazada",
-    "new": "Đơn hàng mới"
+    "new": "Đơn hàng mới",
+    "users": "Người dùng"
   },
   "orders": {
     "pageTitle": "Danh sách đơn hàng",
@@ -315,7 +317,22 @@
     "language": "Ngôn ngữ",
     "languageDescription": "Chọn ngôn ngữ hiển thị cho không gian làm việc của bạn.",
     "vietnamese": "Tiếng Việt",
-    "english": "English"
+    "english": "English",
+    "personalTitle": "Thông tin cá nhân",
+    "personalDescription": "Thông tin tài khoản đăng nhập và vai trò hệ thống của bạn.",
+    "userId": "Mã định danh",
+    "systemRole": "Vai trò hệ thống",
+    "changePasswordTitle": "Đổi mật khẩu",
+    "changePasswordDescription": "Cập nhật mật khẩu thường xuyên để bảo vệ an toàn cho tài khoản của bạn.",
+    "organizationTitle": "Thông tin tổ chức hiện tại",
+    "organizationDescription": "Không gian làm việc và tổ chức bạn đang thao tác.",
+    "noActiveOrg": "Chưa chọn tổ chức nào",
+    "yourRole": "Vai trò của bạn",
+    "switchOrg": "Đổi tổ chức khác",
+    "manageOrg": "Quản lý chi tiết tổ chức",
+    "shopsCount": "Cửa hàng liên kết",
+    "securityModalTitle": "Đổi mật khẩu tài khoản",
+    "securityModalDescription": "Nhập mật khẩu hiện tại và thiết lập mật khẩu mới."
   },
   "pagination": {
     "summary": "Hiển thị {from} – {to} trên tổng số {total} {itemLabel}",
@@ -1294,6 +1311,7 @@
     "lastUpdated": "Cập nhật lần cuối",
     "basicInfo": "Thông tin cơ bản",
     "membersSectionTitle": "Danh sách người dùng",
+    "viewAllInUsers": "Xem tất cả trong Quản lý người dùng ({count} thành viên khác) →",
     "form": {
       "name": "Tên hiển thị",
       "slug": "Slug",
@@ -1382,6 +1400,228 @@
       "cannotSwitchSuspended": "Không thể chuyển sang tổ chức đang tạm dừng. Vui lòng kích hoạt lại tổ chức để tiếp tục.",
       "cannotSwitchArchivedTitle": "Tổ chức đã lưu trữ",
       "cannotSwitchArchived": "Không thể chuyển sang tổ chức đã lưu trữ."
+    }
+  },
+  "authentication": {
+    "login": {
+      "title": "Đăng nhập",
+      "subtitle": "Hệ thống quản trị và vận hành thương mại điện tử",
+      "emailLabel": "Email",
+      "emailPlaceholder": "name@company.com",
+      "passwordLabel": "Mật khẩu",
+      "passwordPlaceholder": "Nhập mật khẩu của bạn",
+      "submitButton": "Đăng nhập",
+      "submitting": "Đang xác thực...",
+      "showPassword": "Hiện mật khẩu",
+      "hidePassword": "Ẩn mật khẩu",
+      "invalidCredentials": "Thông tin đăng nhập không chính xác hoặc tài khoản không thể truy cập.",
+      "rateLimitTitle": "Quá nhiều lần thử đăng nhập",
+      "rateLimitCountdown": "Vui lòng chờ {time} trước khi thử lại.",
+      "errors": {
+        "emailRequired": "Email không được để trống.",
+        "invalidEmail": "Email không đúng định dạng.",
+        "passwordRequired": "Mật khẩu không được để trống."
+      }
+    },
+    "changePassword": {
+      "mandatoryTitle": "Đổi mật khẩu bắt buộc",
+      "mandatorySubtitle": "Tài khoản của bạn đang sử dụng mật khẩu tạm thời. Vui lòng thiết lập mật khẩu mới để tiếp tục phiên làm việc.",
+      "voluntaryTitle": "Đổi mật khẩu",
+      "voluntarySubtitle": "Cập nhật mật khẩu thường xuyên để bảo vệ an toàn cho tài khoản của bạn.",
+      "currentPasswordLabel": "Mật khẩu hiện tại",
+      "currentPasswordPlaceholder": "Nhập mật khẩu hiện tại",
+      "newPasswordLabel": "Mật khẩu mới",
+      "newPasswordPlaceholder": "Tối thiểu 6 ký tự",
+      "confirmationLabel": "Xác nhận mật khẩu mới",
+      "confirmationPlaceholder": "Nhập lại mật khẩu mới",
+      "submitButton": "Cập nhật mật khẩu",
+      "submitting": "Đang cập nhật...",
+      "successNotice": "Đổi mật khẩu thành công!",
+      "policyLength": "Độ dài từ 6 đến 128 ký tự",
+      "policyMatch": "Mật khẩu xác nhận trùng khớp",
+      "policyDifferent": "Khác với mật khẩu hiện tại",
+      "invalidCurrentPassword": "Mật khẩu hiện tại không chính xác.",
+      "failedNotice": "Đổi mật khẩu thất bại.",
+      "errors": {
+        "minLength": "Mật khẩu tối thiểu {min} ký tự.",
+        "mismatch": "Mật khẩu xác nhận không trùng khớp.",
+        "sameAsCurrent": "Mật khẩu mới phải khác mật khẩu hiện tại.",
+        "currentRequired": "Vui lòng nhập mật khẩu hiện tại."
+      }
+    },
+    "selectOrganization": {
+      "title": "Chọn tổ chức làm việc",
+      "subtitle": "Vui lòng chọn một tổ chức để bắt đầu phiên làm việc.",
+      "searchPlaceholder": "Tìm kiếm theo tên hoặc slug...",
+      "emptyResult": "Không tìm thấy tổ chức phù hợp",
+      "switchSuccess": "Đã chuyển tổ chức thành công",
+      "switchError": "Không thể chuyển sang tổ chức đã chọn.",
+      "logout": "Đăng xuất"
+    },
+    "noActiveMembership": {
+      "title": "Không có quyền truy cập tổ chức",
+      "description": "Tài khoản của bạn hợp lệ nhưng hiện tại chưa được cấp quyền hoạt động trong bất kỳ tổ chức nào. Vui lòng liên hệ với quản trị viên tổ chức của bạn.",
+      "contactAdmin": "Liên hệ hỗ trợ",
+      "logout": "Đăng xuất"
+    },
+    "session": {
+      "expiredTitle": "Phiên làm việc đã hết hạn",
+      "expiredDesc": "Phiên làm việc của bạn đã kết thúc do không hoạt động hoặc đã đạt giới hạn thời gian tối đa. Vui lòng đăng nhập lại.",
+      "revokedTitle": "Phiên làm việc đã bị thu hồi",
+      "revokedDesc": "Phiên làm việc của bạn đã bị thu hồi (ví dụ: mật khẩu vừa được đổi trên thiết bị khác).",
+      "loginAgain": "Đăng nhập lại",
+      "userMenu": "Menu tài khoản",
+      "securitySettings": "Bảo mật & Mật khẩu",
+      "signOut": "Đăng xuất",
+      "signingOut": "Đang đăng xuất...",
+      "activeOrg": "Tổ chức hiện tại",
+      "switchOrg": "Đổi tổ chức",
+      "changePassword": "Đổi mật khẩu"
+    }
+  },
+  "security": {
+    "pageTitle": "Bảo mật tài khoản",
+    "pageDescription": "Quản lý mật khẩu và phiên đăng nhập an toàn của bạn."
+  },
+  "users": {
+    "title": "Quản lý người dùng",
+    "description": "Quản lý thành viên, phân quyền và cấp quyền truy cập theo tổ chức đang hoạt động.",
+    "breadcrumb": "Người dùng",
+    "addUser": "Thêm người dùng",
+    "backToUsers": "Quay lại danh sách",
+    "activeOrg": "Tổ chức hoạt động",
+    "refreshing": "Đang làm mới...",
+    "thisOrg": "tổ chức này",
+    "currentOrg": "Tổ chức hiện tại",
+    "filters": {
+      "searchPlaceholder": "Tìm theo tên hiển thị hoặc email...",
+      "role": "Vai trò",
+      "allRoles": "Tất cả vai trò",
+      "status": "Trạng thái",
+      "allStatuses": "Tất cả trạng thái",
+      "reset": "Đặt lại bộ lọc",
+      "appliedCount": "{count} bộ lọc đang áp dụng"
+    },
+    "table": {
+      "displayName": "Thành viên",
+      "email": "Email đăng nhập",
+      "contactEmail": "Email liên hệ",
+      "role": "Vai trò",
+      "status": "Trạng thái",
+      "updatedAt": "Cập nhật",
+      "actions": "Thao tác",
+      "currentUser": "Bạn",
+      "edit": "Chỉnh sửa",
+      "resetPassword": "Đặt lại mật khẩu",
+      "remove": "Gỡ khỏi tổ chức",
+      "emptyFiltered": "Không tìm thấy người dùng nào phù hợp với điều kiện lọc.",
+      "emptyActive": "Chưa có thành viên nào trong tổ chức.",
+      "emptyIntegrity": "Tổ chức không có Owner. Vui lòng liên hệ Quản trị viên hệ thống.",
+      "clearFilters": "Xóa bộ lọc",
+      "retry": "Thử lại",
+      "loadFailed": "Không thể tải danh sách người dùng. Vui lòng thử lại.",
+      "totalUsers": "{count} người dùng"
+    },
+    "form": {
+      "newTitle": "Thêm người dùng vào tổ chức",
+      "newDescription": "Cấp tài khoản mới hoặc gán người dùng đã tồn tại vào tổ chức hiện tại.",
+      "editTitle": "Chỉnh sửa thông tin thành viên",
+      "editDescription": "Cập nhật tên hiển thị nghiệp vụ, email liên hệ và vai trò trong tổ chức này.",
+      "targetOrg": "Tổ chức đích (đã khóa)",
+      "loginEmailLabel": "Email đăng nhập",
+      "loginEmailPlaceholder": "vidu@congty.com",
+      "loginEmailHint": "Email đăng nhập là duy nhất toàn hệ thống và không thể thay đổi sau khi tạo.",
+      "displayNameLabel": "Tên hiển thị theo tổ chức",
+      "displayNamePlaceholder": "Nguyễn Văn A",
+      "contactEmailLabel": "Email liên hệ (tùy chọn)",
+      "contactEmailPlaceholder": "lienhe@congty.com",
+      "contactEmailHint": "Email liên hệ phục vụ công việc trong tổ chức này, có thể khác email đăng nhập.",
+      "roleLabel": "Vai trò trong tổ chức",
+      "passwordSection": "Thiết lập mật khẩu",
+      "autoPassword": "Tự động sinh mật khẩu ngẫu nhiên an toàn",
+      "manualPassword": "Tự nhập mật khẩu ban đầu",
+      "customPasswordLabel": "Mật khẩu ban đầu",
+      "customPasswordPlaceholder": "Tối thiểu 8 ký tự",
+      "submitAdd": "Tạo người dùng",
+      "submitUpdate": "Lưu thay đổi",
+      "saving": "Đang lưu...",
+      "cancel": "Hủy"
+    },
+    "handoff": {
+      "title": "Thông tin bàn giao tài khoản",
+      "description": "Tài khoản đã được tạo thành công. Mật khẩu tạm thời dưới đây chỉ hiển thị MỘT LẦN DUY NHẤT. Hãy sao chép và gửi cho người dùng qua kênh an toàn.",
+      "passwordLabel": "Mật khẩu tạm thời",
+      "copyPassword": "Sao chép mật khẩu",
+      "copied": "Đã sao chép!",
+      "warning": "Mật khẩu này không thể xem lại sau khi rời khỏi màn hình này. Người dùng sẽ được yêu cầu đổi mật khẩu ở lần đăng nhập đầu tiên.",
+      "finishAndGoToDetail": "Xem thông tin thành viên",
+      "finishAndGoToDirectory": "Về danh sách người dùng"
+    },
+    "outcomes": {
+      "created": "Đã tạo tài khoản mới và cấp quyền thành công.",
+      "attached": "Người dùng đã tồn tại trong hệ thống. Đã thêm thành công vào tổ chức với mật khẩu hiện tại của họ.",
+      "restored": "Đã khôi phục thành công quyền truy cập của thành viên đã gỡ trước đây.",
+      "alreadyActive": "Người dùng đã là thành viên đang hoạt động trong tổ chức này."
+    },
+    "resetModal": {
+      "title": "Đặt lại mật khẩu cho thành viên",
+      "description": "Bạn đang đặt lại mật khẩu cho {name}. Mật khẩu mới sẽ bắt buộc người dùng phải đổi ở lần đăng nhập tiếp theo.",
+      "autoPassword": "Tự động sinh mật khẩu mới",
+      "manualPassword": "Tự nhập mật khẩu mới",
+      "customPasswordLabel": "Mật khẩu mới",
+      "customPasswordPlaceholder": "Tối thiểu 8 ký tự",
+      "confirmButton": "Đặt lại mật khẩu",
+      "cancelButton": "Hủy bỏ",
+      "resetting": "Đang đặt lại...",
+      "successTitle": "Mật khẩu mới đã được tạo",
+      "successDescription": "Hãy sao chép mật khẩu bên dưới và bàn giao cho người dùng:"
+    },
+    "removeModal": {
+      "title": "Xác nhận gỡ quyền thành viên",
+      "description": "Bạn có chắc chắn muốn gỡ {name} khỏi tổ chức {org}? Người dùng sẽ mất toàn bộ quyền truy cập vào tổ chức này ngay lập tức. Tài khoản toàn cục và lịch sử hoạt động vẫn được bảo toàn.",
+      "confirmButton": "Xác nhận gỡ quyền",
+      "cancelButton": "Hủy bỏ",
+      "removing": "Đang gỡ..."
+    },
+    "detail": {
+      "pageTitle": "Chi tiết thành viên",
+      "profileTitle": "Thông tin thành viên",
+      "auditTitle": "Lịch sử quản lý quyền",
+      "joinedAt": "Ngày tham gia",
+      "lastUpdated": "Cập nhật lần cuối",
+      "noAudit": "Chưa có hoạt động quản lý nào được ghi nhận.",
+      "actor": "Người thực hiện",
+      "action": "Hành động",
+      "time": "Thời gian",
+      "byActor": "bởi {actor}",
+      "eventsCount": "{count} sự kiện"
+    },
+    "roles": {
+      "owner": "Chủ sở hữu",
+      "admin": "Quản trị viên",
+      "operations_manager": "Quản lý vận hành",
+      "integration_operator": "Vận hành tích hợp",
+      "data_steward": "Quản trị dữ liệu",
+      "viewer": "Người xem"
+    },
+    "statuses": {
+      "active": "Đang hoạt động",
+      "removed": "Đã gỡ quyền"
+    },
+    "errors": {
+      "forbidden": "Bạn không có quyền thực hiện thao tác này.",
+      "lastOwner": "Không thể gỡ hoặc hạ vai trò của Chủ sở hữu cuối cùng.",
+      "selfRemove": "Bạn không thể tự gỡ quyền của chính mình.",
+      "adminOnAdmin": "Quản trị viên không thể chỉnh sửa hoặc gỡ Quản trị viên khác.",
+      "staleData": "Dữ liệu đã thay đổi bởi người khác. Vui lòng tải lại trang.",
+      "notFound": "Không tìm thấy thành viên trong tổ chức.",
+      "minPasswordLength": "Mật khẩu tự nhập phải có tối thiểu 8 ký tự.",
+      "emailRequired": "Vui lòng nhập email đăng nhập.",
+      "invalidEmail": "Địa chỉ email không hợp lệ.",
+      "displayNameRequired": "Vui lòng nhập tên hiển thị.",
+      "invalidContactEmail": "Email liên hệ không hợp lệ.",
+      "resetFailed": "Lỗi khi đặt lại mật khẩu.",
+      "saveFailed": "Lỗi khi lưu thông tin người dùng."
     }
   }
 }

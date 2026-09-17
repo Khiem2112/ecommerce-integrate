@@ -5,3 +5,4 @@ export * from './rag';
 export * from './platformAdapter';
 export * from './syncErrors';
 export * from './url';
+export * from './email';

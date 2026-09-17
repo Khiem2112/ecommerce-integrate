@@ -12,3 +12,6 @@ export * from './connectors';
 export * from './syncBatchListService';
 export * from './syncBatchDetailService';
 export * from './authentication';
+export * from './userAccessPermissionService';
+export * from './userAccessQueryService';
+export * from './userAccessMutationService';

@@ -32,3 +32,4 @@ export { GlobalSyncIndicator } from './GlobalSyncIndicator';
 export * from './Sync';
 export * from './organization';
 export * from './authentication';
+export * from './user';

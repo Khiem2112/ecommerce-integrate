@@ -168,6 +168,7 @@ export async function mutateOrganizationMembershipService(
         userId: input.userId,
         roleId: role.id,
         membershipStatusId: activeStatus.id,
+        displayName: user.displayName,
       },
       update: {
         roleId: role.id,

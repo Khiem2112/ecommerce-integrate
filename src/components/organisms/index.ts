@@ -81,3 +81,4 @@ export * from './SyncBatchDetail';
 export * from './Organization';
 export * from './Authentication';
 export * from './Settings';
+export * from './User';

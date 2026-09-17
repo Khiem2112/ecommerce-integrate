@@ -222,3 +222,26 @@ export type {
   ActiveOrganizationContext,
   MockUserOption,
 } from './organization';
+
+export {
+  USER_ACCESS_STATUS_CODES,
+} from './userAccess';
+
+export type {
+  UserAccessMemberPayload,
+  UserAccessDetailPayload,
+  UserAccessAuditPayload,
+  UserAccessStatusCode,
+  UserAccessCapabilities,
+  UserAccessSummary,
+  UserAccessDetail,
+  UserAccessFilters,
+  UserAccessFilterValues,
+  UserAccessListResult,
+  UserProvisioningOutcome,
+  UserProvisioningResult,
+  PasswordResetResult,
+  MembershipRemovalResult,
+  UserAccessAuditEvent,
+  UserAccessHistoryResult,
+} from './userAccess';

@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Button, Combobox, type ComboboxItem } from '@/components/atoms';
 import { ErrorBanner, OrganizationMemberRow } from '@/components/molecules';
 import { useMockUsers, useMutateOrganizationMember } from '@/hooks';
+import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import type { OrganizationDetail, OrganizationRoleCode } from '@/types';
 
@@ -24,6 +25,7 @@ export function OrganizationMembersSection({
   organization,
 }: OrganizationMembersSectionProps) {
   const t = useTranslations('organizations');
+  const tUsers = useTranslations('users');
   const { data: users, isLoading: isUsersLoading } = useMockUsers();
   const mutation = useMutateOrganizationMember();
 
@@ -104,7 +106,7 @@ export function OrganizationMembersSection({
           organization.canManage ? 'lg:grid-cols-12' : '',
         )}
       >
-        {/* Left Column: Add Member Form (Combobox Người dùng + Combobox Trạng thái + Nút Thêm) */}
+        {/* Left Column: Add Member Form (User combobox + Role combobox + Add button) */}
         {organization.canManage && (
           <div className="lg:col-span-5 xl:col-span-4">
             <div className="rounded-2xl border border-hairline bg-surface-card p-6 shadow-card">
@@ -122,8 +124,8 @@ export function OrganizationMembersSection({
                   >
                     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                     <circle cx="9" cy="7" r="4" />
-                    <line x1="19" x2="19" y1="8" y2="14" />
-                    <line x1="22" x2="16" y1="11" y2="11" />
+                    <line x1="19" y1="8" x2="19" y2="14" />
+                    <line x1="22" y1="11" x2="16" y2="11" />
                   </svg>
                   <h3 className="text-sm font-semibold text-foreground">
                     {t('membersTab.add')}
@@ -135,7 +137,7 @@ export function OrganizationMembersSection({
               </div>
 
               <div className="mt-5 space-y-4">
-                {/* Combobox người dùng with label */}
+                {/* User combobox with label */}
                 <div>
                   <Combobox
                     items={userComboboxItems}
@@ -151,7 +153,7 @@ export function OrganizationMembersSection({
                   />
                 </div>
 
-                {/* Combobox trạng thái / vai trò with label */}
+                {/* Role combobox with label */}
                 <div>
                   <Combobox
                     items={roleComboboxItems}
@@ -165,7 +167,7 @@ export function OrganizationMembersSection({
                   />
                 </div>
 
-                {/* Nút thêm with increased spacing */}
+                {/* Add member button */}
                 <div className="pt-2">
                   <Button
                     type="button"
@@ -196,14 +198,14 @@ export function OrganizationMembersSection({
           </div>
         )}
 
-        {/* Right Column: Danh sách các người dùng đang được thêm */}
+        {/* Right Column: Organization Member List */}
         <div
           className={cn(
             organization.canManage ? 'lg:col-span-7 xl:col-span-8' : 'w-full',
           )}
         >
           <div className="rounded-2xl border border-hairline bg-surface-card shadow-card overflow-hidden">
-            {/* Header */}
+            {/* Header with Title, Count, and link to Users Directory */}
             <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
               <div className="flex items-center gap-2.5">
                 <svg
@@ -228,9 +230,15 @@ export function OrganizationMembersSection({
                   {organization.members.length}
                 </span>
               </div>
+
+              <Link href="/users">
+                <Button type="button" variant="outline" size="sm">
+                  {tUsers('title')} →
+                </Button>
+              </Link>
             </div>
 
-            {/* Member list with increased line height and row spacing */}
+            {/* Member list rendering OrganizationMemberRow */}
             {organization.members.length > 0 ? (
               <div className="divide-y divide-hairline">
                 {organization.members.map((member) => (

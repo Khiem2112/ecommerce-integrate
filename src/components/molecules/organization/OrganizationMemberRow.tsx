@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { Badge, Button, Combobox, type ComboboxItem } from '@/components/atoms';
+import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { OrganizationRoleBadge } from './OrganizationRoleBadge';
 import type { OrganizationMember, OrganizationRoleCode } from '@/types';
@@ -79,9 +80,12 @@ export function OrganizationMemberRow({
 
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <p className="truncate text-sm font-medium text-foreground">
+            <Link
+              href={`/users/${member.userId}`}
+              className="truncate text-sm font-medium text-foreground hover:text-primary hover:underline transition-colors"
+            >
               {member.displayName}
-            </p>
+            </Link>
             {member.isCurrentUser && (
               <Badge variant="secondary" size="xs">
                 {t('membersTab.currentUser')}

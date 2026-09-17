@@ -6,3 +6,4 @@ export * from './ragForm';
 export * from './integrationFormSchema';
 export * from './organizationFormSchema';
 export * from './authenticationFormSchema';
+export * from './userAccessFormSchema';

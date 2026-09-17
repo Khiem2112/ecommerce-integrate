@@ -22,7 +22,8 @@
       "allCustomers": "All customers",
       "integrations": "Integrations",
       "settings": "Settings",
-      "organizations": "Organizations"
+      "organizations": "Organizations",
+      "users": "Users"
     }
   },
   "breadcrumb": {
@@ -33,7 +34,8 @@
     "settings": "Settings",
     "integrations": "Integrations",
     "lazada": "Lazada",
-    "new": "New order"
+    "new": "New order",
+    "users": "Users"
   },
   "orders": {
     "pageTitle": "Order list",
@@ -315,7 +317,22 @@
     "language": "Language",
     "languageDescription": "Choose the display language for your workspace.",
     "vietnamese": "Tiếng Việt",
-    "english": "English"
+    "english": "English",
+    "personalTitle": "Personal Information",
+    "personalDescription": "Your login account information and system role permissions.",
+    "userId": "User ID",
+    "systemRole": "System Role",
+    "changePasswordTitle": "Change Password",
+    "changePasswordDescription": "Update your password regularly to keep your account secure.",
+    "organizationTitle": "Active Organization",
+    "organizationDescription": "The workspace and organization you are currently operating in.",
+    "noActiveOrg": "No active organization selected",
+    "yourRole": "Your Role",
+    "switchOrg": "Switch organization",
+    "manageOrg": "Manage organization details",
+    "shopsCount": "Connected shops",
+    "securityModalTitle": "Account Password Change",
+    "securityModalDescription": "Enter your current password and choose a new one."
   },
   "pagination": {
     "summary": "Showing {from} – {to} of {total} {itemLabel}",
@@ -1294,12 +1311,36 @@
     "lastUpdated": "Last updated",
     "basicInfo": "Basic details",
     "membersSectionTitle": "User list",
+    "viewAllInUsers": "View all in Users ({count} other members) →",
     "form": {
-      "name": "Display name", "slug": "Slug", "timezone": "Timezone", "currency": "Base currency", "logo": "Logo URL", "legalName": "Legal name", "country": "Country code", "required": "Review the required fields and try again.", "invalid": "The organization details need attention."
+      "name": "Display name",
+      "slug": "Slug",
+      "timezone": "Timezone",
+      "currency": "Base currency",
+      "logo": "Logo URL",
+      "legalName": "Legal name",
+      "country": "Country code",
+      "required": "Review the required fields and try again.",
+      "invalid": "The organization details need attention."
     },
-    "statuses": { "active": "Active", "suspended": "Suspended", "archived": "Archived" },
-    "roles": { "owner": "Owner", "admin": "Admin", "operations_manager": "Operations manager", "integration_operator": "Integration operator", "data_steward": "Data steward", "viewer": "Viewer" },
-    "tabs": { "overview": "Overview", "members": "Members", "shops": "Connected shops" },
+    "statuses": {
+      "active": "Active",
+      "suspended": "Suspended",
+      "archived": "Archived"
+    },
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "operations_manager": "Operations manager",
+      "integration_operator": "Integration operator",
+      "data_steward": "Data steward",
+      "viewer": "Viewer"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "members": "Members",
+      "shops": "Connected shops"
+    },
     "context": {
       "active": "Active workspace",
       "selected": "Viewing a different workspace",
@@ -1320,15 +1361,267 @@
       "connectedShopsCount": "Connected shops ({count})",
       "noConnectedShops": "No connected shops linked to this organization."
     },
-    "membersTab": { "title": "Organization members", "add": "Add member", "addDescription": "Select a user and assign their role / status to add them to this organization.", "userLabel": "User", "roleLabel": "Status", "selectUser": "Select user", "selectRole": "Select role", "addAction": "Add", "remove": "Remove", "changeRole": "Change role", "empty": "No active members yet.", "currentUser": "You", "mutationFailed": "We could not update this member." },
-    "shopsTab": { "title": "Connected shops", "empty": "No shops are connected to this organization.", "lastSync": "Last sync: {time}" },
-    "lifecycle": { "suspend": "Suspend", "archive": "Archive", "restore": "Restore", "archiveDescription": "Type the organization name to archive it.", "confirmation": "Organization name", "confirm": "Confirm", "cancel": "Cancel", "failed": "We could not change the organization status." },
-    "errors": { "save": "We could not save the organization.", "switch": "We could not switch workspace." },
+    "membersTab": {
+      "title": "Organization members",
+      "add": "Add member",
+      "addDescription": "Select a user and assign their role / status to add them to this organization.",
+      "userLabel": "User",
+      "roleLabel": "Status",
+      "selectUser": "Select user",
+      "selectRole": "Select role",
+      "addAction": "Add",
+      "remove": "Remove",
+      "changeRole": "Change role",
+      "empty": "No active members yet.",
+      "currentUser": "You",
+      "mutationFailed": "We could not update this member."
+    },
+    "shopsTab": {
+      "title": "Connected shops",
+      "empty": "No shops are connected to this organization.",
+      "lastSync": "Last sync: {time}"
+    },
+    "lifecycle": {
+      "suspend": "Suspend",
+      "archive": "Archive",
+      "restore": "Restore",
+      "archiveDescription": "Type the organization name to archive it.",
+      "confirmation": "Organization name",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "failed": "We could not change the organization status."
+    },
+    "errors": {
+      "save": "We could not save the organization.",
+      "switch": "We could not switch workspace."
+    },
     "toast": {
       "cannotSwitchSuspendedTitle": "Organization is suspended",
       "cannotSwitchSuspended": "Cannot switch to a suspended organization. Please reactivate the organization to continue.",
       "cannotSwitchArchivedTitle": "Organization is archived",
       "cannotSwitchArchived": "Cannot switch to an archived organization."
+    }
+  },
+  "authentication": {
+    "login": {
+      "title": "Sign in",
+      "subtitle": "E-commerce operations and multi-channel management platform",
+      "emailLabel": "Email",
+      "emailPlaceholder": "name@company.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "submitButton": "Sign in",
+      "submitting": "Signing in...",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "invalidCredentials": "Invalid credentials or account cannot be accessed.",
+      "rateLimitTitle": "Too many sign-in attempts",
+      "rateLimitCountdown": "Please wait {time} before trying again.",
+      "errors": {
+        "emailRequired": "Email is required.",
+        "invalidEmail": "Please enter a valid email address.",
+        "passwordRequired": "Password is required."
+      }
+    },
+    "changePassword": {
+      "mandatoryTitle": "Password Change Required",
+      "mandatorySubtitle": "Your account is currently using a temporary password. Please set a new password to continue.",
+      "voluntaryTitle": "Change Password",
+      "voluntarySubtitle": "Update your password regularly to keep your account secure.",
+      "currentPasswordLabel": "Current password",
+      "currentPasswordPlaceholder": "Enter current password",
+      "newPasswordLabel": "New password",
+      "newPasswordPlaceholder": "At least 6 characters",
+      "confirmationLabel": "Confirm new password",
+      "confirmationPlaceholder": "Re-enter new password",
+      "submitButton": "Update password",
+      "submitting": "Updating...",
+      "successNotice": "Password changed successfully!",
+      "policyLength": "Between 6 and 128 characters",
+      "policyMatch": "Confirmation password matches",
+      "policyDifferent": "Different from current password",
+      "invalidCurrentPassword": "Current password is incorrect.",
+      "failedNotice": "Password change failed.",
+      "errors": {
+        "minLength": "Password must be at least {min} characters.",
+        "mismatch": "Confirmation password does not match.",
+        "sameAsCurrent": "New password must be different from current password.",
+        "currentRequired": "Current password is required."
+      }
+    },
+    "selectOrganization": {
+      "title": "Select Organization",
+      "subtitle": "Please select an organization to start your operational session.",
+      "searchPlaceholder": "Search by name or slug...",
+      "emptyResult": "No matching organizations found",
+      "switchSuccess": "Switched organization successfully",
+      "switchError": "Could not switch to selected organization.",
+      "logout": "Sign out"
+    },
+    "noActiveMembership": {
+      "title": "No Active Organization Membership",
+      "description": "Your account is valid, but currently has no active membership in any organization. Please contact your administrator.",
+      "contactAdmin": "Contact support",
+      "logout": "Sign out"
+    },
+    "session": {
+      "expiredTitle": "Session Expired",
+      "expiredDesc": "Your session has ended due to inactivity or reaching the maximum duration limit. Please sign in again.",
+      "revokedTitle": "Session Revoked",
+      "revokedDesc": "Your session was revoked (for example, your password was changed on another device).",
+      "loginAgain": "Sign in again",
+      "userMenu": "Account menu",
+      "securitySettings": "Security & Password",
+      "signOut": "Sign out",
+      "signingOut": "Signing out...",
+      "activeOrg": "Active organization",
+      "switchOrg": "Switch organization",
+      "changePassword": "Change password"
+    }
+  },
+  "security": {
+    "pageTitle": "Account Security",
+    "pageDescription": "Manage your account password and secure sign-in sessions."
+  },
+  "users": {
+    "title": "User Access Management",
+    "description": "Manage members, assign roles, and provision access for the active organization.",
+    "breadcrumb": "Users",
+    "addUser": "Add User",
+    "backToUsers": "Back to Users",
+    "activeOrg": "Active Organization",
+    "refreshing": "Refreshing...",
+    "thisOrg": "this organization",
+    "currentOrg": "Current organization",
+    "filters": {
+      "searchPlaceholder": "Search by display name or email...",
+      "role": "Role",
+      "allRoles": "All Roles",
+      "status": "Status",
+      "allStatuses": "All Statuses",
+      "reset": "Reset filters",
+      "appliedCount": "{count} filters applied"
+    },
+    "table": {
+      "displayName": "Member",
+      "email": "Login Email",
+      "contactEmail": "Contact Email",
+      "role": "Role",
+      "status": "Status",
+      "updatedAt": "Updated",
+      "actions": "Actions",
+      "currentUser": "You",
+      "edit": "Edit",
+      "resetPassword": "Reset password",
+      "remove": "Remove from organization",
+      "emptyFiltered": "No users found matching the filter criteria.",
+      "emptyActive": "No members in this organization yet.",
+      "emptyIntegrity": "Organization has no Owner. Please contact System Operator.",
+      "clearFilters": "Clear filters",
+      "retry": "Retry",
+      "loadFailed": "Failed to load users. Please try again.",
+      "totalUsers": "{count} users"
+    },
+    "form": {
+      "newTitle": "Add User to Organization",
+      "newDescription": "Provision a new account or attach an existing user to the current organization.",
+      "editTitle": "Edit Member Access",
+      "editDescription": "Update organization display name, contact email, and role.",
+      "targetOrg": "Target Organization (Locked)",
+      "loginEmailLabel": "Login Email",
+      "loginEmailPlaceholder": "user@example.com",
+      "loginEmailHint": "Login email is globally unique and cannot be modified after creation.",
+      "displayNameLabel": "Organization Display Name",
+      "displayNamePlaceholder": "Jane Doe",
+      "contactEmailLabel": "Contact Email (Optional)",
+      "contactEmailPlaceholder": "contact@example.com",
+      "contactEmailHint": "Contact email for work in this organization, may differ from login email.",
+      "roleLabel": "Organization Role",
+      "passwordSection": "Password Setup",
+      "autoPassword": "Auto-generate secure temporary password",
+      "manualPassword": "Manually enter initial password",
+      "customPasswordLabel": "Initial Password",
+      "customPasswordPlaceholder": "Minimum 8 characters",
+      "submitAdd": "Create User",
+      "submitUpdate": "Save Changes",
+      "saving": "Saving...",
+      "cancel": "Cancel"
+    },
+    "handoff": {
+      "title": "Account Credential Handoff",
+      "description": "The account has been created. The temporary password below is displayed ONLY ONCE. Copy and send it to the user via a secure channel.",
+      "passwordLabel": "Temporary Password",
+      "copyPassword": "Copy Password",
+      "copied": "Copied!",
+      "warning": "This password cannot be viewed again after leaving this screen. The user will be required to change it upon first login.",
+      "finishAndGoToDetail": "View Member Details",
+      "finishAndGoToDirectory": "Go to Users Directory"
+    },
+    "outcomes": {
+      "created": "New account created and access granted successfully.",
+      "attached": "User already exists. Successfully attached to this organization using their existing password.",
+      "restored": "Successfully restored access for this previously removed member.",
+      "alreadyActive": "User is already an active member in this organization."
+    },
+    "resetModal": {
+      "title": "Reset Member Password",
+      "description": "You are resetting the password for {name}. The user will be required to change this new password upon next login.",
+      "autoPassword": "Auto-generate new password",
+      "manualPassword": "Manually enter new password",
+      "customPasswordLabel": "New Password",
+      "customPasswordPlaceholder": "Minimum 8 characters",
+      "confirmButton": "Reset Password",
+      "cancelButton": "Cancel",
+      "resetting": "Resetting...",
+      "successTitle": "New Password Generated",
+      "successDescription": "Please copy the password below and hand it to the user:"
+    },
+    "removeModal": {
+      "title": "Confirm Remove Member",
+      "description": "Are you sure you want to remove {name} from {org}? The user will immediately lose all access to this organization. Their global account and activity history will be preserved.",
+      "confirmButton": "Confirm Removal",
+      "cancelButton": "Cancel",
+      "removing": "Removing..."
+    },
+    "detail": {
+      "pageTitle": "Member Details",
+      "profileTitle": "Member Profile",
+      "auditTitle": "Access Audit History",
+      "joinedAt": "Joined",
+      "lastUpdated": "Last Updated",
+      "noAudit": "No audit records found.",
+      "actor": "Actor",
+      "action": "Action",
+      "time": "Time",
+      "byActor": "by {actor}",
+      "eventsCount": "{count} events"
+    },
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "operations_manager": "Operations Manager",
+      "integration_operator": "Integration Operator",
+      "data_steward": "Data Steward",
+      "viewer": "Viewer"
+    },
+    "statuses": {
+      "active": "Active",
+      "removed": "Removed"
+    },
+    "errors": {
+      "forbidden": "You do not have permission to perform this action.",
+      "lastOwner": "Cannot remove or demote the last Owner.",
+      "selfRemove": "You cannot remove your own membership.",
+      "adminOnAdmin": "Admins cannot edit or remove other Admins.",
+      "staleData": "Data was modified by another user. Please reload the page.",
+      "notFound": "Member not found in organization.",
+      "minPasswordLength": "Manually entered password must be at least 8 characters.",
+      "emailRequired": "Login email is required.",
+      "invalidEmail": "Invalid email address.",
+      "displayNameRequired": "Display name is required.",
+      "invalidContactEmail": "Invalid contact email address.",
+      "resetFailed": "Failed to reset password.",
+      "saveFailed": "Failed to save user information."
     }
   }
 }

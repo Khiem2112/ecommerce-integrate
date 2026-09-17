@@ -4,6 +4,9 @@ import { AUTH_CONFIG } from '@/config/authentication';
 import { appLogger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 import type { DbClient, RateLimitStatus } from '@/types';
+import { canonicalizeEmail } from '@/utils/email';
+
+export { canonicalizeEmail } from '@/utils/email';
 
 // Pre-computed dummy scrypt hash with standard cost parameters (N=16384, r=8, p=1)
 // Used for timing-safe dummy comparisons when an email does not exist or account is inactive
@@ -39,12 +42,6 @@ const accountAttempts = new Map<string, AttemptRecord>();
 
 const MAX_TRACKED_ENTRIES = 5000;
 
-/**
- * Standardize email addresses by trimming whitespace and converting to lowercase.
- */
-export function canonicalizeEmail(email: string): string {
-  return email.toLowerCase().trim();
-}
 
 /**
  * Anonymize or hash an IP address to preserve privacy while maintaining trace correlation.

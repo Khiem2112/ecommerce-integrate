@@ -63,20 +63,24 @@ model PlatformConnection {
 
 /// Temporary local identity directory until an external identity provider is integrated.
 model User {
-  id          Int      @id @default(autoincrement())
-  subjectId   String   @unique
-  displayName String
-  email       String   @unique
-  avatarUrl   String?
-  memberships OrganizationMember[]
-  preferences OrganizationContextPreference[]
-  auditEvents OrganizationAuditLog[] @relation("OrganizationAuditActor")
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  id                 Int                             @id @default(autoincrement())
+  subjectId          String                          @unique
+  displayName        String
+  email              String                          @unique
+  passwordHash       String?
+  mustChangePassword Boolean                         @default(false)
+  passwordChangedAt  DateTime?
+  avatarUrl          String?
+  memberships        OrganizationMember[]
+  preferences        OrganizationContextPreference[]
+  auditEvents        OrganizationAuditLog[]          @relation("OrganizationAuditActor")
+  isActive           Boolean                         @default(true)
+  createdAt          DateTime                        @default(now())
+  updatedAt          DateTime                        @default(now()) @updatedAt
 
   @@map("app_user")
 }
+
 
 model OrganizationStatus {
   id            Int      @id @default(autoincrement())
@@ -152,15 +156,20 @@ model OrganizationMember {
   organization       Organization @relation(fields: [organizationId], references: [id])
   userId             Int
   user               User     @relation(fields: [userId], references: [id])
+  displayName        String   @db.VarChar(120)
+  contactEmail       String?  @db.VarChar(254)
   roleId             Int
   role               OrganizationRoleCatalog @relation(fields: [roleId], references: [id])
   membershipStatusId Int
   membershipStatus   OrganizationMembershipStatus @relation(fields: [membershipStatusId], references: [id])
+  version            Int      @default(1)
   isActive           Boolean  @default(true)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @default(now()) @updatedAt
 
   @@unique([organizationId, userId])
+  @@index([organizationId, membershipStatusId, roleId])
+  @@index([organizationId, displayName])
   @@index([userId])
   @@index([roleId])
   @@index([membershipStatusId])
@@ -209,6 +218,7 @@ model OrganizationAuditLog {
   correlationId  String?  @db.VarChar(191)
   createdAt      DateTime @default(now())
 
+  @@unique([organizationId, correlationId])
   @@index([organizationId, createdAt])
   @@index([actorUserId, createdAt])
   @@map("organization_audit_log")
