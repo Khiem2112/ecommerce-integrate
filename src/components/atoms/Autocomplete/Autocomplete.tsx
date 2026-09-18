@@ -9,6 +9,8 @@ import {
   useRef,
   useState,
 } from 'react';
+import { createPortal } from 'react-dom';
+import { Tooltip } from '@/components/atoms/Tooltip/Tooltip';
 import { cn } from '@/lib/cn';
 
 export type AutocompleteOption = {
@@ -34,6 +36,7 @@ export type AutocompleteProps = {
   readonly searchPlaceholder?: string;
   readonly ariaLabel?: string;
   readonly placement?: 'bottom' | 'top';
+  readonly portaled?: boolean;
 };
 
 export function Autocomplete({
@@ -50,13 +53,27 @@ export function Autocomplete({
   searchPlaceholder = 'Search…',
   ariaLabel,
   placement = 'bottom',
+  portaled = true,
 }: AutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
+  const [coords, setCoords] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const buttonId = useId();
   const listboxId = useId();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const selectedOption = useMemo(
     () => options.find((item) => item.value === value),
@@ -82,20 +99,88 @@ export function Autocomplete({
     [onChange],
   );
 
+  const updateCoords = useCallback(() => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+
+    // Close menu if trigger scrolled completely out of viewport
+    if (rect.bottom < 0 || rect.top > window.innerHeight) {
+      setIsOpen(false);
+      return;
+    }
+
+    const menuEl = menuRef.current;
+    const estimatedHeight = menuEl ? menuEl.offsetHeight : 240;
+    const sideOffset = 4;
+
+    let top = rect.bottom + sideOffset;
+    // Check if overflowing bottom or if placement is explicitly 'top'
+    const wouldOverflowBottom = top + estimatedHeight > window.innerHeight - 8;
+    const fitsTop = rect.top - estimatedHeight - sideOffset >= 8;
+
+    if (placement === 'top' || (wouldOverflowBottom && fitsTop)) {
+      top = rect.top - (menuEl ? menuEl.offsetHeight : estimatedHeight) - sideOffset;
+    }
+
+    let left = rect.left;
+    const width = Math.max(rect.width, 160);
+    if (left + width > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - width - 8);
+    }
+
+    setCoords({
+      top,
+      left: Math.max(8, left),
+      width,
+    });
+  }, [placement]);
+
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    if (!isOpen || !portaled) {
+      setCoords(null);
+      return;
+    }
+
+    updateCoords();
+
+    const rafId = requestAnimationFrame(() => {
+      updateCoords();
+    });
+
+    const handleScrollOrResize = (e: Event) => {
+      if (menuRef.current && menuRef.current.contains(e.target as Node)) {
+        return;
+      }
+      updateCoords();
+    };
+
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
+  }, [isOpen, portaled, updateCoords]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node;
       if (
         containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
+        !containerRef.current.contains(target) &&
+        menuRef.current &&
+        !menuRef.current.contains(target)
       ) {
         setIsOpen(false);
       }
     }
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [isOpen]);
 
   useEffect(() => {
@@ -116,6 +201,110 @@ export function Autocomplete({
     }
   }, [isOpen]);
 
+  const menuElement = isOpen && (
+    <div
+      ref={menuRef}
+      id={listboxId}
+      role="listbox"
+      data-combobox-portal="true"
+      data-portal-menu="true"
+      style={
+        portaled
+          ? {
+              position: 'fixed',
+              top: coords ? `${coords.top}px` : undefined,
+              left: coords ? `${coords.left}px` : undefined,
+              width: coords ? `${coords.width}px` : undefined,
+              visibility: coords ? 'visible' : 'hidden',
+            }
+          : placement === 'top'
+            ? { bottom: 'calc(100% + 4px)', top: 'auto' }
+            : undefined
+      }
+      className={cn(
+        'z-[60] max-h-60 min-w-[10rem] overflow-hidden rounded-xl border border-hairline-strong bg-surface-card shadow-elevated animate-in fade-in-0 zoom-in-95',
+        portaled ? 'fixed' : cn('absolute w-full', placement === 'top' ? 'mb-0' : 'mt-1'),
+        menuClassName,
+      )}
+    >
+      {searchable && options.length > 5 && (
+        <div className="border-b border-hairline p-1.5">
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder={searchPlaceholder}
+            className="w-full rounded-lg border border-hairline-strong bg-surface-lifted px-2.5 py-1 text-xs text-foreground placeholder:text-muted outline-none focus:border-foreground"
+          />
+        </div>
+      )}
+
+      <ul
+        className={cn(
+          'max-h-48 overflow-y-auto p-1 custom-scrollbar',
+          size === 'sm' ? 'text-xs' : 'text-sm',
+        )}
+      >
+        {filteredOptions.length === 0 ? (
+          <li className="px-3 py-2 text-center text-muted">
+            No options found
+          </li>
+        ) : (
+          filteredOptions.map((option) => {
+            const isSelected = option.value === value;
+            const tooltipText = option.subLabel
+              ? `${option.label} (${option.subLabel})`
+              : option.label;
+
+            return (
+              <Tooltip
+                key={option.value}
+                content={tooltipText}
+                side="top"
+                className="z-[70]"
+              >
+                <li
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={() => {
+                    if (!option.disabled) handleSelect(option.value);
+                  }}
+                  className={cn(
+                    'flex cursor-pointer select-none items-center justify-between rounded-lg px-2.5 py-1.5 transition duration-100',
+                    isSelected
+                      ? 'bg-foreground/10 font-bold text-foreground'
+                      : 'text-foreground hover:bg-surface-lifted',
+                    option.disabled &&
+                      'cursor-not-allowed opacity-40 hover:bg-transparent',
+                  )}
+                >
+                  <span className="flex min-w-0 items-center gap-2 truncate">
+                    {option.dotColor && (
+                      <span
+                        className={cn('size-1.5 shrink-0 rounded-full', option.dotColor)}
+                        aria-hidden="true"
+                      />
+                    )}
+                    {option.icon && (
+                      <span className="shrink-0 text-muted">{option.icon}</span>
+                    )}
+                    <span className="truncate">{option.label}</span>
+                    {option.subLabel && (
+                      <span className="text-[11px] text-muted">
+                        {option.subLabel}
+                      </span>
+                    )}
+                  </span>
+                </li>
+              </Tooltip>
+            );
+          })
+        )}
+      </ul>
+    </div>
+  );
+
   return (
     <div className={cn('relative min-w-0 w-full', className)} ref={containerRef}>
       {label && (
@@ -128,6 +317,7 @@ export function Autocomplete({
       )}
 
       <button
+        ref={buttonRef}
         id={buttonId}
         type="button"
         disabled={disabled}
@@ -173,84 +363,11 @@ export function Autocomplete({
         </svg>
       </button>
 
-      {isOpen && (
-        <div
-          id={listboxId}
-          role="listbox"
-          style={placement === 'top' ? { bottom: 'calc(100% + 4px)', top: 'auto' } : undefined}
-          className={cn(
-            'absolute z-50 max-h-60 w-full min-w-[10rem] overflow-hidden rounded-xl border border-hairline-strong bg-surface-card shadow-elevated animate-in fade-in-0 zoom-in-95',
-            placement === 'top' ? 'mb-0' : 'mt-1',
-            menuClassName,
-          )}
-        >
-          {searchable && options.length > 5 && (
-            <div className="border-b border-hairline p-1.5">
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder={searchPlaceholder}
-                className="w-full rounded-lg border border-hairline-strong bg-surface-lifted px-2.5 py-1 text-xs text-foreground placeholder:text-muted outline-none focus:border-foreground"
-              />
-            </div>
-          )}
-
-          <ul
-            className={cn(
-              'max-h-48 overflow-y-auto p-1 custom-scrollbar',
-              size === 'sm' ? 'text-xs' : 'text-sm',
-            )}
-          >
-            {filteredOptions.length === 0 ? (
-              <li className="px-3 py-2 text-center text-muted">
-                No options found
-              </li>
-            ) : (
-              filteredOptions.map((option) => {
-                const isSelected = option.value === value;
-                return (
-                  <li
-                    key={option.value}
-                    role="option"
-                    aria-selected={isSelected}
-                    onClick={() => {
-                      if (!option.disabled) handleSelect(option.value);
-                    }}
-                    className={cn(
-                      'flex cursor-pointer select-none items-center justify-between rounded-lg px-2.5 py-1.5 transition duration-100',
-                      isSelected
-                        ? 'bg-foreground/10 font-bold text-foreground'
-                        : 'text-foreground hover:bg-surface-lifted',
-                      option.disabled &&
-                      'cursor-not-allowed opacity-40 hover:bg-transparent',
-                    )}
-                  >
-                    <span className="flex min-w-0 items-center gap-2 truncate">
-                      {option.dotColor && (
-                        <span
-                          className={cn('size-1.5 shrink-0 rounded-full', option.dotColor)}
-                          aria-hidden="true"
-                        />
-                      )}
-                      {option.icon && (
-                        <span className="shrink-0 text-muted">{option.icon}</span>
-                      )}
-                      <span className="truncate">{option.label}</span>
-                      {option.subLabel && (
-                        <span className="text-[11px] text-muted">
-                          {option.subLabel}
-                        </span>
-                      )}
-                    </span>
-                  </li>
-                );
-              })
-            )}
-          </ul>
-        </div>
-      )}
+      {portaled && isMounted
+        ? menuElement
+          ? createPortal(menuElement, document.body)
+          : null
+        : menuElement}
     </div>
   );
 }

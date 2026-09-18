@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import {
   Table,
   TableBody,
@@ -12,6 +12,7 @@ import {
   TableRow,
   Button,
 } from '@/components/atoms';
+import { OrganizationDialog } from './OrganizationDialog';
 import {
   ErrorBanner,
   OrganizationConnectedShopCard,
@@ -26,6 +27,8 @@ import type { OrganizationFilters } from '@/types';
 
 export function OrganizationDirectory() {
   const t = useTranslations('organizations');
+  const router = useRouter();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [filters, setFilters] = useState<OrganizationFilters>({
     page: 1,
     pageSize: 25,
@@ -63,9 +66,9 @@ export function OrganizationDirectory() {
           </h1>
           <p className="mt-1 text-sm text-muted">{t('description')}</p>
         </div>
-        <Link href="/organizations/new">
-          <Button size="md">{t('new')}</Button>
-        </Link>
+        <Button size="md" onClick={() => setIsCreateOpen(true)}>
+          {t('new')}
+        </Button>
       </div>
 
       {/* Filter Bar with Search Debounce and Status Combobox */}
@@ -258,6 +261,14 @@ export function OrganizationDirectory() {
           </div>
         )}
       </div>
+
+      <OrganizationDialog
+        isOpen={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onSuccess={(created) => {
+          router.push(`/organizations/${created.id}`);
+        }}
+      />
     </section>
   );
 }

@@ -1,4 +1,4 @@
----
+\---
 name: flow-tables
 description: "Use when designing or reviewing any data table, list, or feed — choosing table vs list vs cards, adding sorting/filtering/bulk actions/pagination, or handling empty, loading, and error states. Also applies when users report tables being unusable on mobile, losing their place on refresh, or when a screen must display more than ~10 structured records."
 ---
@@ -95,6 +95,16 @@ Apply the general text-button, icon-button, and overflow-menu decision rules in
   />
 </div>
 ```
+
+### Row Dropdowns & Selects: Floating Overlay (Zero Scrollbar / No Whitespace Expansion)
+
+- **Floating Overlay Mandate**: Dropdown menus (`DropdownMenu`), row action menus (`RowOverflowMenu`), comboboxes, and inline selects inside table rows or table cells **must overlay** the table rather than remaining trapped inside the table container's inline layout.
+- **Portaled to Body**: The menu popup must render via Portal (e.g., `createPortal(content, document.body)`) using `position: fixed` coordinates relative to the trigger element (`getBoundingClientRect()`).
+- **Eliminate Unwanted Scrollbars & Whitespace Gaps**:
+  - The table's scroll container (`<div className="overflow-auto">`) must never register the menu popup in its scroll metrics.
+  - An inline `absolute` dropdown placed directly inside a table cell inflates the table's `scrollHeight` when opened near the bottom or right edges, causing artificial whitespace gaps beneath rows and spawning unwanted vertical/horizontal scrollbars.
+  - Portaling guarantees the popup floats completely above (`đè lên`) the table boundaries and surrounding cards, leaving the table's dimensions, row heights, and scrollbars 100% untouched.
+- **Viewport Boundary Flipping**: When a dropdown on bottom-most rows is opened, it must dynamically flip upward above the trigger button if it would otherwise collide with the bottom edge of the viewport.
 
 6. **Bulk select.**
    - Checkbox column at far left (40–48px wide); row checkbox appears on hover (desktop) or always (touch).

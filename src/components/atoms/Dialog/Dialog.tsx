@@ -46,6 +46,39 @@ export const DialogContent = React.forwardRef<
       <DialogOverlay className={overlayClassName} />
       <DialogPrimitive.Content
         ref={ref}
+        onPointerDownOutside={(e) => {
+          const target = e.target as HTMLElement | null;
+          if (
+            target?.closest?.(
+              '[data-radix-popper-content-wrapper], [data-portal-menu], [data-combobox-portal], [role="listbox"], [role="tooltip"], [role="menu"]',
+            )
+          ) {
+            e.preventDefault();
+          }
+          props.onPointerDownOutside?.(e);
+        }}
+        onInteractOutside={(e) => {
+          const target = e.target as HTMLElement | null;
+          if (
+            target?.closest?.(
+              '[data-radix-popper-content-wrapper], [data-portal-menu], [data-combobox-portal], [role="listbox"], [role="tooltip"], [role="menu"]',
+            )
+          ) {
+            e.preventDefault();
+          }
+          props.onInteractOutside?.(e);
+        }}
+        onFocusOutside={(e) => {
+          const target = e.target as HTMLElement | null;
+          if (
+            target?.closest?.(
+              '[data-radix-popper-content-wrapper], [data-portal-menu], [data-combobox-portal], [role="listbox"], [role="tooltip"], [role="menu"]',
+            )
+          ) {
+            e.preventDefault();
+          }
+          props.onFocusOutside?.(e);
+        }}
         className={cn(
           'fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]',
           'w-full max-w-lg rounded-2xl border border-hairline bg-surface-card shadow-elevated outline-none',

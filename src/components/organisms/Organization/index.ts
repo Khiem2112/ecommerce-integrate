@@ -1,6 +1,10 @@
 export { OrganizationDirectory } from './OrganizationDirectory';
 export { OrganizationForm, type OrganizationFormProps } from './OrganizationForm';
 export {
+  OrganizationDialog,
+  type OrganizationDialogProps,
+} from './OrganizationDialog';
+export {
   OrganizationInspector,
   type OrganizationInspectorProps,
 } from './OrganizationInspector';

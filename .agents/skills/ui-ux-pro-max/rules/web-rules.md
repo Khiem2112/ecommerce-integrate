@@ -72,6 +72,17 @@ For Tailwind class composition and state variants, read `.agents/skills/styling/
   collapse into icons or overflow on narrow screens only when their accessible
   names and discoverability remain intact.
 
+### Floating Overlay Architecture: Dropdown Menus and Comboboxes in Tables or Constrained Sections
+
+- **Portaled Overlay Requirement**: When a `DropdownMenu`, row action menu, `Combobox`, or inline `Select` popover is rendered inside a table row (`<TableCell>`), list item, or constrained card/section (e.g., containers with `overflow-auto`, `overflow-x-auto`, `overflow-hidden`, or `max-h-*`), the expanded menu/options content **MUST portal outside** the container (e.g., via `createPortal(content, document.body)`) using fixed/floating overlay positioning.
+- **Overlay Without Layout Reflow or Gaps**: The expanded popup must float cleanly directly above (`đè lên`) the enclosing table, card, or section container. It must not occupy layout space within the parent DOM tree or expand parent dimensions.
+- **Strict Prohibition on In-Container Absolute Popups**:
+  - ❌ **Forbidden**: Rendering inline `position: absolute` popups directly inside scrollable table/section containers (`overflow-auto`). Doing so causes the browser to expand the container's `scrollHeight`/`scrollWidth` to fit the popup, creating jarring empty whitespace beneath rows and triggering unnecessary, distracting vertical or horizontal scrollbars.
+  - ✅ **Correct**: Portaling the popup to `document.body` with `position: fixed` computed from the trigger's `getBoundingClientRect()`. The table or section retains 100% layout and scroll stability with zero phantom whitespace.
+- **Boundary & Viewport Detection**:
+  - Automatically flip popup orientation (e.g., open upward instead of downward) if the popup would extend beyond the bottom edge of the viewport.
+  - Keep popup position synchronized on scroll/resize and automatically dismiss if the trigger scrolls out of the visible viewport.
+
 ## E-commerce Checks
 
 - Product cards expose a clear title, price, availability, and primary action.
@@ -151,3 +162,4 @@ Use this summary during review to verify UX outcomes (formal verification gate i
 - [ ] Contrast (WCAG AA 4.5:1 for normal text) and interaction states work in every supported theme.
 - [ ] Reduced motion is respected and no interaction depends on motion alone.
 - [ ] Loading skeletons and empty states preserve layout stability and provide clear next actions.
+- [ ] Dropdown menus and combobox popovers in tables or scrollable sections portal outside the container to overlay cleanly without expanding whitespace or spawning scrollbars.

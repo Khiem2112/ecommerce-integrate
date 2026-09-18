@@ -12,10 +12,14 @@ import {
   type OrganizationFormValues,
 } from '@/forms';
 import { useCreateOrganization, useUpdateOrganization } from '@/hooks';
+import { cn } from '@/lib/cn';
 import type { OrganizationDetail } from '@/types';
 
 export type OrganizationFormProps = {
   readonly organization?: OrganizationDetail;
+  readonly embedded?: boolean;
+  readonly onSuccess?: (organization: { id: number }) => void;
+  readonly onCancel?: () => void;
 };
 
 const COMMON_TIMEZONES: readonly { value: string; label: string }[] = [
@@ -45,8 +49,14 @@ const COMMON_COUNTRIES: readonly { value: string; label: string }[] = [
   { value: 'GB', label: 'GB - United Kingdom' },
 ];
 
-export function OrganizationForm({ organization }: OrganizationFormProps) {
+export function OrganizationForm({
+  organization,
+  embedded = false,
+  onSuccess,
+  onCancel,
+}: OrganizationFormProps) {
   const t = useTranslations('organizations');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const [saved, setSaved] = useState(false);
 
@@ -114,7 +124,11 @@ export function OrganizationForm({ organization }: OrganizationFormProps) {
           expectedVersion: organization.version,
         });
         setSaved(true);
-        router.push(`/organizations/${updated.id}`);
+        if (onSuccess) {
+          onSuccess(updated);
+        } else {
+          router.push(`/organizations/${updated.id}`);
+        }
         return;
       }
 
@@ -122,7 +136,11 @@ export function OrganizationForm({ organization }: OrganizationFormProps) {
         ...values,
         idempotencyKey: crypto.randomUUID(),
       });
-      router.push(`/organizations/${created.id}`);
+      if (onSuccess) {
+        onSuccess(created);
+      } else {
+        router.push(`/organizations/${created.id}`);
+      }
     } catch {
       // Handled by error banner
     }
@@ -131,14 +149,20 @@ export function OrganizationForm({ organization }: OrganizationFormProps) {
   return (
     <form
       onSubmit={handleSubmit(handleFormSubmit)}
-      className="mx-auto max-w-2xl space-y-6 rounded-2xl border border-hairline bg-surface-card p-5 shadow-card sm:p-8"
+      className={cn(
+        'space-y-6',
+        !embedded &&
+          'mx-auto max-w-2xl rounded-2xl border border-hairline bg-surface-card p-5 shadow-card sm:p-8',
+      )}
     >
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          {isEditing ? t('edit') : t('new')}
-        </h1>
-        <p className="mt-1 text-sm text-muted">{t('description')}</p>
-      </div>
+      {!embedded && (
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            {isEditing ? t('edit') : t('new')}
+          </h1>
+          <p className="mt-1 text-sm text-muted">{t('description')}</p>
+        </div>
+      )}
 
       {error && <ErrorBanner message={t('errors.save')} />}
       {saved && <SuccessBanner message={t('updated')} />}
@@ -253,7 +277,18 @@ export function OrganizationForm({ organization }: OrganizationFormProps) {
         </p>
       )}
 
-      <div className="flex justify-end pt-2">
+      <div className="flex justify-end gap-2 pt-2">
+        {embedded && onCancel && (
+          <Button
+            type="button"
+            variant="outline"
+            size="md"
+            onClick={onCancel}
+            disabled={isPending}
+          >
+            {tCommon('cancel')}
+          </Button>
+        )}
         <Button type="submit" size="md" isLoading={isPending}>
           {isPending ? t('saving') : isEditing ? t('save') : t('create')}
         </Button>

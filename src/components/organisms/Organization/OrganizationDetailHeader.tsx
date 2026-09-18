@@ -16,6 +16,7 @@ import {
   useToast,
 } from '@/hooks';
 import { OrganizationLifecycleDialog } from './OrganizationLifecycleDialog';
+import { OrganizationDialog } from './OrganizationDialog';
 import type {
   OrganizationDetail,
   OrganizationStatusCode,
@@ -35,6 +36,7 @@ export function OrganizationDetailHeader({
   const t = useTranslations('organizations');
   const { toast } = useToast();
   const [lifecycleTarget, setLifecycleTarget] = useState<OrganizationStatusCode | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const defaultSwitchMutation = useSwitchActiveOrganization();
   const lifecycleMutation = useChangeOrganizationLifecycle();
@@ -239,21 +241,24 @@ export function OrganizationDetailHeader({
             )}
 
             {organization.canManage && (
-              <Link href={`/organizations/${organization.id}/edit`}>
-                <Button variant="outline" size="sm" className="gap-1.5">
-                  <svg
-                    aria-hidden="true"
-                    className="size-3.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                  </svg>
-                  <span>{t('edit')}</span>
-                </Button>
-              </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setIsEditOpen(true)}
+              >
+                <svg
+                  aria-hidden="true"
+                  className="size-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                </svg>
+                <span>{t('edit')}</span>
+              </Button>
             )}
           </div>
         </div>
@@ -283,6 +288,16 @@ export function OrganizationDetailHeader({
         isPending={lifecycleMutation.isPending}
         onClose={() => setLifecycleTarget(null)}
         onConfirm={handleLifecycleConfirm}
+      />
+
+      {/* Edit Organization Dialog */}
+      <OrganizationDialog
+        isOpen={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        organization={organization}
+        onSuccess={() => {
+          setIsEditOpen(false);
+        }}
       />
     </div>
   );
