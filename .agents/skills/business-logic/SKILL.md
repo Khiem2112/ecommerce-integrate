@@ -18,6 +18,7 @@ When working on a feature, consult the corresponding specification in `features/
 | :--- | :--- | :--- |
 | **VIP Customer Care & Routing** | [`features/vip_customer_routing.md`](.agents/skills/business-logic/features/vip_customer_routing.md) | RFM Tiers, 3-layer memory RAG, anti-hallucination fact citation, specialized agent routing, 3-arm experiment. |
 | **OmniCart Order Recovery** | [`features/omnicart_recovery.md`](.agents/skills/business-logic/features/omnicart_recovery.md) | Abandoned checkout triggers, sequence pacing, multi-channel constraints. |
+| **Shop Connection & OAuth Lifecycle** | [`features/shop_platform_integration.md`](.agents/skills/business-logic/features/shop_platform_integration.md) | Multi-tenant OAuth, app vs shop credential segregation, `integrations` JSON storage (MVP), token refresh & mutex locking. |
 
 ---
 

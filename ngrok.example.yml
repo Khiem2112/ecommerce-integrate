@@ -1,0 +1,19 @@
+# Ngrok Configuration File Example (v3)
+# Xem hướng dẫn: https://ngrok.com/docs/agent/config/
+#
+# Cách sử dụng:
+# 1. Tạo file ngrok.yml từ file mẫu này
+# 2. Đăng ký authtoken tại https://dashboard.ngrok.com/get-started/your-authtoken
+# 3. Lấy static domain miễn phí tại https://dashboard.ngrok.com/cloud-edge/domains
+# 4. Chạy: ngrok start --all --config ngrok.yml
+
+version: "3"
+agent:
+  # authtoken: YOUR_NGROK_AUTHTOKEN
+
+tunnels:
+  omnicart:
+    proto: http
+    addr: 3000
+    # Cố định domain tĩnh (thay thế bằng domain thực tế của bạn)
+    domain: your-subdomain.ngrok-free.app

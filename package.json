@@ -11,6 +11,8 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "node seed/seed.js",
+    "tunnel": "node tools/tunnel.mjs",
+    "dev:tunnel": "node tools/dev-tunnel.mjs",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate dev",
@@ -39,6 +41,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@ngrok/ngrok": "^1.7.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
