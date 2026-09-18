@@ -23,6 +23,7 @@
       "integrations": "Integrations",
       "settings": "Settings",
       "organizations": "Organizations",
+      "shops": "Shops",
       "users": "Users"
     }
   },
@@ -35,6 +36,7 @@
     "integrations": "Integrations",
     "lazada": "Lazada",
     "new": "New order",
+    "shops": "Shops",
     "users": "Users"
   },
   "orders": {
@@ -1379,7 +1381,9 @@
     "shopsTab": {
       "title": "Connected shops",
       "empty": "No shops are connected to this organization.",
-      "lastSync": "Last sync: {time}"
+      "lastSync": "Last sync: {time}",
+      "viewAll": "View all",
+      "manage": "Manage"
     },
     "lifecycle": {
       "suspend": "Suspend",
@@ -1622,6 +1626,159 @@
       "invalidContactEmail": "Invalid contact email address.",
       "resetFailed": "Failed to reset password.",
       "saveFailed": "Failed to save user information."
+    }
+  },
+  "shops": {
+    "breadcrumb": "Shops",
+    "statuses": {
+      "connected": "Connected",
+      "reconnect_required": "Reconnect required",
+      "disconnecting": "Disconnecting",
+      "reassigning": "Reassigning",
+      "disconnected": "Disconnected"
+    },
+    "directory": {
+      "title": "Shop Management",
+      "description": "Directory of multi-channel storefront connections across organizations",
+      "connectShop": "Connect shop",
+      "filterStatus": "Status",
+      "allOrganizations": "All organizations",
+      "clearFilters": "Clear filters",
+      "loadFailed": "Failed to load shop connections.",
+      "columns": {
+        "shop": "Shop",
+        "platform": "Platform",
+        "organization": "Organization",
+        "status": "Status",
+        "lastVerified": "Last verified",
+        "actions": "Actions"
+      },
+      "never": "Never",
+      "actions": {
+        "view": "View",
+        "edit": "Edit",
+        "reconnect": "Reconnect",
+        "reassign": "Reassign",
+        "disconnect": "Disconnect",
+        "moreActions": "More actions"
+      },
+      "noFilterResults": "No matching shops found",
+      "noFilterResultsDescription": "Try adjusting or clearing your filters to see more results.",
+      "emptyTitle": "No shops connected yet",
+      "emptyDescription": "Get started by connecting your first shop to an organization."
+    },
+    "detail": {
+      "loadFailed": "Failed to load shop connection details.",
+      "originalName": "Original platform name",
+      "actions": {
+        "editLabel": "Edit label",
+        "reconnect": "Reconnect",
+        "reconnectNow": "Reconnect now",
+        "reassign": "Reassign",
+        "disconnect": "Disconnect"
+      },
+      "attention": {
+        "title": "Access reconnection required",
+        "description": "The authorization token for this shop has expired or been revoked. Please reconnect to resume order synchronization.",
+        "code": "Error code"
+      },
+      "cards": {
+        "organization": "Organization",
+        "viewOrg": "View organization →",
+        "identity": "Shop identity",
+        "unverified": "Unverified ID",
+        "lastVerified": "Last verified",
+        "never": "Never",
+        "activitySummary": "Activity & Data",
+        "orders": "orders",
+        "syncBatches": "sync batches",
+        "lastSynced": "Last order sync",
+        "slug": "slug: {slug}"
+      },
+      "timelineTitle": "Activity & Audit History"
+    },
+    "connectDialog": {
+      "title": "Connect new shop",
+      "reconnectTitle": "Reconnect shop",
+      "reconnect": "Reconnect",
+      "description": "Select platform and authorize access via the official OAuth provider portal.",
+      "reconnectDescription": "Re-authorize to refresh access tokens for this shop connection.",
+      "platformLabel": "E-commerce platform",
+      "lazadaDesc": "Open Platform",
+      "shopifyDesc": "Admin OAuth",
+      "organizationLabel": "Target organization",
+      "selectOrgPlaceholder": "-- Select organization --",
+      "shopDomainLabel": "Shopify shop domain",
+      "shopDomainPlaceholder": "my-shop",
+      "handoffNoticeTitle": "Secure authorization handoff",
+      "handoffNoticeDescription": "You will be securely redirected to the provider's official login portal. OmniCart never stores your account credentials.",
+      "submit": "Start authorization",
+      "connecting": "Redirecting…",
+      "errors": {
+        "missingOrg": "Please select an organization.",
+        "missingShopDomain": "Please enter your Shopify shop domain.",
+        "failedToStart": "Failed to initiate authorization session."
+      }
+    },
+    "labelDialog": {
+      "title": "Edit shop display label",
+      "description": "An internal display name helps you easily identify and organize shops.",
+      "inputLabel": "Display label",
+      "inputPlaceholder": "Store name",
+      "success": "Display label updated successfully.",
+      "errors": {
+        "emptyLabel": "Display label cannot be empty.",
+        "failed": "Failed to update display label."
+      }
+    },
+    "disconnectDialog": {
+      "title": "Confirm shop disconnection",
+      "description": "Are you sure you want to disconnect \"{name}\"?",
+      "reconnect": "Reconnect",
+      "consequencesTitle": "Consequences of disconnection:",
+      "consequence1": "Automatic order synchronization and background sync jobs will stop.",
+      "consequence2": "Current access credentials will be invalidated.",
+      "consequence3": "Historical orders and synced customer records will remain safely preserved.",
+      "confirm": "Disconnect",
+      "disconnecting": "Disconnecting…",
+      "errors": {
+        "failed": "Failed to disconnect shop."
+      }
+    },
+    "reassignDialog": {
+      "title": "Reassign shop to another organization",
+      "description": "Transfer ownership and management of \"{name}\" to a new organization.",
+      "syncWarningTitle": "Active sync batches warning",
+      "syncWarningDescription": "This shop currently has sync batches queued or in progress. Reassigning now may affect active data ingestion.",
+      "targetOrgLabel": "Target organization",
+      "selectTargetOrgPlaceholder": "-- Select target organization --",
+      "dataTransferNoticeTitle": "Data transfer policy:",
+      "dataTransferNotice": "All orders, customers, and sync records tied to this shop will transfer ownership. Staff from the previous organization will lose access unless they are members of the new organization.",
+      "confirm": "Confirm transfer",
+      "reassigning": "Transferring…",
+      "errors": {
+        "missingTargetOrg": "Please select a target organization.",
+        "failed": "Failed to reassign shop connection."
+      }
+    },
+    "activity": {
+      "loadError": "Failed to load activity logs.",
+      "emptyTitle": "No activity recorded",
+      "emptyDescription": "Status updates and administrative actions will be recorded here.",
+      "by": "by {actor}",
+      "reassignedDetails": "Transferred from {from} to {to}",
+      "loadMore": "Load more activity",
+      "loadingMore": "Loading…",
+      "actions": {
+        "authorization_started": "Authorization started",
+        "authorization_failed": "Authorization failed",
+        "authorization_completed": "Authorization completed",
+        "connection_connected": "Connected successfully",
+        "connection_label_updated": "Display label updated",
+        "connection_disconnected": "Disconnected",
+        "connection_reassigned": "Ownership reassigned",
+        "unknown": "Activity: {action}"
+      }
     }
   }
 }

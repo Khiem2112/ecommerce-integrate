@@ -64,7 +64,10 @@ function normalizeLazadaStatus(externalStatus: string): string {
 /**
  * Ensures platform, statuses, and default VIP tier exist in database.
  */
-export async function ensureMasterCatalogs(tx: DbClient): Promise<{
+export async function ensureMasterCatalogs(
+  tx: DbClient,
+  preferredConnectionId?: number,
+): Promise<{
   readonly platformId: number;
   readonly connectionId: number;
   readonly defaultTierId: number;
@@ -125,7 +128,7 @@ export async function ensureMasterCatalogs(tx: DbClient): Promise<{
     }
   }
 
-  const connection = await ensurePlatformConnectionService(platform.id, tx);
+  const connection = await ensurePlatformConnectionService(platform.id, tx, preferredConnectionId);
 
   return {
     platformId: platform.id,

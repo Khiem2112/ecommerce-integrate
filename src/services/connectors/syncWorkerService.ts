@@ -74,7 +74,7 @@ async function processClaimedBatch(
 ): Promise<void> {
   const platformCode = batch.connection?.platform?.code ?? 'lazada';
   const connector = connectorFactory.getChannelConnector(platformCode);
-  const catalogs = await ensureMasterCatalogs(prisma);
+  const catalogs = await ensureMasterCatalogs(prisma, batch.connectionId);
 
   const rawParams = (batch.scope as Record<string, unknown>) ?? {};
   const retryExternalOrderIds = Array.isArray(rawParams.retryExternalOrderIds)

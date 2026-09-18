@@ -60,7 +60,10 @@ export const getNavGroups = (t: Translate): readonly NavGroup[] => [
         label: t('items.organizations'),
         href: '/organizations',
         iconPath: 'M4.5 21V8.25A2.25 2.25 0 0 1 6.75 6h10.5a2.25 2.25 0 0 1 2.25 2.25V21M3 21h18M8.25 10.5h.008v.008H8.25V10.5Zm3.75 0h.008v.008H12V10.5Zm3.75 0h.008v.008h-.008V10.5ZM8.25 14.25h.008v.008H8.25v-.008Zm3.75 0h.008v.008H12v-.008Zm3.75 0h.008v.008h-.008v-.008ZM9 21v-3.75h6V21',
-        subItems: [{ label: t('items.organizations'), href: '/organizations' }],
+        subItems: [
+          { label: t('items.organizations'), href: '/organizations' },
+          { label: t('items.shops'), href: '/shops' },
+        ],
       },
       {
         id: 'users',

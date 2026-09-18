@@ -7,3 +7,4 @@ export * from './integrationActions';
 export * from './syncBatchActions';
 export * from './authenticationActions';
 export * from './userAccessActions';
+export * from './shopConnectionActions';

@@ -92,6 +92,8 @@ export type OrganizationConnection = Readonly<
 > & {
   readonly platformName: string;
   readonly lastSyncedAt: string | null;
+  readonly status?: string;
+  readonly displayLabel?: string | null;
 };
 
 export type OrganizationSummary = Readonly<

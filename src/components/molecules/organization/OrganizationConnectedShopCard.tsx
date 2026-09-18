@@ -1,8 +1,11 @@
 'use client';
 
+import { type JSX } from 'react';
 import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/atoms';
 import { cn } from '@/lib/cn';
+import { ShopConnectionStatusBadge } from './ShopConnectionStatusBadge';
 import type { OrganizationConnection } from '@/types';
 
 export type OrganizationConnectedShopCardProps = {
@@ -15,7 +18,7 @@ export function OrganizationConnectedShopCard({
   connection,
   variant = 'row',
   className,
-}: OrganizationConnectedShopCardProps) {
+}: OrganizationConnectedShopCardProps): JSX.Element {
   const t = useTranslations('organizations');
 
   return (
@@ -32,9 +35,12 @@ export function OrganizationConnectedShopCard({
           {connection.platformName[0]?.toUpperCase() ?? 'S'}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-foreground">
-            {connection.shopName ?? connection.platformName}
-          </p>
+          <Link
+            href={`/shops/${connection.id}`}
+            className="truncate text-sm font-semibold text-foreground hover:text-primary hover:underline block"
+          >
+            {connection.displayLabel ?? connection.shopName ?? connection.platformName}
+          </Link>
           <p className="font-mono text-xs text-muted">
             {connection.lastSyncedAt
               ? t('shopsTab.lastSync', {
@@ -49,11 +55,19 @@ export function OrganizationConnectedShopCard({
         <Badge variant="outline" size="xs">
           {connection.platformName}
         </Badge>
-        {connection.lastSyncedAt && (
+        {connection.status ? (
+          <ShopConnectionStatusBadge status={connection.status} size="xs" />
+        ) : connection.lastSyncedAt ? (
           <Badge variant="success" size="xs" useDot>
             {t('statuses.active')}
           </Badge>
-        )}
+        ) : null}
+        <Link
+          href={`/shops/${connection.id}`}
+          className="text-xs text-primary hover:underline font-medium ml-1"
+        >
+          {t('shopsTab.manage')}
+        </Link>
       </div>
     </div>
   );

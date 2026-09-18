@@ -44,3 +44,8 @@ export {
   OrganizationOptionCard,
   type OrganizationOptionCardProps,
 } from './OrganizationOptionCard';
+
+export {
+  ShopConnectionStatusBadge,
+  type ShopConnectionStatusBadgeProps,
+} from './ShopConnectionStatusBadge';

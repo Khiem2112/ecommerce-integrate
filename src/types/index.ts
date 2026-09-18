@@ -245,3 +245,30 @@ export type {
   UserAccessAuditEvent,
   UserAccessHistoryResult,
 } from './userAccess';
+
+export {
+  SUPPORTED_SHOP_PLATFORM_CODES,
+  PLATFORM_CONNECTION_STATUS_CODES,
+  PLATFORM_AUTHORIZATION_ATTEMPT_STATUS_CODES,
+} from './shopConnection';
+
+export type {
+  SupportedShopPlatformCode,
+  PlatformConnectionStatusCode,
+  PlatformAuthorizationAttemptStatusCode,
+  ShopConnectionSummaryPayload,
+  ShopConnectionDetailPayload,
+  ShopConnectionAuditLogPayload,
+  ShopConnectionCapabilities,
+  ShopConnectionSummary,
+  ShopConnectionDetail,
+  ShopConnectionListResult,
+  ShopConnectionFilters,
+  ShopConnectionActivityItem,
+  ShopConnectionActivityPage,
+  AuthorizationStartResult,
+  AuthorizationAttemptDetail,
+  ManageableOrganizationOption,
+  LazadaTokenResponse,
+  ShopifyTokenResponse,
+} from './shopConnection';

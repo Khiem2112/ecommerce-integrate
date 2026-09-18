@@ -23,6 +23,7 @@
       "integrations": "Tích hợp",
       "settings": "Cài đặt",
       "organizations": "Tổ chức",
+      "shops": "Gian hàng",
       "users": "Người dùng"
     }
   },
@@ -35,6 +36,7 @@
     "integrations": "Tích hợp",
     "lazada": "Lazada",
     "new": "Đơn hàng mới",
+    "shops": "Gian hàng",
     "users": "Người dùng"
   },
   "orders": {
@@ -1379,7 +1381,9 @@
     "shopsTab": {
       "title": "Gian hàng đã kết nối",
       "empty": "Chưa có gian hàng nào được kết nối với tổ chức này.",
-      "lastSync": "Đồng bộ gần nhất: {time}"
+      "lastSync": "Đồng bộ gần nhất: {time}",
+      "viewAll": "Xem tất cả",
+      "manage": "Quản lý"
     },
     "lifecycle": {
       "suspend": "Tạm ngưng",
@@ -1622,6 +1626,159 @@
       "invalidContactEmail": "Email liên hệ không hợp lệ.",
       "resetFailed": "Lỗi khi đặt lại mật khẩu.",
       "saveFailed": "Lỗi khi lưu thông tin người dùng."
+    }
+  },
+  "shops": {
+    "breadcrumb": "Gian hàng",
+    "statuses": {
+      "connected": "Đã kết nối",
+      "reconnect_required": "Cần kết nối lại",
+      "disconnecting": "Đang ngắt kết nối",
+      "reassigning": "Đang chuyển tổ chức",
+      "disconnected": "Đã ngắt kết nối"
+    },
+    "directory": {
+      "title": "Quản lý gian hàng",
+      "description": "Danh mục các gian hàng bán hàng đa kênh được kết nối trên hệ thống",
+      "connectShop": "Kết nối gian hàng",
+      "filterStatus": "Trạng thái",
+      "allOrganizations": "Tất cả tổ chức",
+      "clearFilters": "Xóa bộ lọc",
+      "loadFailed": "Không thể tải danh sách gian hàng.",
+      "columns": {
+        "shop": "Gian hàng",
+        "platform": "Nền tảng",
+        "organization": "Tổ chức",
+        "status": "Trạng thái",
+        "lastVerified": "Xác thực lần cuối",
+        "actions": "Thao tác"
+      },
+      "never": "Chưa xác thực",
+      "actions": {
+        "view": "Chi tiết",
+        "edit": "Đổi tên",
+        "reconnect": "Kết nối lại",
+        "reassign": "Chuyển tổ chức",
+        "disconnect": "Ngắt kết nối",
+        "moreActions": "Thao tác khác"
+      },
+      "noFilterResults": "Không tìm thấy gian hàng phù hợp",
+      "noFilterResultsDescription": "Thử xóa bớt bộ lọc hoặc chọn trạng thái khác để tìm kiếm.",
+      "emptyTitle": "Chưa có gian hàng nào",
+      "emptyDescription": "Hãy bắt đầu bằng việc kết nối gian hàng đầu tiên cho doanh nghiệp của bạn."
+    },
+    "detail": {
+      "loadFailed": "Không thể tải thông tin gian hàng.",
+      "originalName": "Tên gốc nền tảng",
+      "actions": {
+        "editLabel": "Đổi tên hiển thị",
+        "reconnect": "Kết nối lại",
+        "reconnectNow": "Kết nối lại ngay",
+        "reassign": "Chuyển tổ chức",
+        "disconnect": "Ngắt kết nối"
+      },
+      "attention": {
+        "title": "Yêu cầu kết nối lại quyền truy cập",
+        "description": "Phiên ủy quyền hoặc token của gian hàng đã hết hạn hoặc bị thu hồi. Vui lòng cấp quyền lại để tiếp tục đồng bộ đơn hàng.",
+        "code": "Mã lỗi"
+      },
+      "cards": {
+        "organization": "Tổ chức sở hữu",
+        "viewOrg": "Xem tổ chức →",
+        "identity": "Định danh gian hàng",
+        "unverified": "Chưa xác thực ID",
+        "lastVerified": "Xác thực lần cuối",
+        "never": "Chưa có",
+        "activitySummary": "Hoạt động & Dữ liệu",
+        "orders": "đơn hàng",
+        "syncBatches": "phiên đồng bộ",
+        "lastSynced": "Đồng bộ đơn hàng lần cuối",
+        "slug": "slug: {slug}"
+      },
+      "timelineTitle": "Nhật ký hoạt động & Thay đổi"
+    },
+    "connectDialog": {
+      "title": "Kết nối gian hàng mới",
+      "reconnectTitle": "Kết nối lại gian hàng",
+      "reconnect": "Kết nối lại",
+      "description": "Chọn nền tảng và cấp quyền truy cập qua cổng ủy quyền OAuth chính thức.",
+      "reconnectDescription": "Cấp quyền lại để cập nhật mới token truy cập cho gian hàng này.",
+      "platformLabel": "Nền tảng thương mại điện tử",
+      "lazadaDesc": "Nền tảng mở",
+      "shopifyDesc": "OAuth quản trị",
+      "organizationLabel": "Tổ chức liên kết",
+      "selectOrgPlaceholder": "-- Chọn tổ chức --",
+      "shopDomainLabel": "Tên miền cửa hàng Shopify",
+      "shopDomainPlaceholder": "my-shop",
+      "handoffNoticeTitle": "Chuyển hướng an toàn",
+      "handoffNoticeDescription": "Hệ thống sẽ chuyển bạn đến trang đăng nhập và xác thực của sàn thương mại điện tử. OmniCart không bao giờ lưu trữ thông tin đăng nhập của bạn.",
+      "submit": "Bắt đầu xác thực",
+      "connecting": "Đang chuyển hướng…",
+      "errors": {
+        "missingOrg": "Vui lòng chọn tổ chức liên kết.",
+        "missingShopDomain": "Vui lòng nhập tên miền gian hàng Shopify.",
+        "failedToStart": "Không thể khởi tạo phiên xác thực."
+      }
+    },
+    "labelDialog": {
+      "title": "Đổi tên hiển thị gian hàng",
+      "description": "Tên hiển thị nội bộ giúp bạn dễ dàng phân biệt các gian hàng trong hệ thống.",
+      "inputLabel": "Tên hiển thị",
+      "inputPlaceholder": "Gian hàng",
+      "success": "Cập nhật tên hiển thị thành công.",
+      "errors": {
+        "emptyLabel": "Tên hiển thị không được để trống.",
+        "failed": "Không thể cập nhật tên hiển thị."
+      }
+    },
+    "disconnectDialog": {
+      "title": "Xác nhận ngắt kết nối gian hàng",
+      "description": "Bạn có chắc chắn muốn ngắt kết nối gian hàng \"{name}\" không?",
+      "reconnect": "Kết nối lại",
+      "consequencesTitle": "Hậu quả khi ngắt kết nối:",
+      "consequence1": "Hệ thống sẽ dừng lập lịch và đồng bộ đơn hàng tự động cho gian hàng này.",
+      "consequence2": "Token truy cập hiện tại sẽ bị xóa và đánh dấu vô hiệu hóa.",
+      "consequence3": "Lịch sử đơn hàng và dữ liệu khách hàng đã đồng bộ trước đó vẫn được bảo toàn nguyên vẹn.",
+      "confirm": "Ngắt kết nối",
+      "disconnecting": "Đang ngắt…",
+      "errors": {
+        "failed": "Không thể ngắt kết nối gian hàng."
+      }
+    },
+    "reassignDialog": {
+      "title": "Chuyển gian hàng sang tổ chức khác",
+      "description": "Chuyển quyền quản lý và dữ liệu của gian hàng \"{name}\" sang một tổ chức mới.",
+      "syncWarningTitle": "Cảnh báo phiên đồng bộ đang xử lý",
+      "syncWarningDescription": "Gian hàng này hiện có phiên đồng bộ đang xếp hàng hoặc đang chạy. Chuyển tổ chức lúc này có thể ảnh hưởng đến dữ liệu đang tải.",
+      "targetOrgLabel": "Tổ chức tiếp nhận",
+      "selectTargetOrgPlaceholder": "-- Chọn tổ chức nhận --",
+      "dataTransferNoticeTitle": "Quy tắc chuyển giao dữ liệu:",
+      "dataTransferNotice": "Tất cả đơn hàng, khách hàng và lịch sử đồng bộ thuộc về gian hàng này sẽ được chuyển quyền sở hữu sang tổ chức mới. Nhân viên của tổ chức cũ sẽ không còn quyền truy cập nếu không thuộc tổ chức mới.",
+      "confirm": "Xác nhận chuyển",
+      "reassigning": "Đang chuyển…",
+      "errors": {
+        "missingTargetOrg": "Vui lòng chọn tổ chức tiếp nhận.",
+        "failed": "Không thể chuyển tổ chức cho gian hàng."
+      }
+    },
+    "activity": {
+      "loadError": "Không thể tải nhật ký hoạt động.",
+      "emptyTitle": "Chưa có hoạt động nào",
+      "emptyDescription": "Các thay đổi trạng thái và thao tác quản trị sẽ được ghi nhận tại đây.",
+      "by": "bởi {actor}",
+      "reassignedDetails": "Chuyển từ {from} sang {to}",
+      "loadMore": "Tải thêm hoạt động",
+      "loadingMore": "Đang tải…",
+      "actions": {
+        "authorization_started": "Bắt đầu xác thực",
+        "authorization_failed": "Xác thực thất bại",
+        "authorization_completed": "Xác thực hoàn tất",
+        "connection_connected": "Đã kết nối thành công",
+        "connection_label_updated": "Cập nhật tên hiển thị",
+        "connection_disconnected": "Đã ngắt kết nối",
+        "connection_reassigned": "Chuyển tổ chức sở hữu",
+        "unknown": "Hoạt động: {action}"
+      }
     }
   }
 }

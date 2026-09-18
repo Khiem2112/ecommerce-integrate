@@ -1,15 +1,21 @@
-'use client';
-
+import { type JSX } from 'react';
 import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
+import { Button, Badge } from '@/components/atoms';
 import { OrganizationConnectedShopCard } from './OrganizationConnectedShopCard';
 import type { OrganizationDetail } from '@/types';
 
 export type OrganizationShopsCardProps = {
   readonly organization: OrganizationDetail;
+  readonly onConnect?: () => void;
 };
 
-export function OrganizationShopsCard({ organization }: OrganizationShopsCardProps) {
+export function OrganizationShopsCard({
+  organization,
+  onConnect,
+}: OrganizationShopsCardProps): JSX.Element {
   const t = useTranslations('organizations');
+  const tShops = useTranslations('shops');
 
   return (
     <div className="flex h-full flex-col rounded-2xl border border-hairline bg-surface-card shadow-card overflow-hidden">
@@ -33,10 +39,24 @@ export function OrganizationShopsCard({ organization }: OrganizationShopsCardPro
           <h3 className="text-sm font-semibold text-foreground">
             {t('shopsTab.title')}
           </h3>
+          <Badge variant="secondary" size="xs" className="font-mono">
+            {organization.connections.length}
+          </Badge>
         </div>
-        <span className="inline-flex items-center rounded-full border border-hairline bg-surface-lifted px-2.5 py-0.5 font-mono text-xs font-semibold text-muted">
-          {organization.connections.length}
-        </span>
+
+        <div className="flex items-center gap-2">
+          {organization.canManage && onConnect && (
+            <Button variant="ghost" size="xs" onClick={onConnect}>
+              + {tShops('directory.connectShop')}
+            </Button>
+          )}
+          <Link
+            href={`/shops?organizationId=${organization.id}`}
+            className="text-xs text-primary hover:underline font-medium"
+          >
+            {t('shopsTab.viewAll')}
+          </Link>
+        </div>
       </div>
 
       <div className="flex-1">
@@ -72,6 +92,16 @@ export function OrganizationShopsCard({ organization }: OrganizationShopsCardPro
             <p className="mt-1 text-xs text-muted max-w-xs">
               {t('shopsTab.empty')}
             </p>
+            {organization.canManage && onConnect && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={onConnect}
+              >
+                {tShops('directory.connectShop')}
+              </Button>
+            )}
           </div>
         )}
       </div>

@@ -30,35 +30,116 @@ model PlatformCatalog {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  connections   PlatformConnection[]
+  connections           PlatformConnection[]
+  authorizationAttempts PlatformAuthorizationAttempt[]
 
   @@map("platform_catalog")
 }
 
-/// Temporary multi-shop model: an Organization may connect multiple shops on one platform.
-model PlatformConnection {
-  id             Int      @id @default(autoincrement())
-  organizationId Int
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  platformId     Int
-  platform       PlatformCatalog @relation(fields: [platformId], references: [id])
-  externalShopId String?         // Seller/shop id on the platform when known
-  shopName       String?
-  lastSyncedAt   DateTime?
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now()) @updatedAt
+enum PlatformConnectionStatusCode {
+  connected
+  reconnect_required
+  disconnecting
+  reassigning
+  disconnected
+}
 
-  customers     Customer[]
-  orders        Order[]
-  conversations Conversation[]
-  syncBatches   SyncBatch[]
+enum PlatformAuthorizationAttemptStatusCode {
+  authorizing
+  validating
+  failed
+  cancelled
+  completed
+}
+
+/// Durable shop connection managed per organization.
+model PlatformConnection {
+  id              Int                           @id @default(autoincrement())
+  organizationId  Int
+  organization    Organization                  @relation(fields: [organizationId], references: [id])
+  platformId      Int
+  platform        PlatformCatalog               @relation(fields: [platformId], references: [id])
+  externalShopId  String?                       // Seller/shop id on the platform when known
+  shopName        String?
+  displayLabel    String?                       @db.VarChar(191)
+  status          PlatformConnectionStatusCode  @default(reconnect_required)
+  integrations    Json?                         // per-shop dynamic tokens & refresh lifecycle
+  lastSyncedAt    DateTime?
+  lastVerifiedAt  DateTime?
+  lastFailureCode String?                       @db.VarChar(100)
+  disconnectedAt  DateTime?
+  version         Int                           @default(1)
+  isActive        Boolean                       @default(true)
+  createdAt       DateTime                      @default(now())
+  updatedAt       DateTime                      @default(now()) @updatedAt
+
+  customers             Customer[]
+  orders                Order[]
+  conversations         Conversation[]
+  syncBatches           SyncBatch[]
+  authorizationAttempts PlatformAuthorizationAttempt[]
+  auditLogs             PlatformConnectionAuditLog[]
 
   @@unique([platformId, externalShopId])
   @@index([organizationId, platformId])
   @@index([organizationId])
   @@index([platformId])
+  @@index([status])
   @@map("platform_connection")
+}
+
+model PlatformAuthorizationAttempt {
+  id               Int                                     @id @default(autoincrement())
+  organizationId   Int
+  organization     Organization                            @relation(fields: [organizationId], references: [id])
+  platformId       Int
+  platform         PlatformCatalog                         @relation(fields: [platformId], references: [id])
+  connectionId     Int?
+  connection       PlatformConnection?                     @relation(fields: [connectionId], references: [id])
+  actorUserId      Int
+  actorUser        User                                    @relation(fields: [actorUserId], references: [id])
+  status           PlatformAuthorizationAttemptStatusCode  @default(authorizing)
+  idempotencyKey   String?                                 @unique @db.VarChar(191)
+  stateNonceHash   String                                  @db.VarChar(255)
+  expiresAt        DateTime
+  redirectUri      String?                                 @db.Text
+  failureCode      String?                                 @db.VarChar(100)
+  failureReason    String?                                 @db.Text
+  completedAt      DateTime?
+  auditLogs        PlatformConnectionAuditLog[]
+  isActive         Boolean                                 @default(true)
+  createdAt        DateTime                                @default(now())
+  updatedAt        DateTime                                @default(now()) @updatedAt
+
+  @@index([organizationId])
+  @@index([platformId])
+  @@index([connectionId])
+  @@index([actorUserId])
+  @@index([expiresAt])
+  @@map("platform_authorization_attempt")
+}
+
+/// Append-only connection audit records deliberately omit isActive and updatedAt; entries are immutable.
+model PlatformConnectionAuditLog {
+  id                     Int                                     @id @default(autoincrement())
+  connectionId           Int?
+  connection             PlatformConnection?                     @relation(fields: [connectionId], references: [id])
+  authorizationAttemptId Int?
+  authorizationAttempt   PlatformAuthorizationAttempt?           @relation(fields: [authorizationAttemptId], references: [id])
+  actorUserId            Int?
+  actorUser              User?                                   @relation(fields: [actorUserId], references: [id])
+  organizationIdBefore   Int?
+  organizationIdAfter    Int?
+  action                 String                                  @db.VarChar(100)
+  fromStatus             PlatformConnectionStatusCode?
+  toStatus               PlatformConnectionStatusCode?
+  metadata               Json?
+  createdAt              DateTime                                @default(now())
+
+  @@index([connectionId, createdAt])
+  @@index([authorizationAttemptId, createdAt])
+  @@index([actorUserId])
+  @@map("platform_connection_audit_log")
 }
 
 /// Temporary local identity directory until an external identity provider is integrated.
@@ -71,9 +152,12 @@ model User {
   mustChangePassword Boolean                         @default(false)
   passwordChangedAt  DateTime?
   avatarUrl          String?
+  isAdmin            Boolean                         @default(false)
   memberships        OrganizationMember[]
   preferences        OrganizationContextPreference[]
   auditEvents        OrganizationAuditLog[]          @relation("OrganizationAuditActor")
+  shopAuthorizationAttempts PlatformAuthorizationAttempt[]
+  shopConnectionAuditLogs   PlatformConnectionAuditLog[]
   isActive           Boolean                         @default(true)
   createdAt          DateTime                        @default(now())
   updatedAt          DateTime                        @default(now()) @updatedAt
@@ -142,6 +226,7 @@ model Organization {
   slugHistory          OrganizationSlugHistory[]
   auditLogs            OrganizationAuditLog[]
   connections          PlatformConnection[]
+  shopAuthorizationAttempts PlatformAuthorizationAttempt[]
   isActive             Boolean  @default(true)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @default(now()) @updatedAt

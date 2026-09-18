@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   OrganizationBasicInfoCard,
   OrganizationShopsCard,
 } from '@/components/molecules';
+import { ShopConnectionAuthorizationDialog } from './ShopConnectionAuthorizationDialog';
 import type { OrganizationDetail } from '@/types';
 
 export type OrganizationWorkspaceInfoSectionProps = {
@@ -15,6 +17,7 @@ export function OrganizationWorkspaceInfoSection({
   organization,
 }: OrganizationWorkspaceInfoSectionProps) {
   const t = useTranslations('organizations');
+  const [isConnectOpen, setIsConnectOpen] = useState(false);
 
   return (
     <section className="space-y-3">
@@ -32,9 +35,20 @@ export function OrganizationWorkspaceInfoSection({
 
         {/* Right Sub-section: Connected Shops */}
         <div className="lg:col-span-7">
-          <OrganizationShopsCard organization={organization} />
+          <OrganizationShopsCard
+            organization={organization}
+            onConnect={() => setIsConnectOpen(true)}
+          />
         </div>
       </div>
+
+      <ShopConnectionAuthorizationDialog
+        isOpen={isConnectOpen}
+        onOpenChange={setIsConnectOpen}
+        onClose={() => setIsConnectOpen(false)}
+        fixedOrganizationId={organization.id}
+        fixedOrganizationName={organization.displayName}
+      />
     </section>
   );
 }
