@@ -17,7 +17,9 @@ Before declaring any feature or task complete, verify the technical implementati
 - [ ] Do Services (`src/services/`) handle all business logic, DB queries (accepting optional `tx`), external API calls, and file I/O with single-responsibility functions (SRP)?
 - [ ] Are Utils (`src/utils/`) strictly pure and stateless functions (formatting, regex, math, prompts) with NO database access, NO external API calls, and NO file I/O?
 - [ ] Are small 1–2 line private service helpers kept directly inside the service file rather than prematurely extracted into `src/utils/`?
-- [ ] Were existing repository atoms, molecules, hooks, schemas, types, and utilities searched and reused before creating new code ([reuse-first](.agents/skills/reuse-first/SKILL.md))?
+- [ ] **Reuse-First Evidence Gate (FE vs BE)**: Can you cite concrete evidence of reusing existing capabilities ([reuse-first](../reuse-first/SKILL.md))?
+  - **Frontend Scope**: All UI elements (Buttons, Badges, Inputs, Dialogs, Tables, Tooltips, Empty states) MUST import from `@/components/atoms` or `@/components/molecules`. Custom hooks, client state, and schemas MUST reuse `@/hooks`, `@/atoms`, and `@/forms/schemas`. Authoring raw HTML tags (e.g. `<button>`, `<input>`, styled `<span>` status pills) without checking `src/components/atoms/index.ts` is strictly prohibited.
+  - **Backend Scope**: Business operations, utilities, and types MUST reuse existing services (`@/services`), pure helpers (`@/utils`), and Prisma-derived types (`@/types`).
 - [ ] Are dedicated API Routes (`src/app/api/`) used exclusively for streaming, RAG generation, or webhooks?
 - [ ] Are form schemas and validation placed in `src/forms/` using Zod?
 - [ ] Are domain types modularized in `src/types/`?

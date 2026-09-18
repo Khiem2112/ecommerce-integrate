@@ -80,12 +80,71 @@ For Tailwind class composition and state variants, read `.agents/skills/styling/
 - Validation explains how to fix the field, not only that it is invalid.
 - Destructive or irreversible actions require clear confirmation and recovery where feasible.
 
+## Dialog and Modal Architecture
+
+- **Separation of Concerns (Outer Dialog vs. Inner Form)**:
+  When creating a Dialog/Modal with form or interactive mutation content, decouple the modal container from the form component:
+  - **Outer Dialog Wrapper**: Responsible solely for open/close state orchestration (`isOpen`, `onOpenChange`), accessibility wrapper (`Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription`), viewport sizing/scroll constraints (e.g., `max-w-xl max-h-[90vh] overflow-y-auto`), and container padding (e.g., `p-6 sm:p-7`).
+  - **Inner Form Component**: A self-contained organism managing its own input controls, React Hook Form state, Zod validation schema, submission mutation, error banners, and action buttons (Submit/Cancel). The form accepts an `embedded?: boolean` prop and callbacks (`onSuccess`, `onCancel`) so it can be reused cleanly on a standalone page or embedded in a dialog.
+```tsx
+// 1. Outer Dialog Wrapper (controls visibility, layout constraints, header & padding)
+export function CreateUserDialog({ isOpen, onOpenChange, onSuccess }: CreateUserDialogProps) {
+  const t = useTranslations('users.form');
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto p-6 sm:p-7">
+        <DialogHeader className="mb-4">
+          <DialogTitle>{t('title')}</DialogTitle>
+          <DialogDescription>{t('description')}</DialogDescription>
+        </DialogHeader>
+        <UserAccessForm
+          mode="create"
+          embedded
+          onSuccess={onSuccess}
+          onCancel={() => onOpenChange(false)}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// 2. Inner Form Organism (encapsulates fields, RHF, Zod validation, submission & actions)
+export function UserAccessForm({ embedded, onSuccess, onCancel }: UserAccessFormProps) {
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+    resolver: zodResolver(schema),
+  });
+
+  const onSubmit = async (values: FormValues) => {
+    await submitMutation(values);
+    onSuccess?.();
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+      <Input {...register('email')} aria-invalid={Boolean(errors.email)} />
+      {errors.email && <p className="text-xs text-semantic-error">{errors.email.message}</p>}
+
+      <div className="flex justify-end gap-2 pt-2">
+        <Button variant="outline" type="button" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
+          Submit
+        </Button>
+      </div>
+    </form>
+  );
+}
+```
+
 ## Web Review Criteria Summary
 
 Use this summary during review to verify UX outcomes (formal verification gate is in `.agents/skills/checklist/SKILL.md`):
 
 - [ ] Semantic controls, accessible names, keyboard navigation, and visible focus states work.
 - [ ] Forms have labels, inline errors, loading states, and useful recovery guidance.
+- [ ] Dialogs decouple the outer modal shell/padding from the inner self-contained form organism.
 - [ ] Decorative icons are hidden; meaningful icons have text alternatives.
 - [ ] Responsive behavior works at small phone, desktop, and landscape widths.
 - [ ] Sticky/fixed UI does not obscure content or focus.

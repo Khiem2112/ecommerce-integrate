@@ -34,18 +34,48 @@ Do not deep-import a private implementation merely to claim reuse. Respect the
 existing public barrel or promote the capability deliberately when it is meant
 to become shared.
 
-## Layer-Specific Search Targets
+## Layer-Specific Search Targets (FE vs BE)
 
-| Changed area | Inspect before adding code |
-| --- | --- |
-| Backend | Existing services, service-private helpers, `src/utils`, validators, configuration, repository error/result types, and Prisma models |
-| Frontend | `src/components/atoms`, `src/components/molecules`, feature components, `src/hooks`, TanStack Query hooks, and Jotai atoms |
-| Forms | Existing Zod schemas, schema factories, form field components, error presentation, and shared form hooks |
-| Types | Existing barrel exports, Prisma-generated types, Zod-inferred types, and shared result/payload types |
-| Database | Existing models, relations, catalog/status tables, indexes, and persistence helpers before adding parallel concepts |
+OmniCart strictly separates reuse across Frontend and Backend scopes. Agents must inspect the designated directories and public barrel exports before introducing new code:
 
-For visual UI changes, also follow `../ui-ux-pro-max/rules/style-discovery.md`;
-it owns visual precedent and token reuse. This skill owns code-capability reuse.
+### 1. Frontend Reuse Scope
+
+Before authoring any UI component, state, hook, or client validation:
+
+| Target Layer | Directory Path | Public Barrel Import | What To Inspect & Reuse |
+| --- | --- | --- | --- |
+| **UI Primitives (Atoms)** | `src/components/atoms/` | `@/components/atoms` | `Button`, `IconButton`, `Input`, `Badge`, `StatusBadge`, `Dialog`, `Table`, `Tooltip`, `Select`, `Combobox`, `Autocomplete`, `DatePicker`, `DateTimePicker`, `Switch`, `Toast`, `ProgressBar`, `Chip` |
+| **Composite Blocks (Molecules)** | `src/components/molecules/` | `@/components/molecules` | `Breadcrumb`, `ErrorBanner`, `SuccessBanner`, `OrderStatusFilter`, `Pagination`, `GlobalSyncIndicator`, and domain molecules (`chat`, `context`, `inbox`, `organization`, `user`) |
+| **Macro Structures (Organisms)** | `src/components/organisms/` | `@/components/organisms` | `AppShell`, `ConfirmModal`, `OrderForm`, `Integrations`, `SyncBatchDetail`, and domain panels |
+| **Hooks & TanStack Query** | `src/hooks/` | `@/hooks` | Query hooks (`useOrders`, `useCustomers`, `useShopConnections`, `useOrganizations`, `useUsers`), UI hooks (`useToast`, `useDebounce`, `useModalState`, `useDirtyWarning`, `useBreadcrumb`) |
+| **Global Client State** | `src/atoms/` | `@/atoms` | Jotai state atoms (`orderAtoms`, `customerAtoms`, `toastAtoms`, `workspaceAtoms`, `syncDrawerAtoms`, `syncBatchListAtoms`, etc.) |
+| **Forms & Validation Schemas** | `src/forms/schemas/` | `@/forms/schemas` | Shared Zod schemas, schema factories, and validation rules |
+
+#### Frontend Discovery Protocol & Violations:
+1. **Zero Raw Markup Controls**: Rendering raw HTML elements (`<button>`, `<input>`, `<select>`, `<textarea>`, `<table...>`, `<span className="...rounded...bg-...">` status pills, raw custom modals) when an atom or molecule exists is a **STRICT VIOLATION**. Inspect `src/components/atoms/index.ts` first.
+2. **State & Query Inspection**: Before declaring `useState` for API data or modal visibility, check `@/hooks` (e.g. `useModalState`, TanStack hooks) and `@/atoms` (Jotai atoms).
+3. **Form Schema Inspection**: Always check `src/forms/schemas/` for existing entity schemas before authoring a new Zod schema.
+4. For visual styling and token rules, follow `../ui-ux-pro-max/rules/style-discovery.md`.
+
+---
+
+### 2. Backend Reuse Scope
+
+Before writing domain logic, server utilities, database queries, or type definitions:
+
+| Target Layer | Directory Path | Public Barrel Import | What To Inspect & Reuse |
+| --- | --- | --- | --- |
+| **Domain Services** | `src/services/` | `@/services` | Domain business services (`orderService`, `customerService`, `shopConnectionService`, `userAccess*Service`, `organizationService`, etc.) and connector clients |
+| **Pure Utilities** | `src/utils/` | `@/utils` | Pure stateless utilities (`formatters`, `currency`, `url`, `syncErrors`, `curlParser`, `email`, etc.). Strictly no DB/API I/O |
+| **Domain & Payload Types** | `src/types/` | `@/types` | Domain types, shared DTOs, and Prisma-generated payload types (`Prisma.<Model>GetPayload<{ select/include: ... }>`) |
+| **Database Schema** | `prisma/schema.prisma` | N/A | Existing models, relations, catalog tables (`*Catalog`), and status tables (`*Status`) before adding redundant entities |
+| **Server Actions** | `src/actions/` | N/A | High-level orchestration actions. Do not duplicate orchestration when an existing action covers the lifecycle |
+
+#### Backend Discovery Protocol & Violations:
+1. **Service Query Reuse**: Do not write redundant Prisma queries in actions or new services when an existing service function in `src/services/` already handles that query (passing `tx?: Prisma.TransactionClient`).
+2. **Prisma-Derived DTOs**: Never author manual duplicate types copying Prisma model fields. Always derive types via `Prisma.<Model>GetPayload`, `Pick`, or `Omit`.
+3. **Stateless Utils**: Multi-domain pure functions belong in `src/utils/`. Small 1–2 line private service helpers stay inside the service file rather than prematurely polluting `src/utils/`.
+4. For database schema rules, follow `../db-conventions/SKILL.md`; for transaction safety, follow `../backend-data-safety/SKILL.md`.
 
 ## Review Standard
 
