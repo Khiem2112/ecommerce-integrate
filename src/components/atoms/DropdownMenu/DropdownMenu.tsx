@@ -335,6 +335,7 @@ export function DropdownMenuContent({
       aria-orientation="vertical"
       tabIndex={-1}
       onKeyDown={handleKeyDown}
+      onPointerDown={(e) => e.stopPropagation()}
       style={
         portaled
           ? {
@@ -343,14 +344,15 @@ export function DropdownMenuContent({
               left: coords?.left !== undefined ? `${coords.left}px` : undefined,
               right: coords?.right !== undefined ? `${coords.right}px` : undefined,
               visibility: coords ? 'visible' : 'hidden',
+              pointerEvents: 'auto',
               ...style,
             }
-          : style
+          : { pointerEvents: 'auto', ...style }
       }
       className={cn(
         portaled
-          ? 'z-50 min-w-[150px] rounded-xl border border-hairline bg-surface-card p-1 shadow-elevated outline-none animate-in fade-in zoom-in-95 duration-100'
-          : 'absolute z-50 mt-1 min-w-[150px] rounded-xl border border-hairline bg-surface-card p-1 shadow-elevated outline-none animate-in fade-in zoom-in-95 duration-100',
+          ? 'pointer-events-auto z-50 min-w-[150px] rounded-xl border border-hairline bg-surface-card p-1 shadow-elevated outline-none animate-in fade-in zoom-in-95 duration-100'
+          : 'pointer-events-auto absolute z-50 mt-1 min-w-[150px] rounded-xl border border-hairline bg-surface-card p-1 shadow-elevated outline-none animate-in fade-in zoom-in-95 duration-100',
         !portaled && (align === 'end' ? 'right-0' : 'left-0'),
         className,
       )}

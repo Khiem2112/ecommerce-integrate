@@ -4,7 +4,7 @@ import { useMemo, useState, type JSX } from 'react';
 import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Select, Input, RadioGroup, SelectionCard } from '@/components/atoms';
+import { Button, Combobox, type ComboboxItem, Input, RadioGroup, SelectionCard } from '@/components/atoms';
 import { cn } from '@/lib/cn';
 import { useManageableOrganizations, useStartShopAuthorization } from '@/hooks';
 import {
@@ -67,6 +67,15 @@ export function ShopConnectionAuthorizationForm({
 
   const currentPlatform = watch('platformCode');
   const selectedOrgId = watch('organizationId');
+
+  const orgItems: readonly ComboboxItem[] = useMemo(
+    () =>
+      manageableOrgs?.map((org) => ({
+        value: String(org.id),
+        label: org.displayName,
+      })) ?? [],
+    [manageableOrgs],
+  );
 
   const onSubmit = async (values: ShopConnectionStartAuthorizationValues) => {
     setErrorMsg(null);
@@ -131,7 +140,7 @@ export function ShopConnectionAuthorizationForm({
 
       {/* Organization Selection / Locked Display */}
       <div className="space-y-1.5">
-        <label htmlFor="shop-auth-org-select" className="text-xs font-semibold text-foreground">
+        <label htmlFor="shop-auth-org-combobox" className="text-xs font-semibold text-foreground block">
           {t('organizationLabel')}
         </label>
         {fixedOrganizationName ? (
@@ -139,20 +148,26 @@ export function ShopConnectionAuthorizationForm({
             {fixedOrganizationName}
           </div>
         ) : (
-          <Select
-            id="shop-auth-org-select"
-            {...register('organizationId', { valueAsNumber: true })}
-            disabled={isLoadingOrgs}
-            aria-invalid={Boolean(errors.organizationId)}
-            aria-describedby={errors.organizationId ? 'shop-auth-org-error' : undefined}
-          >
-            <option value="">{t('selectOrgPlaceholder')}</option>
-            {manageableOrgs?.map((org) => (
-              <option key={org.id} value={org.id}>
-                {org.displayName}
-              </option>
-            ))}
-          </Select>
+          <div id="shop-auth-org-combobox">
+            <Combobox
+              items={orgItems}
+              value={selectedOrgId ? String(selectedOrgId) : ''}
+              onChange={(val) => {
+                setValue(
+                  'organizationId',
+                  val ? Number(val) : (undefined as unknown as number),
+                  {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  },
+                );
+              }}
+              placeholder={t('selectOrgPlaceholder')}
+              disabled={isLoadingOrgs || orgItems.length === 0}
+              size="md"
+              ariaLabel={t('organizationLabel')}
+            />
+          </div>
         )}
         {errors.organizationId && (
           <p id="shop-auth-org-error" className="text-xs text-semantic-error" role="alert">

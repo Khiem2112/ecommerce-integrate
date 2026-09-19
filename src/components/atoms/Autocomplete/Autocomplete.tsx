@@ -208,6 +208,7 @@ export function Autocomplete({
       role="listbox"
       data-combobox-portal="true"
       data-portal-menu="true"
+      onPointerDown={(e) => e.stopPropagation()}
       style={
         portaled
           ? {
@@ -216,13 +217,14 @@ export function Autocomplete({
               left: coords ? `${coords.left}px` : undefined,
               width: coords ? `${coords.width}px` : undefined,
               visibility: coords ? 'visible' : 'hidden',
+              pointerEvents: 'auto',
             }
           : placement === 'top'
-            ? { bottom: 'calc(100% + 4px)', top: 'auto' }
-            : undefined
+            ? { bottom: 'calc(100% + 4px)', top: 'auto', pointerEvents: 'auto' }
+            : { pointerEvents: 'auto' }
       }
       className={cn(
-        'z-[60] max-h-60 min-w-[10rem] overflow-hidden rounded-xl border border-hairline-strong bg-surface-card shadow-elevated animate-in fade-in-0 zoom-in-95',
+        'pointer-events-auto z-[60] max-h-60 min-w-[10rem] overflow-hidden rounded-xl border border-hairline-strong bg-surface-card shadow-elevated animate-in fade-in-0 zoom-in-95',
         portaled ? 'fixed' : cn('absolute w-full', placement === 'top' ? 'mb-0' : 'mt-1'),
         menuClassName,
       )}
@@ -267,6 +269,9 @@ export function Autocomplete({
                 <li
                   role="option"
                   aria-selected={isSelected}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                  }}
                   onClick={() => {
                     if (!option.disabled) handleSelect(option.value);
                   }}
