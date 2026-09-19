@@ -63,4 +63,4 @@ A flow should reduce ambiguity, preserve auditability, and make exception handli
 - Project-wide domain, privacy, and evidence constraints: `.agents/rules/RULE.md`.
 - Recovery behavior: `.agents/skills/business-logic/features/omnicart_recovery.md`.
 - VIP care and routing behavior: `.agents/skills/business-logic/features/vip_customer_routing.md`.
-- Feature-specific approved flow specifications: `docs/flows/`.
+- Feature-specific approved flow specifications: `docs/<feature-name>/flows/`; see `docs/README.md` for the versioning policy.

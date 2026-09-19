@@ -44,7 +44,7 @@ For a new or materially changed user-facing operational journey, establish the p
    - `.agents/skills/information-architecture/SKILL.md` for navigation taxonomy, module hierarchy, and route organization.
 3. **Core Operational Flow Specification:**
    - Read `.agents/skills/ecommerce-operations-flow/SKILL.md` to establish durable states, decision branches, consequential actions, and recovery rules.
-   - Write or update an implementation-neutral specification in `docs/flows/<feature-name>.md` using `docs/flows/TEMPLATE.md`.
+   - Create an implementation-neutral baseline in `docs/<feature-name>/flows/v1.md` using `docs/templates/flow-v1.md`. For material revisions, preserve the baseline and add `v<N>-diff.md` under the same `flows/` directory according to `docs/README.md`.
 4. **Interaction & State Patterns (On-Demand):**
    - `.agents/skills/flow-tables/SKILL.md` for orders, sync queues, tabular displays, filters, and bulk actions.
    - `.agents/skills/flow-forms/SKILL.md` for credentials, sync configuration, and inline validation timing.
@@ -113,7 +113,7 @@ migrations, or generates seed/fixture data:
 
 ### Large Spec Implementation & Phase-Gated Review Policy
 
-When executing complex specifications (such as documents in `docs/specs/*` or multi-file domain features):
+When executing complex specifications (such as documents in `docs/<feature-name>/specs/` or multi-file domain features):
 
 1. **No Monolithic Implementation**: Agents MUST NOT attempt to implement the entire specification in a single unstructured pass.
 2. **Mandatory Phase-Gated Implementation Plan**: The `implementation_plan.md` MUST divide the work into sequential phases with explicit review checkpoints. Every checkpoint declares the `code-review` mode and scope independently:

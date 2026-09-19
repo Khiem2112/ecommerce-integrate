@@ -21,7 +21,7 @@ Before designing a flow, read:
 2. The closest applicable business-rule file under `.agents/skills/business-logic/features/`.
 3. `.agents/rules/RULE.md` when the work affects VIP routing, customer or order claims, RAG
    evidence, privacy, or externally visible support operations.
-4. Existing approved specifications in `docs/flows/` and the closest existing feature when
+4. Existing approved specifications in `docs/<feature-name>/flows/` and the closest existing feature when
    changing an established journey.
 
 Treat `PRODUCT.md` and the project rules as higher authority than generic UX guidance.
@@ -35,8 +35,9 @@ Treat `PRODUCT.md` and the project rules as higher authority than generic UX gui
    and when partial or total failure occurs.
 4. Specify recovery: retry eligibility, duplicate prevention, resume behavior, escalation,
    and the audit or history needed to understand the outcome.
-5. Write `docs/flows/<feature-name>.md` from `docs/flows/TEMPLATE.md`. Keep it
-   implementation-neutral.
+5. Write the complete baseline at `docs/<feature-name>/flows/v1.md` from
+   `docs/templates/flow-v1.md`. Keep it implementation-neutral. For later material revisions,
+   preserve `v1.md` and add a delta-only `v<N>-diff.md` using `docs/templates/version-diff.md`.
 6. Obtain explicit approval and record it in the specification. Do not treat a draft, an
    implementation plan, or a verbal preference as approved.
 7. Only after approval, implement the flow under the existing React, Next.js, component,
@@ -62,7 +63,7 @@ Use the project's local specialized flow skills on-demand to enrich the specific
 - `.agents/skills/flow-settings/SKILL.md` & `.agents/skills/flow-permissions/SKILL.md`: Channel connection settings, danger zones, and role-based permissions.
 - `.agents/skills/flow-app-shell/SKILL.md` & `.agents/skills/flow-navigation/SKILL.md`: Dashboard layout, master-detail views, responsive navigation.
 
-Adapt any generic pattern to OmniCart's merchant-operations constraints, authority rules, and idempotency guarantees. The local specification in `docs/flows/` is the authoritative project artifact produced by this workflow.
+Adapt any generic pattern to OmniCart's merchant-operations constraints, authority rules, and idempotency guarantees. The feature-local flow history in `docs/<feature-name>/flows/` is the authoritative project artifact produced by this workflow.
 
 ## Flow Specification Standard
 

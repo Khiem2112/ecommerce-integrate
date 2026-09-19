@@ -17,8 +17,8 @@ Load only sources applicable to the review target, in instruction-precedence
 order:
 
 1. The current user request and approved acceptance criteria.
-2. The target document under `docs/specs/`.
-3. The approved document under `docs/flows/` and `PRODUCT.md` when required by
+2. The target document under `docs/<feature-name>/specs/`.
+3. The approved document under `docs/<feature-name>/flows/` and `PRODUCT.md` when required by
    `AGENTS.md`.
 4. [business-logic](../business-logic/SKILL.md) and the feature file it routes
    to when domain behavior is involved.
