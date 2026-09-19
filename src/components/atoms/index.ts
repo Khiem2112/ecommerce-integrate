@@ -25,6 +25,13 @@ export {
 } from './Combobox/Combobox';
 
 export {
+  MultiSelectCombobox,
+  MultiSelect,
+  type MultiSelectComboboxProps,
+  type MultiSelectItem,
+} from './Combobox/MultiSelectCombobox';
+
+export {
   DatePicker,
   DateRangePicker,
   formatDateToISO,

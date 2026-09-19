@@ -10,6 +10,9 @@ export type ShopConnectionStatusBadgeProps = {
   readonly size?: BadgeSize;
   readonly className?: string;
   readonly useDot?: boolean;
+  readonly onRemove?: () => void;
+  readonly removePlacement?: 'top-right' | 'inline';
+  readonly removeAriaLabel?: string;
 };
 
 const STATUS_VARIANT_MAP: Record<string, BadgeVariant> = {
@@ -45,6 +48,9 @@ export function ShopConnectionStatusBadge({
   size = 'xs',
   className,
   useDot = true,
+  onRemove,
+  removePlacement = 'top-right',
+  removeAriaLabel,
 }: ShopConnectionStatusBadgeProps): JSX.Element {
   const t = useTranslations('shops.statuses');
   const variant = STATUS_VARIANT_MAP[status] ?? 'secondary';
@@ -58,6 +64,9 @@ export function ShopConnectionStatusBadge({
       size={size}
       useDot={useDot}
       dotClassName={dotClassName}
+      onRemove={onRemove}
+      removePlacement={removePlacement}
+      removeAriaLabel={removeAriaLabel}
       className={className}
     >
       {label}

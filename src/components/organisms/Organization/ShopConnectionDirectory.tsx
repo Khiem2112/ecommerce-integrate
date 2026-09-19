@@ -14,6 +14,8 @@ import {
   Badge,
   Combobox,
   type ComboboxItem,
+  MultiSelectCombobox,
+  type MultiSelectItem,
   IconButton,
   DropdownMenu,
   DropdownMenuTrigger,
@@ -123,6 +125,7 @@ function ShopConnectionRowActions({
 
 export function ShopConnectionDirectory(): JSX.Element {
   const t = useTranslations('shops.directory');
+  const tStatuses = useTranslations('shops.statuses');
 
   const [filters, setFilters] = useState<ShopConnectionFilters>({
     page: 1,
@@ -137,14 +140,52 @@ export function ShopConnectionDirectory(): JSX.Element {
   const [activeConnection, setActiveConnection] = useState<ShopConnectionSummary | null>(null);
   const [dialogMode, setDialogMode] = useState<'label' | 'disconnect' | 'reassign' | 'reconnect' | null>(null);
 
-  const handleStatusToggle = (status: PlatformConnectionStatusCode) => {
-    setFilters((prev: ShopConnectionFilters) => {
-      const current = Array.isArray(prev.status) ? prev.status : [];
-      const next = current.includes(status)
-        ? current.filter((s: PlatformConnectionStatusCode) => s !== status)
-        : [...current, status];
-      return { ...prev, status: next.length > 0 ? next : undefined, page: 1 };
-    });
+  const statusItems: readonly MultiSelectItem[] = useMemo(
+    () => [
+      {
+        value: 'connected',
+        label: tStatuses('connected'),
+        dotColor: 'bg-status-success',
+      },
+      {
+        value: 'reconnect_required',
+        label: tStatuses('reconnect_required'),
+        dotColor: 'bg-status-warning',
+      },
+      {
+        value: 'disconnecting',
+        label: tStatuses('disconnecting'),
+        dotColor: 'bg-muted',
+      },
+      {
+        value: 'reassigning',
+        label: tStatuses('reassigning'),
+        dotColor: 'bg-status-warning',
+      },
+      {
+        value: 'disconnected',
+        label: tStatuses('disconnected'),
+        dotColor: 'bg-semantic-error',
+      },
+    ],
+    [tStatuses],
+  );
+
+  const selectedStatuses = useMemo<string[]>(() => {
+    if (!filters.status) return [];
+    return Array.isArray(filters.status) ? filters.status : [filters.status];
+  }, [filters.status]);
+
+  const handleStatusChange = (newStatuses: string[]) => {
+    setFilters((prev: ShopConnectionFilters) => ({
+      ...prev,
+      status: newStatuses.length > 0 ? (newStatuses as PlatformConnectionStatusCode[]) : undefined,
+      page: 1,
+    }));
+  };
+
+  const handleRemoveStatus = (statusToRemove: string) => {
+    handleStatusChange(selectedStatuses.filter((s) => s !== statusToRemove));
   };
 
   const handleOrgChange = (orgIdStr: string) => {
@@ -189,37 +230,36 @@ export function ShopConnectionDirectory(): JSX.Element {
 
       {/* Filter Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface-card p-3 shadow-xs">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-muted mr-1">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="text-xs font-semibold text-muted mr-0.5">
             {t('filterStatus')}:
           </span>
-          {(
-            [
-              'connected',
-              'reconnect_required',
-              'disconnecting',
-              'reassigning',
-              'disconnected',
-            ] as const
-          ).map((s) => {
-            const isSelected = Array.isArray(filters.status) && filters.status.includes(s);
+
+          <div className="w-48">
+            <MultiSelectCombobox
+              items={statusItems}
+              values={selectedStatuses}
+              onChange={handleStatusChange}
+              placeholder={t('selectStatus')}
+              ariaLabel={t('filterStatus')}
+              size="sm"
+              countLabel={(count) => t('selectedStatusesCount', { count })}
+            />
+          </div>
+
+          {/* Selected badges displayed beside the filter button with "x" button at top corner */}
+          {selectedStatuses.map((s) => {
+            const statusKey = s as PlatformConnectionStatusCode;
             return (
-              <Button
+              <ShopConnectionStatusBadge
                 key={s}
-                type="button"
-                variant={isSelected ? 'primary' : 'ghost'}
+                status={s}
                 size="xs"
-                aria-pressed={isSelected}
-                onClick={() => handleStatusToggle(s)}
-                className={cn(
-                  'rounded-xl px-2.5 py-1 text-xs font-medium transition-all h-auto',
-                  isSelected
-                    ? 'bg-foreground text-background shadow-xs'
-                    : 'bg-surface-lifted text-muted hover:text-foreground',
-                )}
-              >
-                <ShopConnectionStatusBadge status={s} size="xs" useDot={false} />
-              </Button>
+                useDot={true}
+                onRemove={() => handleRemoveStatus(s)}
+                removePlacement="top-right"
+                removeAriaLabel={t('removeStatusFilter', { status: tStatuses(statusKey) })}
+              />
             );
           })}
         </div>

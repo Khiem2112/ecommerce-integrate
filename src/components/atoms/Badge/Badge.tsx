@@ -32,6 +32,9 @@ export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
   readonly rounded?: boolean;
   readonly useDot?: boolean;
   readonly dotClassName?: string;
+  readonly onRemove?: () => void;
+  readonly removePlacement?: 'top-right' | 'inline';
+  readonly removeAriaLabel?: string;
 };
 
 const VARIANT_STYLES: Record<BadgeVariant, { container: string; dot: string }> = {
@@ -119,6 +122,9 @@ export function Badge({
   rounded = true,
   useDot = false,
   dotClassName,
+  onRemove,
+  removePlacement = 'top-right',
+  removeAriaLabel,
   className,
   ...restProps
 }: BadgeProps) {
@@ -129,6 +135,7 @@ export function Badge({
     <span
       className={cn(
         'inline-flex items-center gap-1.5 whitespace-nowrap border tracking-tight',
+        onRemove && removePlacement === 'top-right' && 'relative overflow-visible mr-1',
         variantConfig.container,
         SIZE_STYLES[size],
         rounded ? 'rounded-full' : 'rounded-lg',
@@ -143,6 +150,33 @@ export function Badge({
         />
       )}
       {content}
+      {onRemove && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          aria-label={removeAriaLabel ?? 'Remove'}
+          className={cn(
+            'cursor-pointer flex items-center justify-center transition-colors focus:outline-none',
+            removePlacement === 'inline'
+              ? 'ml-1 -mr-0.5 size-3 rounded-full text-current opacity-70 hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10'
+              : 'absolute -top-1.5 -right-1.5 z-10 size-3.5 rounded-full border border-hairline-strong bg-surface-card text-muted shadow-xs hover:border-semantic-error hover:bg-semantic-error hover:text-white',
+          )}
+        >
+          <svg
+            className={removePlacement === 'inline' ? 'size-2.5' : 'size-2'}
+            viewBox="0 0 12 12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          >
+            <path d="M2.5 2.5l7 7m0-7l-7 7" />
+          </svg>
+        </button>
+      )}
     </span>
   );
 }
