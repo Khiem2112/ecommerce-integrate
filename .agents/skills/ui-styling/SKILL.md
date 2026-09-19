@@ -58,6 +58,14 @@ Do not load this skill for backend, API, data, business-logic-only work, or a si
 - Keep component behavior, keyboard handling, focus management, and state semantics aligned with `rules/web-rules.md`.
 - Read only the reference that answers the current implementation question.
 
+### Primitive State Contracts
+
+- Button variants must express action hierarchy through semantic tokens: one solid primary action per compact context, neutral secondary actions, and a destructive variant only for destructive consequences. Do not create accent-coloured variants for every verb.
+- A primary button label uses medium-to-semibold weight. Icon-only actions remain secondary unless their role is unmistakable and still require the tooltip/accessibility pattern below.
+- Badge primitives use medium or semibold text and expose their meaning in text or another accessible cue; colour alone must not encode state. Keep badges resilient to long localized labels and text scaling.
+- For menus, listbox options, combobox options, and navigation items, implement selected state with the component's semantic selected attributes and a persistent selected treatment. Hover is a lighter affordance; active/pressed is stronger, and neither may suppress `focus-visible`.
+- Implement hover, active, selected, disabled, and focus states with existing semantic background, foreground, border, and shadow tokens. State changes must not change an element's layout bounds.
+
 ### Accessible Icon Button + Tooltip Pattern
 
 Any button rendered without visible text (`size="icon"`) must be accessible to both mouse hover users (via Tooltip) and screen reader users (via `aria-label`).

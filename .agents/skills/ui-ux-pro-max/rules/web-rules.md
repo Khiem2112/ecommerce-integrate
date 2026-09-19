@@ -50,12 +50,33 @@ For Tailwind class composition and state variants, read `.agents/skills/styling/
 - Ensure loading and empty states preserve layout stability and explain the next useful action.
 - Avoid nested interactions with conflicting click, drag, keyboard, or scroll behavior.
 
+### State Hierarchy
+
+- Treat hover, active/pressed, selected, focus-visible, and disabled as distinct states. Hover may reveal an available action, while active/pressed must be more prominent; neither state may replace a visible keyboard focus indicator.
+- A persistent selected state must remain clearly identifiable after pointer exit. Use a semantic selected surface together with a non-colour cue when practical, such as an indicator, checked icon, selected-state semantics, or stronger label weight.
+- Do not rely on colour alone for status, selection, validation, or destructive consequences. Verify state contrast in every supported theme.
+- Do not shift size, position, or layout when transitioning among hover, active, and selected states. Prefer semantic background, border, text, or shadow tokens.
+
+### Data Feedback States
+
+- Every data-dependent surface must define loading, error, and empty states; do not leave a blank region while data is unresolved or unavailable.
+- Use a skeleton when the eventual layout is known and preserving its space prevents layout shift. Use a button-local progress treatment for a pending mutation or brief inline refresh.
+- Error states must say what failed, preserve user work where possible, and offer a useful recovery action such as retry when applicable.
+- Distinguish a first-use empty state from a zero-result filter/search state and from a load failure. Empty states should explain the next useful action.
+
 ### Action Presentation: Text, Icon, or Overflow
 
 - Use a visible text button for the primary action, an unfamiliar action, or an
   action whose icon would be ambiguous. Label it with a concise verb and
   outcome. A long translated label alone is not a reason to hide the primary
   action behind an icon.
+- Give the primary action in a compact context a solid semantic background and
+  a medium-to-semibold label weight. Keep at most one such action prominent;
+  use secondary, neutral, or overflow actions for the rest.
+- Reserve destructive semantic colour for destructive actions such as remove,
+  delete, or disconnect. Do not use red as a generic emphasis colour, and do
+  not give every add, create, or manage action an accent colour merely to make
+  it louder.
 - Use an icon-only button only for a familiar secondary action in a
   space-constrained surface. It must have a Tooltip, a localized `aria-label`,
   and an `aria-hidden="true"` decorative icon. If the symbol is not immediately
@@ -71,6 +92,16 @@ For Tailwind class composition and state variants, read `.agents/skills/styling/
 - Preserve the same action hierarchy across responsive layouts. Controls may
   collapse into icons or overflow on narrow screens only when their accessible
   names and discoverability remain intact.
+
+### Badges and Compact Status Labels
+
+- Use badges for concise, stable status or classification—not as a substitute
+  for full instructions or arbitrary decoration.
+- Badge text uses a medium or semibold weight for compact legibility; do not
+  default to bold unless the established component design requires it.
+- A badge must communicate meaning beyond colour through its localized text,
+  icon, or another accessible status cue. Its label must remain readable and
+  operable at narrow widths, zoom, and text scaling.
 
 ### Floating Overlay Architecture: Dropdown Menus and Comboboxes in Tables or Constrained Sections
 
