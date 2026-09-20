@@ -1,8 +1,10 @@
 'use client';
 
-import { useMemo, useState, type JSX } from 'react';
+import { useCallback, useMemo, useRef, useState, type JSX } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
+import { SHOP_CONNECTION_HEALTH_STATUS_CODES } from '@/types';
 import {
   Table,
   TableBody,
@@ -27,15 +29,17 @@ import { cn } from '@/lib/cn';
 import {
   ErrorBanner,
   Pagination,
+  ShopConnectionAlertBanner,
+  ShopConnectionSummaryStats,
   ShopConnectionStatusBadge,
 } from '@/components/molecules';
-import { useManageableOrganizations, useShopConnections } from '@/hooks';
+import { useManageableOrganizations, useShopConnectionStats, useShopConnections } from '@/hooks';
 import { ShopConnectionAuthorizationDialog } from './ShopConnectionAuthorizationDialog';
 import { ShopConnectionLabelDialog } from './ShopConnectionLabelDialog';
 import { ShopConnectionDisconnectDialog } from './ShopConnectionDisconnectDialog';
 import { ShopConnectionReassignDialog } from './ShopConnectionReassignDialog';
 import type {
-  PlatformConnectionStatusCode,
+  ShopConnectionHealthStatusCode,
   ShopConnectionFilters,
   ShopConnectionSummary,
   SupportedShopPlatformCode,
@@ -57,25 +61,28 @@ function ShopConnectionRowActions({
   onOpenReconnect,
 }: ShopConnectionRowActionsProps): JSX.Element {
   const t = useTranslations('shops.directory.actions');
-  const isReconnect = connection.status === 'reconnect_required';
+  const shouldOfferReconnect = connection.status === 'reconnect_required' || connection.isExpiringSoon;
+  const reconnectClassName = connection.status === 'reconnect_required'
+    ? 'border-semantic-error/40 text-semantic-error hover:bg-semantic-error/10'
+    : 'border-status-warning/40 text-status-warning hover:bg-status-warning/10';
 
   return (
     <div className="flex items-center justify-end gap-1.5">
-      {isReconnect ? (
+      <Link href={`/shops/${connection.id}`}>
+        <Button variant="ghost" size="xs">
+          {t('view')}
+        </Button>
+      </Link>
+
+      {shouldOfferReconnect && (
         <Button
           variant="outline"
           size="xs"
-          className="border-status-warning/60 text-status-warning hover:bg-status-warning/10 font-medium"
+          className={`${reconnectClassName} font-medium`}
           onClick={onOpenReconnect}
         >
           {t('reconnect')}
         </Button>
-      ) : (
-        <Link href={`/shops/${connection.id}`}>
-          <Button variant="ghost" size="xs">
-            {t('view')}
-          </Button>
-        </Link>
       )}
 
       {/* Overflow Menu with DropdownMenu atom and IconButton trigger */}
@@ -96,13 +103,6 @@ function ShopConnectionRowActions({
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="end" className="min-w-[150px]">
-          {isReconnect && (
-            <Link href={`/shops/${connection.id}`} className="block">
-              <DropdownMenuItem>
-                {t('view')}
-              </DropdownMenuItem>
-            </Link>
-          )}
           <DropdownMenuItem onSelect={onOpenLabel}>
             {t('edit')}
           </DropdownMenuItem>
@@ -126,13 +126,37 @@ function ShopConnectionRowActions({
 export function ShopConnectionDirectory(): JSX.Element {
   const t = useTranslations('shops.directory');
   const tStatuses = useTranslations('shops.statuses');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const directoryRef = useRef<HTMLDivElement>(null);
 
-  const [filters, setFilters] = useState<ShopConnectionFilters>({
-    page: 1,
-    pageSize: 25,
-  });
+  const filters = useMemo<ShopConnectionFilters>(() => {
+    const statuses = (searchParams.get('status') ?? '')
+      .split(',')
+      .filter((status): status is ShopConnectionHealthStatusCode =>
+        SHOP_CONNECTION_HEALTH_STATUS_CODES.includes(status as ShopConnectionHealthStatusCode),
+      );
+    const page = Number(searchParams.get('page') ?? '1');
+    const pageSize = Number(searchParams.get('pageSize') ?? '25');
+    const organizationId = Number(searchParams.get('organizationId') ?? '');
+
+    return {
+      page: Number.isInteger(page) && page > 0 ? page : 1,
+      pageSize: Number.isInteger(pageSize) && pageSize > 0 ? pageSize : 25,
+      status: statuses.length > 0 ? statuses : undefined,
+      organizationId: Number.isInteger(organizationId) && organizationId > 0
+        ? organizationId
+        : undefined,
+    };
+  }, [searchParams]);
 
   const { data, isLoading, error } = useShopConnections(filters);
+  const {
+    data: stats,
+    isLoading: isStatsLoading,
+    error: statsError,
+    refetch: refetchStats,
+  } = useShopConnectionStats(filters.organizationId);
   const { data: manageableOrgs } = useManageableOrganizations();
 
   // Active dialogs state
@@ -146,6 +170,11 @@ export function ShopConnectionDirectory(): JSX.Element {
         value: 'connected',
         label: tStatuses('connected'),
         dotColor: 'bg-status-success',
+      },
+      {
+        value: 'expiring_soon',
+        label: tStatuses('expiring_soon'),
+        dotColor: 'bg-status-warning',
       },
       {
         value: 'reconnect_required',
@@ -176,12 +205,27 @@ export function ShopConnectionDirectory(): JSX.Element {
     return Array.isArray(filters.status) ? filters.status : [filters.status];
   }, [filters.status]);
 
+  const updateFilters = useCallback((nextFilters: ShopConnectionFilters) => {
+    const params = new URLSearchParams();
+    if (nextFilters.status && nextFilters.status.length > 0) {
+      params.set('status', nextFilters.status.join(','));
+    }
+    if (nextFilters.organizationId) {
+      params.set('organizationId', String(nextFilters.organizationId));
+    }
+    params.set('page', String(nextFilters.page ?? 1));
+    if (nextFilters.pageSize && nextFilters.pageSize !== 25) {
+      params.set('pageSize', String(nextFilters.pageSize));
+    }
+    router.push(`/shops?${params.toString()}`);
+  }, [router]);
+
   const handleStatusChange = (newStatuses: string[]) => {
-    setFilters((prev: ShopConnectionFilters) => ({
-      ...prev,
-      status: newStatuses.length > 0 ? (newStatuses as PlatformConnectionStatusCode[]) : undefined,
+    updateFilters({
+      ...filters,
+      status: newStatuses.length > 0 ? (newStatuses as ShopConnectionHealthStatusCode[]) : undefined,
       page: 1,
-    }));
+    });
   };
 
   const handleRemoveStatus = (statusToRemove: string) => {
@@ -190,7 +234,7 @@ export function ShopConnectionDirectory(): JSX.Element {
 
   const handleOrgChange = (orgIdStr: string) => {
     const orgId = orgIdStr && orgIdStr !== 'ALL' ? Number(orgIdStr) : undefined;
-    setFilters((prev: ShopConnectionFilters) => ({ ...prev, organizationId: orgId, page: 1 }));
+    updateFilters({ ...filters, organizationId: orgId, page: 1 });
   };
 
   const orgItems: readonly ComboboxItem[] = useMemo(
@@ -205,8 +249,25 @@ export function ShopConnectionDirectory(): JSX.Element {
   );
 
   const handleResetFilters = () => {
-    setFilters({ page: 1, pageSize: filters.pageSize ?? 25 });
+    updateFilters({ page: 1, pageSize: filters.pageSize ?? 25 });
   };
+
+  const activeQuickFilter = selectedStatuses.length === 1
+    ? selectedStatuses[0] as ShopConnectionHealthStatusCode
+    : undefined;
+
+  const handleQuickFilterToggle = useCallback((status: ShopConnectionHealthStatusCode) => {
+    updateFilters({
+      ...filters,
+      status: activeQuickFilter === status ? undefined : [status],
+      page: 1,
+    });
+  }, [activeQuickFilter, filters, updateFilters]);
+
+  const handleReconnectRequired = useCallback(() => {
+    handleQuickFilterToggle('reconnect_required');
+    directoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [handleQuickFilterToggle]);
 
   const hasActiveFilters = Boolean(
     (Array.isArray(filters.status) && filters.status.length > 0) ||
@@ -228,8 +289,31 @@ export function ShopConnectionDirectory(): JSX.Element {
         </Button>
       </div>
 
+      {isStatsLoading && (
+        <div aria-hidden="true" className="h-16 animate-pulse rounded-2xl border border-hairline bg-surface-card" />
+      )}
+
+      {statsError && (
+        <ErrorBanner message={t('statsLoadFailed')} onRetry={() => void refetchStats()} />
+      )}
+
+      {stats && (
+        <ShopConnectionSummaryStats
+          stats={stats}
+          activeStatus={activeQuickFilter}
+          onStatusToggle={handleQuickFilterToggle}
+        />
+      )}
+
+      {stats && (
+        <ShopConnectionAlertBanner
+          reconnectRequiredCount={stats.reconnectRequired}
+          onViewReconnectRequired={handleReconnectRequired}
+        />
+      )}
+
       {/* Filter Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface-card p-3 shadow-xs">
+      <div ref={directoryRef} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface-card p-3 shadow-xs">
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="text-xs font-semibold text-muted mr-0.5">
             {t('filterStatus')}:
@@ -249,7 +333,7 @@ export function ShopConnectionDirectory(): JSX.Element {
 
           {/* Selected badges displayed beside the filter button with "x" button at top corner */}
           {selectedStatuses.map((s) => {
-            const statusKey = s as PlatformConnectionStatusCode;
+            const statusKey = s as ShopConnectionHealthStatusCode;
             return (
               <ShopConnectionStatusBadge
                 key={s}
@@ -340,7 +424,11 @@ export function ShopConnectionDirectory(): JSX.Element {
                   </TableCell>
 
                   <TableCell>
-                    <ShopConnectionStatusBadge status={conn.status} size="xs" />
+                    <ShopConnectionStatusBadge
+                      status={conn.isExpiringSoon ? 'expiring_soon' : conn.status}
+                      expiresAt={conn.tokenExpiresAt ?? conn.refreshTokenExpiresAt}
+                      size="xs"
+                    />
                   </TableCell>
 
                   <TableCell className="text-xs font-mono text-muted">
@@ -437,7 +525,11 @@ export function ShopConnectionDirectory(): JSX.Element {
                   </Link>
                   <p className="text-xs text-muted">{conn.organizationName}</p>
                 </div>
-                <ShopConnectionStatusBadge status={conn.status} size="xs" />
+                <ShopConnectionStatusBadge
+                  status={conn.isExpiringSoon ? 'expiring_soon' : conn.status}
+                  expiresAt={conn.tokenExpiresAt ?? conn.refreshTokenExpiresAt}
+                  size="xs"
+                />
               </div>
 
               <div className="flex items-center justify-between text-xs text-muted pt-1 border-t border-hairline">
@@ -451,58 +543,26 @@ export function ShopConnectionDirectory(): JSX.Element {
                 </span>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-hairline">
-                <Link href={`/shops/${conn.id}`}>
-                  <Button variant="outline" size="xs">
-                    {t('actions.view')}
-                  </Button>
-                </Link>
-                {conn.status === 'reconnect_required' && (
-                  <Button
-                    variant="outline"
-                    size="xs"
-                    className="border-status-warning/60 text-status-warning hover:bg-status-warning/10 font-medium"
-                    onClick={() => {
-                      setActiveConnection(conn);
-                      setDialogMode('reconnect');
-                    }}
-                  >
-                    {t('actions.reconnect')}
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  onClick={() => {
+              <div className="border-t border-hairline pt-2">
+                <ShopConnectionRowActions
+                  connection={conn}
+                  onOpenLabel={() => {
                     setActiveConnection(conn);
                     setDialogMode('label');
                   }}
-                >
-                  {t('actions.edit')}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  onClick={() => {
+                  onOpenReassign={() => {
                     setActiveConnection(conn);
                     setDialogMode('reassign');
                   }}
-                >
-                  {t('actions.reassign')}
-                </Button>
-                {conn.status !== 'disconnected' && (
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    className="text-semantic-error"
-                    onClick={() => {
-                      setActiveConnection(conn);
-                      setDialogMode('disconnect');
-                    }}
-                  >
-                    {t('actions.disconnect')}
-                  </Button>
-                )}
+                  onOpenDisconnect={() => {
+                    setActiveConnection(conn);
+                    setDialogMode('disconnect');
+                  }}
+                  onOpenReconnect={() => {
+                    setActiveConnection(conn);
+                    setDialogMode('reconnect');
+                  }}
+                />
               </div>
             </div>
           ))
@@ -523,10 +583,10 @@ export function ShopConnectionDirectory(): JSX.Element {
           total={data.total}
           pageSize={filters.pageSize ?? 25}
           onPageChange={(page: number) =>
-            setFilters((prev: ShopConnectionFilters) => ({ ...prev, page }))
+            updateFilters({ ...filters, page })
           }
           onPageSizeChange={(pageSize: number) =>
-            setFilters((prev: ShopConnectionFilters) => ({ ...prev, pageSize, page: 1 }))
+            updateFilters({ ...filters, pageSize, page: 1 })
           }
         />
       )}

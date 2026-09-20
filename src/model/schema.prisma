@@ -64,6 +64,8 @@ model PlatformConnection {
   displayLabel    String?                       @db.VarChar(191)
   status          PlatformConnectionStatusCode  @default(reconnect_required)
   integrations    Json?                         // per-shop dynamic tokens & refresh lifecycle
+  tokenExpiresAt  DateTime?                     // access-token expiry metadata; credentials remain in integrations
+  refreshTokenExpiresAt DateTime?               // refresh-token expiry metadata; credentials remain in integrations
   lastSyncedAt    DateTime?
   lastVerifiedAt  DateTime?
   lastFailureCode String?                       @db.VarChar(100)
@@ -85,6 +87,7 @@ model PlatformConnection {
   @@index([organizationId])
   @@index([platformId])
   @@index([status])
+  @@index([status, tokenExpiresAt])
   @@map("platform_connection")
 }
 

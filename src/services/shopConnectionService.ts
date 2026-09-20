@@ -12,10 +12,16 @@ import type {
   ShopConnectionActivityPage,
   ShopConnectionDetail,
   ShopConnectionFilters,
+  ShopConnectionHealthStatusCode,
   ShopConnectionListResult,
+  ShopConnectionStatsSummary,
   ShopConnectionSummary,
 } from '@/types';
 import { prisma } from '@/lib/prisma';
+import {
+  computeShopTokenHealthStatus,
+  SHOP_TOKEN_EXPIRING_SOON_WINDOW_MS,
+} from '@/utils';
 import {
   canActorReassignConnection,
   canActorViewCrossOrgAudit,
@@ -24,6 +30,58 @@ import {
 } from './shopConnectionPermissionService';
 import { appendShopConnectionAuditService } from './shopConnectionAuditService';
 import type { Prisma } from '@prisma/client';
+
+function getExpiringSoonWhere(now: Date): Prisma.PlatformConnectionWhereInput {
+  const expiresBy = new Date(now.getTime() + SHOP_TOKEN_EXPIRING_SOON_WINDOW_MS);
+
+  return {
+    status: 'connected',
+    isActive: true,
+    OR: [
+      { tokenExpiresAt: { gte: now, lte: expiresBy } },
+      { refreshTokenExpiresAt: { gte: now, lte: expiresBy } },
+    ],
+  };
+}
+
+function getStatusFilterWhere(
+  statuses: readonly ShopConnectionHealthStatusCode[] | undefined,
+  now: Date,
+): Prisma.PlatformConnectionWhereInput {
+  if (!statuses || statuses.length === 0) {
+    return { isActive: true };
+  }
+
+  const expiringSoonWhere = getExpiringSoonWhere(now);
+  const ordinaryStatuses = statuses.filter(
+    (status): status is Exclude<ShopConnectionHealthStatusCode, 'expiring_soon'> =>
+      status !== 'expiring_soon',
+  );
+
+  const statusConditions: Prisma.PlatformConnectionWhereInput[] = ordinaryStatuses.map((status) => {
+    if (status === 'connected') {
+      return {
+        status,
+        isActive: true,
+        NOT: {
+          OR: expiringSoonWhere.OR,
+        },
+      };
+    }
+
+    if (status === 'disconnected') {
+      return { status };
+    }
+
+    return { status, isActive: true };
+  });
+
+  if (statuses.includes('expiring_soon')) {
+    statusConditions.push(expiringSoonWhere);
+  }
+
+  return { OR: statusConditions };
+}
 
 /**
  * Checks for queued or running sync batches associated with a connection.
@@ -103,23 +161,10 @@ export async function listShopConnectionsForUserService(
     }
   }
 
-  // Build where clause: default to active records unless explicitly querying disconnected status
-  const isQueryingDisconnected = filters.status?.includes('disconnected');
+  const now = new Date();
   const where: Prisma.PlatformConnectionWhereInput = {
     ...(organizationIdFilter ? { organizationId: organizationIdFilter } : {}),
-    ...(filters.status && filters.status.length > 0
-      ? {
-        status: { in: filters.status },
-        ...(isQueryingDisconnected
-          ? {
-            OR: [
-              { isActive: true },
-              { status: 'disconnected', isActive: false },
-            ],
-          }
-          : { isActive: true }),
-      }
-      : { isActive: true }),
+    ...getStatusFilterWhere(filters.status, now),
   };
 
   // Query total and rows
@@ -134,7 +179,23 @@ export async function listShopConnectionsForUserService(
         { lastVerifiedAt: 'asc' },
         { id: 'desc' },
       ],
-      include: {
+      select: {
+        id: true,
+        organizationId: true,
+        platformId: true,
+        externalShopId: true,
+        shopName: true,
+        displayLabel: true,
+        status: true,
+        tokenExpiresAt: true,
+        refreshTokenExpiresAt: true,
+        lastSyncedAt: true,
+        lastVerifiedAt: true,
+        lastFailureCode: true,
+        version: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
         platform: true,
         organization: {
           select: {
@@ -168,6 +229,9 @@ export async function listShopConnectionsForUserService(
     lastSyncedAt: row.lastSyncedAt ? row.lastSyncedAt.toISOString() : null,
     lastVerifiedAt: row.lastVerifiedAt ? row.lastVerifiedAt.toISOString() : null,
     lastFailureCode: row.lastFailureCode,
+    isExpiringSoon: computeShopTokenHealthStatus(row.status, row, now) === 'expiring_soon',
+    tokenExpiresAt: row.tokenExpiresAt ? row.tokenExpiresAt.toISOString() : null,
+    refreshTokenExpiresAt: row.refreshTokenExpiresAt ? row.refreshTokenExpiresAt.toISOString() : null,
     version: row.version,
     isActive: row.isActive,
     orderCount: row._count.orders,
@@ -195,7 +259,23 @@ export async function getShopConnectionDetailForUserService(
 ): Promise<ShopConnectionDetail> {
   const row = await tx.platformConnection.findUnique({
     where: { id: connectionId },
-    include: {
+    select: {
+      id: true,
+      organizationId: true,
+      platformId: true,
+      externalShopId: true,
+      shopName: true,
+      displayLabel: true,
+      status: true,
+      tokenExpiresAt: true,
+      refreshTokenExpiresAt: true,
+      lastSyncedAt: true,
+      lastVerifiedAt: true,
+      lastFailureCode: true,
+      version: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true,
       platform: true,
       organization: {
         select: {
@@ -253,6 +333,9 @@ export async function getShopConnectionDetailForUserService(
     lastSyncedAt: row.lastSyncedAt ? row.lastSyncedAt.toISOString() : null,
     lastVerifiedAt: row.lastVerifiedAt ? row.lastVerifiedAt.toISOString() : null,
     lastFailureCode: row.lastFailureCode,
+    isExpiringSoon: computeShopTokenHealthStatus(row.status, row) === 'expiring_soon',
+    tokenExpiresAt: row.tokenExpiresAt ? row.tokenExpiresAt.toISOString() : null,
+    refreshTokenExpiresAt: row.refreshTokenExpiresAt ? row.refreshTokenExpiresAt.toISOString() : null,
     version: row.version,
     isActive: row.isActive,
     orderCount: row._count.orders,
@@ -260,6 +343,84 @@ export async function getShopConnectionDetailForUserService(
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     capabilities,
+  };
+}
+
+/**
+ * Counts connection health and supported-platform distribution without selecting credential JSON.
+ */
+export async function getShopConnectionStatsForUserService(
+  actor: ShopConnectionActor,
+  organizationId?: number,
+  tx: DbClient = prisma,
+): Promise<ShopConnectionStatsSummary> {
+  let organizationIdFilter: Prisma.IntFilter | number | undefined;
+
+  if (actor.isAdmin) {
+    organizationIdFilter = organizationId;
+  } else {
+    const memberships = await tx.organizationMember.findMany({
+      where: { userId: actor.id, isActive: true },
+      select: { organizationId: true },
+    });
+    const organizationIds = memberships.map((membership) => membership.organizationId);
+
+    if (organizationIds.length === 0 || (organizationId && !organizationIds.includes(organizationId))) {
+      return {
+        total: 0,
+        connected: 0,
+        expiringSoon: 0,
+        reconnectRequired: 0,
+        disconnected: 0,
+        byPlatform: { lazada: 0, shopify: 0 },
+      };
+    }
+
+    organizationIdFilter = organizationId ?? { in: organizationIds };
+  }
+
+  const scope: Prisma.PlatformConnectionWhereInput = organizationIdFilter
+    ? { organizationId: organizationIdFilter }
+    : {};
+  const now = new Date();
+  const expiringSoonWhere = { ...scope, ...getExpiringSoonWhere(now) };
+  const connectedWhere: Prisma.PlatformConnectionWhereInput = {
+    ...scope,
+    status: 'connected',
+    isActive: true,
+    NOT: { OR: expiringSoonWhere.OR },
+  };
+
+  const [total, connected, expiringSoon, reconnectRequired, disconnected, platformCounts] = await Promise.all([
+    tx.platformConnection.count({ where: scope }),
+    tx.platformConnection.count({ where: connectedWhere }),
+    tx.platformConnection.count({ where: expiringSoonWhere }),
+    tx.platformConnection.count({ where: { ...scope, status: 'reconnect_required', isActive: true } }),
+    tx.platformConnection.count({ where: { ...scope, status: 'disconnected' } }),
+    tx.platformConnection.groupBy({
+      by: ['platformId'],
+      where: scope,
+      _count: { _all: true },
+    }),
+  ]);
+
+  const platformIds = await tx.platformCatalog.findMany({
+    where: { code: { in: ['lazada', 'shopify'] }, isActive: true },
+    select: { id: true, code: true },
+  });
+  const countByPlatformId = new Map(platformCounts.map((count) => [count.platformId, count._count._all]));
+  const platformCountsByCode = new Map(platformIds.map((platform) => [platform.code, countByPlatformId.get(platform.id) ?? 0]));
+
+  return {
+    total,
+    connected,
+    expiringSoon,
+    reconnectRequired,
+    disconnected,
+    byPlatform: {
+      lazada: platformCountsByCode.get('lazada') ?? 0,
+      shopify: platformCountsByCode.get('shopify') ?? 0,
+    },
   };
 }
 

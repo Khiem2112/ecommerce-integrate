@@ -22,6 +22,12 @@ export {
 export const SUPPORTED_SHOP_PLATFORM_CODES = ['lazada', 'shopify'] as const;
 export type SupportedShopPlatformCode = (typeof SUPPORTED_SHOP_PLATFORM_CODES)[number];
 
+export const SHOP_ENVIRONMENTS = ['production', 'sandbox'] as const;
+export type ShopEnvironment = (typeof SHOP_ENVIRONMENTS)[number];
+
+export const SHOP_AUTH_METHODS = ['oauth', 'manual_token'] as const;
+export type ShopAuthMethod = (typeof SHOP_AUTH_METHODS)[number];
+
 export const PLATFORM_CONNECTION_STATUS_CODES = [
   'connected',
   'reconnect_required',
@@ -29,6 +35,13 @@ export const PLATFORM_CONNECTION_STATUS_CODES = [
   'reassigning',
   'disconnected',
 ] as const;
+
+export const SHOP_CONNECTION_HEALTH_STATUS_CODES = [
+  ...PLATFORM_CONNECTION_STATUS_CODES,
+  'expiring_soon',
+] as const;
+export type ShopConnectionHealthStatusCode =
+  (typeof SHOP_CONNECTION_HEALTH_STATUS_CODES)[number];
 
 export const PLATFORM_AUTHORIZATION_ATTEMPT_STATUS_CODES = [
   'authorizing',
@@ -59,6 +72,9 @@ export type LazadaTokenResponse = {
 export type ShopifyTokenResponse = {
   readonly access_token?: string;
   readonly scope?: string;
+  readonly expires_in?: number;
+  readonly refresh_token?: string;
+  readonly refresh_expires_in?: number;
 };
 
 // ============================================================
@@ -152,6 +168,9 @@ export type ShopConnectionSummary = Readonly<
   readonly lastSyncedAt: string | null;
   readonly lastVerifiedAt: string | null;
   readonly lastFailureCode: string | null;
+  readonly isExpiringSoon: boolean;
+  readonly tokenExpiresAt: string | null;
+  readonly refreshTokenExpiresAt: string | null;
   readonly orderCount: number;
   readonly syncBatchCount: number;
   readonly createdAt: string;
@@ -173,8 +192,20 @@ export type ShopConnectionListResult = {
 export type ShopConnectionFilters = {
   readonly page?: number;
   readonly pageSize?: number;
-  readonly status?: PlatformConnectionStatusCode[];
+  readonly status?: ShopConnectionHealthStatusCode[];
   readonly organizationId?: number;
+};
+
+export type ShopConnectionStatsSummary = {
+  readonly total: number;
+  readonly connected: number;
+  readonly expiringSoon: number;
+  readonly reconnectRequired: number;
+  readonly disconnected: number;
+  readonly byPlatform: {
+    readonly lazada: number;
+    readonly shopify: number;
+  };
 };
 export type ShopConnectionFilterValues = ShopConnectionFilters;
 

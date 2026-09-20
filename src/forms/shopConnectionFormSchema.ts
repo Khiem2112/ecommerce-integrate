@@ -1,8 +1,14 @@
 import { z } from 'zod';
 import {
   PLATFORM_CONNECTION_STATUS_CODES,
+  SHOP_CONNECTION_HEALTH_STATUS_CODES,
+  type ShopConnectionHealthStatusCode,
   SUPPORTED_SHOP_PLATFORM_CODES,
   type SupportedShopPlatformCode,
+  SHOP_ENVIRONMENTS,
+  type ShopEnvironment,
+  SHOP_AUTH_METHODS,
+  type ShopAuthMethod,
 } from '@/types';
 
 export const shopConnectionFilterSchema = z.object({
@@ -10,15 +16,15 @@ export const shopConnectionFilterSchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(25),
   status: z
     .union([
-      z.array(z.enum(PLATFORM_CONNECTION_STATUS_CODES)),
-      z.enum(PLATFORM_CONNECTION_STATUS_CODES).transform((s) => [s]),
+      z.array(z.enum(SHOP_CONNECTION_HEALTH_STATUS_CODES)),
+      z.enum(SHOP_CONNECTION_HEALTH_STATUS_CODES).transform((s) => [s]),
       z.string().transform((val) =>
         val
           .split(',')
           .map((s) => s.trim())
-          .filter((s): s is (typeof PLATFORM_CONNECTION_STATUS_CODES)[number] =>
-            PLATFORM_CONNECTION_STATUS_CODES.includes(
-              s as (typeof PLATFORM_CONNECTION_STATUS_CODES)[number],
+          .filter((s): s is ShopConnectionHealthStatusCode =>
+            SHOP_CONNECTION_HEALTH_STATUS_CODES.includes(
+              s as ShopConnectionHealthStatusCode,
             ),
           ),
       ),
@@ -32,10 +38,16 @@ export type ShopConnectionFilterInput = {
   readonly page?: number;
   readonly pageSize?: number;
   readonly status?:
-    | (typeof PLATFORM_CONNECTION_STATUS_CODES)[number]
-    | readonly (typeof PLATFORM_CONNECTION_STATUS_CODES)[number][];
+    | ShopConnectionHealthStatusCode
+    | readonly ShopConnectionHealthStatusCode[];
   readonly organizationId?: number;
 };
+
+export const shopConnectionStatsSchema = z.object({
+  organizationId: z.number().int().positive().optional(),
+}).strict();
+
+export type ShopConnectionStatsInput = z.infer<typeof shopConnectionStatsSchema>;
 
 // ============================================================
 // Label Update Schema & Factory
@@ -57,7 +69,7 @@ export type ShopConnectionLabelUpdateValues = {
 
 export function getShopConnectionLabelUpdateSchema(
   messages?: ShopConnectionLabelUpdateMessages,
-): z.ZodType<ShopConnectionLabelUpdateValues, any> {
+): z.ZodType<ShopConnectionLabelUpdateValues, ShopConnectionLabelUpdateValues> {
   return z.object({
     connectionId: z.number().int().positive(messages?.invalidConnectionId),
     displayLabel: z
@@ -67,7 +79,7 @@ export function getShopConnectionLabelUpdateSchema(
       .max(191, messages?.maxLabel),
     expectedVersion: z.number().int().positive(messages?.invalidVersion),
     idempotencyKey: z.string().trim().max(191).optional(),
-  });
+  }).strict();
 }
 
 export const shopConnectionLabelUpdateSchema = getShopConnectionLabelUpdateSchema();
@@ -80,6 +92,7 @@ export type ShopConnectionStartAuthorizationMessages = {
   readonly invalidPlatform?: string;
   readonly organizationRequired?: string;
   readonly invalidShopDomain?: string;
+  readonly sandboxTokenRequired?: string;
 };
 
 export type ShopConnectionStartAuthorizationValues = {
@@ -88,27 +101,67 @@ export type ShopConnectionStartAuthorizationValues = {
   readonly connectionId?: number;
   readonly shopDomain?: string;
   readonly idempotencyKey?: string;
+  readonly environment?: ShopEnvironment;
+  readonly authMethod?: ShopAuthMethod;
+  readonly sandboxAccessToken?: string;
+  readonly sandboxShopName?: string;
 };
 
 export function getShopConnectionStartAuthorizationSchema(
   messages?: ShopConnectionStartAuthorizationMessages,
-): z.ZodType<ShopConnectionStartAuthorizationValues, any> {
-  return z.object({
-    platformCode: z.enum(SUPPORTED_SHOP_PLATFORM_CODES, {
-      message: messages?.invalidPlatform,
-    }),
-    organizationId: z.number().int().positive(messages?.organizationRequired),
-    connectionId: z.number().int().positive().optional(),
-    shopDomain: z
-      .string()
-      .trim()
-      .regex(
-        /^[a-zA-Z0-9][a-zA-Z0-9-]*(\.myshopify\.com)?$/,
-        messages?.invalidShopDomain,
-      )
-      .optional(),
-    idempotencyKey: z.string().trim().max(191).optional(),
-  });
+): z.ZodType<ShopConnectionStartAuthorizationValues, ShopConnectionStartAuthorizationValues> {
+  return z
+    .object({
+      platformCode: z.enum(SUPPORTED_SHOP_PLATFORM_CODES, {
+        message: messages?.invalidPlatform,
+      }),
+      organizationId: z.number().int().positive(messages?.organizationRequired),
+      connectionId: z.number().int().positive().optional(),
+      shopDomain: z.string().trim().optional(),
+      idempotencyKey: z.string().trim().max(191).optional(),
+      environment: z.enum(SHOP_ENVIRONMENTS).optional(),
+      authMethod: z.enum(SHOP_AUTH_METHODS).optional(),
+      sandboxAccessToken: z.string().trim().optional(),
+      sandboxShopName: z.string().trim().max(100).optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (data.platformCode === 'shopify') {
+        if (!data.shopDomain || data.shopDomain.trim() === '') {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: messages?.invalidShopDomain,
+            path: ['shopDomain'],
+          });
+        } else if (
+          !/^[a-zA-Z0-9][a-zA-Z0-9-]*(\.myshopify\.com)?$/.test(data.shopDomain)
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: messages?.invalidShopDomain,
+            path: ['shopDomain'],
+          });
+        }
+      } else if (data.environment === 'sandbox' && data.authMethod === 'manual_token') {
+        if (data.platformCode === 'lazada' && (!data.sandboxAccessToken || data.sandboxAccessToken.trim() === '')) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: messages?.sandboxTokenRequired,
+            path: ['sandboxAccessToken'],
+          });
+        }
+      }
+ else if (data.shopDomain && data.shopDomain.trim() !== '') {
+        if (
+          !/^[a-zA-Z0-9][a-zA-Z0-9-]*(\.myshopify\.com)?$/.test(data.shopDomain)
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: messages?.invalidShopDomain,
+            path: ['shopDomain'],
+          });
+        }
+      }
+    });
 }
 
 export const shopConnectionStartAuthorizationSchema =
@@ -131,7 +184,7 @@ export type ShopConnectionDisconnectValues = {
 
 export function getShopConnectionDisconnectSchema(
   messages?: ShopConnectionDisconnectMessages,
-): z.ZodType<ShopConnectionDisconnectValues, any> {
+): z.ZodType<ShopConnectionDisconnectValues, ShopConnectionDisconnectValues> {
   return z.object({
     connectionId: z.number().int().positive(messages?.invalidConnectionId),
     expectedVersion: z.number().int().positive(messages?.invalidVersion),
@@ -160,7 +213,7 @@ export type ShopConnectionReassignValues = {
 
 export function getShopConnectionReassignSchema(
   messages?: ShopConnectionReassignMessages,
-): z.ZodType<ShopConnectionReassignValues, any> {
+): z.ZodType<ShopConnectionReassignValues, ShopConnectionReassignValues> {
   return z.object({
     connectionId: z.number().int().positive(messages?.invalidConnectionId),
     targetOrganizationId: z.number().int().positive(messages?.targetOrganizationRequired),

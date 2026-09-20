@@ -8,16 +8,23 @@ import crypto from 'node:crypto';
 import type {
   DbClient,
   SupportedShopPlatformCode,
+  ShopEnvironment,
   LazadaTokenResponse,
   ShopifyTokenResponse,
   OrganizationRoleCode,
+  ShopConnectionDetail,
 } from '@/types';
 import { prisma } from '@/lib/prisma';
-import { canActorManageConnections } from './shopConnectionPermissionService';
+import {
+  canActorManageConnections,
+  type ShopConnectionActor,
+} from './shopConnectionPermissionService';
 import { appendShopConnectionAuditService } from './shopConnectionAuditService';
-import type {
+import { getShopConnectionDetailForUserService } from './shopConnectionService';
+import {
   LazadaIntegrationData,
   ShopifyIntegrationData,
+  getShopCredentialExpiryMetadata,
 } from './shopCredentialService';
 import type { Prisma, PrismaClient } from '@prisma/client';
 
@@ -27,6 +34,7 @@ export type StartAuthorizationInput = {
   readonly connectionId?: number;
   readonly shopDomain?: string;
   readonly idempotencyKey?: string;
+  readonly environment?: ShopEnvironment;
 };
 
 export type StartAuthorizationResult = {
@@ -152,7 +160,8 @@ export async function startShopAuthorizationService(
     },
   });
 
-  const statePayload = `${attempt.id}:${nonce}`;
+  const env = input.environment === 'sandbox' ? 'sandbox' : 'production';
+  const statePayload = `${attempt.id}:${nonce}:${env}`;
   let authorizationUrl = '';
 
   if (input.platformCode === 'lazada') {
@@ -162,11 +171,14 @@ export async function startShopAuthorizationService(
     }
     const params = new URLSearchParams({
       response_type: 'code',
-      force_auth: 'true',
       redirect_uri: callbackUrl,
       client_id: appKey,
       state: statePayload,
     });
+    // Only force auth when reconnecting or if explicitly needed, allowing active sessions to be reused
+    if (input.connectionId) {
+      params.set('force_auth', 'true');
+    }
     authorizationUrl = `https://auth.lazada.com/oauth/authorize?${params.toString()}`;
   } else if (input.platformCode === 'shopify') {
     const apiKey = process.env.SHOPIFY_API_KEY;
@@ -203,6 +215,8 @@ export async function startShopAuthorizationService(
       metadata: {
         platform: input.platformCode,
         isReconnect: Boolean(input.connectionId),
+        environment: env,
+        isSandbox: env === 'sandbox',
       },
     },
     tx,
@@ -227,8 +241,9 @@ export async function completeShopAuthorizationService(
     return { success: false, status: 'failed', error: 'Missing state parameter from provider.' };
   }
 
-  const [rawAttemptId, nonce] = input.state.split(':');
+  const [rawAttemptId, nonce, rawEnv] = input.state.split(':');
   const attemptId = parseInt(rawAttemptId || '', 10);
+  const isSandbox = rawEnv === 'sandbox';
   if (!attemptId || !nonce) {
     return { success: false, status: 'failed', error: 'Invalid state parameter structure.' };
   }
@@ -361,7 +376,7 @@ export async function completeShopAuthorizationService(
   // Atomically persist identity, state, and audit log
   let resolvedConnectionId = 0;
 
-  const runTrx = async (fn: (trx: Prisma.TransactionClient) => Promise<void>) => {
+  const runTrx = async (fn: (trx: Prisma.TransactionClient) => Promise<void>): Promise<void> => {
     if ('$transaction' in tx && typeof (tx as { $transaction?: unknown }).$transaction === 'function') {
       return (tx as unknown as PrismaClient).$transaction(fn);
     }
@@ -380,6 +395,15 @@ export async function completeShopAuthorizationService(
     });
 
     const now = new Date();
+    const expiryMetadata = getShopCredentialExpiryMetadata(tokenData);
+    const resolvedShopName =
+      isSandbox && shopName && !shopName.startsWith('[Sandbox]')
+        ? `[Sandbox] ${shopName}`
+        : shopName;
+    const integrationsPayload = {
+      ...tokenData,
+      ...(isSandbox ? { isSandbox: true } : {}),
+    } as unknown as Prisma.InputJsonValue;
 
     if (existing) {
       // Reactivate / update existing connection
@@ -388,8 +412,10 @@ export async function completeShopAuthorizationService(
         where: { id: existing.id },
         data: {
           status: 'connected',
-          integrations: tokenData as unknown as Prisma.InputJsonValue,
-          shopName: shopName || existing.shopName,
+          integrations: integrationsPayload,
+          tokenExpiresAt: expiryMetadata.tokenExpiresAt,
+          refreshTokenExpiresAt: expiryMetadata.refreshTokenExpiresAt,
+          shopName: resolvedShopName || existing.shopName,
           lastVerifiedAt: now,
           lastFailureCode: null,
           disconnectedAt: null,
@@ -404,9 +430,11 @@ export async function completeShopAuthorizationService(
         where: { id: attempt.connectionId },
         data: {
           externalShopId,
-          shopName: shopName || undefined,
+          shopName: resolvedShopName || undefined,
           status: 'connected',
-          integrations: tokenData as unknown as Prisma.InputJsonValue,
+          integrations: integrationsPayload,
+          tokenExpiresAt: expiryMetadata.tokenExpiresAt,
+          refreshTokenExpiresAt: expiryMetadata.refreshTokenExpiresAt,
           lastVerifiedAt: now,
           lastFailureCode: null,
           disconnectedAt: null,
@@ -421,10 +449,12 @@ export async function completeShopAuthorizationService(
           organizationId: attempt.organizationId,
           platformId: attempt.platformId,
           externalShopId,
-          shopName,
-          displayLabel: shopName,
+          shopName: resolvedShopName,
+          displayLabel: resolvedShopName,
           status: 'connected',
-          integrations: tokenData as unknown as Prisma.InputJsonValue,
+          integrations: integrationsPayload,
+          tokenExpiresAt: expiryMetadata.tokenExpiresAt,
+          refreshTokenExpiresAt: expiryMetadata.refreshTokenExpiresAt,
           lastVerifiedAt: now,
           isActive: true,
           version: 1,
@@ -456,6 +486,7 @@ export async function completeShopAuthorizationService(
         metadata: {
           platform: attempt.platform.code,
           externalShopId,
+          ...(isSandbox ? { isSandbox: true } : {}),
         },
       },
       trx,
@@ -477,7 +508,8 @@ async function exchangeLazadaCode(code: string): Promise<{
 }> {
   const appKey = process.env.LAZADA_APP_KEY;
   const appSecret = process.env.LAZADA_APP_SECRET;
-  const baseUrl = process.env.LAZADA_API_BASE_URL ?? 'https://api.lazada.vn/rest';
+  const authBaseUrl =
+    process.env.LAZADA_AUTH_BASE_URL ?? 'https://auth.lazada.com/rest';
 
   if (!appKey || !appSecret) {
     throw new Error('Thiếu cấu hình LAZADA_APP_KEY hoặc LAZADA_APP_SECRET.');
@@ -493,7 +525,7 @@ async function exchangeLazadaCode(code: string): Promise<{
 
   params.sign = calculateLazadaSignature('/auth/token/create', params, appSecret);
   const query = new URLSearchParams(params).toString();
-  const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/auth/token/create?${query}`, {
+  const res = await fetch(`${authBaseUrl.replace(/\/+$/, '')}/auth/token/create?${query}`, {
     method: 'POST',
   });
 
@@ -584,6 +616,13 @@ async function exchangeShopifyCode(
     shopDomain,
     accessToken: payload.access_token,
     scopes: payload.scope ? payload.scope.split(',') : ['read_orders', 'write_orders'],
+    tokenExpiresAt: payload.expires_in
+      ? new Date(Date.now() + payload.expires_in * 1000).toISOString()
+      : undefined,
+    refreshToken: payload.refresh_token,
+    refreshTokenExpiresAt: payload.refresh_expires_in
+      ? new Date(Date.now() + payload.refresh_expires_in * 1000).toISOString()
+      : undefined,
   };
 
   return {
@@ -591,4 +630,137 @@ async function exchangeShopifyCode(
     shopName: shopDomain.replace('.myshopify.com', ''),
     tokenData,
   };
+}
+
+export type ConnectLazadaSandboxInput = {
+  readonly organizationId: number;
+  readonly sandboxAccessToken: string;
+  readonly sandboxShopName?: string;
+  readonly connectionId?: number;
+};
+
+/**
+ * Connects a Lazada Sandbox shop directly using a Sandbox Access Token.
+ * Bypasses OAuth redirect and avoids credential collision with production sellers.
+ */
+export async function connectLazadaSandboxService(
+  actor: ShopConnectionActor,
+  input: ConnectLazadaSandboxInput,
+  tx: DbClient = prisma,
+): Promise<ShopConnectionDetail> {
+  // Permission check
+  let roleCode: OrganizationRoleCode | undefined = undefined;
+  if (!actor.isAdmin) {
+    const membership = await tx.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: input.organizationId,
+          userId: actor.id,
+        },
+      },
+      include: { role: true },
+    });
+
+    if (!membership || !membership.isActive) {
+      throw new Error('Bạn không có quyền quản lý gian hàng trong tổ chức này.');
+    }
+    roleCode = membership.role.code as OrganizationRoleCode;
+  }
+
+  if (!canActorManageConnections(actor, roleCode)) {
+    throw new Error('Bạn không có quyền thực hiện thao tác kết nối gian hàng.');
+  }
+
+  const platform = await tx.platformCatalog.findUnique({
+    where: { code: 'lazada' },
+  });
+  if (!platform || !platform.isActive) {
+    throw new Error('Nền tảng Lazada không khả dụng.');
+  }
+
+  const token = input.sandboxAccessToken.trim();
+  if (!token) {
+    throw new Error('Mã truy cập Sandbox Access Token là bắt buộc.');
+  }
+
+  const rawShopName = input.sandboxShopName?.trim() || 'Lazada Test Shop';
+  const shopName = rawShopName.startsWith('[Sandbox]') ? rawShopName : `[Sandbox] ${rawShopName}`;
+  const externalShopId = `sandbox_${input.organizationId}_${Date.now().toString(36)}`;
+
+  const now = new Date();
+  const tokenExpiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days default TTL
+  const refreshTokenExpiresAt = new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000); // 180 days default TTL
+
+  const tokenData: LazadaIntegrationData = {
+    sellerId: externalShopId,
+    userId: `user_${actor.id}`,
+    country: 'VN',
+    account: shopName,
+    accessToken: token,
+    refreshToken: `rf_${token.slice(0, 16)}`,
+    tokenExpiresAt: tokenExpiresAt.toISOString(),
+    refreshTokenExpiresAt: refreshTokenExpiresAt.toISOString(),
+  };
+
+  const integrations = {
+    ...tokenData,
+    isSandbox: true,
+  };
+
+  let connectionId = input.connectionId;
+  if (connectionId) {
+    const existing = await tx.platformConnection.findUnique({
+      where: { id: connectionId },
+    });
+    if (!existing || existing.organizationId !== input.organizationId || existing.platformId !== platform.id) {
+      throw new Error('Gian hàng cần kết nối lại không thuộc tổ chức hoặc nền tảng này.');
+    }
+
+    await tx.platformConnection.update({
+      where: { id: connectionId },
+      data: {
+        shopName,
+        displayLabel: shopName,
+        status: 'connected',
+        integrations,
+        tokenExpiresAt,
+        lastVerifiedAt: now,
+        disconnectedAt: null,
+        lastFailureCode: null,
+      },
+    });
+  } else {
+    const created = await tx.platformConnection.create({
+      data: {
+        organizationId: input.organizationId,
+        platformId: platform.id,
+        externalShopId,
+        shopName,
+        displayLabel: shopName,
+        status: 'connected',
+        integrations,
+        tokenExpiresAt,
+        lastVerifiedAt: now,
+        version: 1,
+      },
+    });
+    connectionId = created.id;
+  }
+
+  await appendShopConnectionAuditService(
+    {
+      connectionId,
+      actorUserId: actor.id,
+      organizationIdAfter: input.organizationId,
+      action: 'connection.connected',
+      metadata: {
+        platform: 'lazada',
+        isSandbox: true,
+        shopName,
+      },
+    },
+    tx,
+  );
+
+  return getShopConnectionDetailForUserService(actor, connectionId, tx);
 }

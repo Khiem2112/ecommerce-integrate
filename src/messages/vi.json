@@ -1632,6 +1632,8 @@
     "breadcrumb": "Gian hàng",
     "statuses": {
       "connected": "Đã kết nối",
+      "expiring_soon": "Sắp hết hạn",
+      "expiringSoonTooltip": "Token sàn sắp hết hạn vào {expiresAt}. Vui lòng chủ động kết nối lại để tránh gián đoạn đồng bộ.",
       "reconnect_required": "Cần kết nối lại",
       "disconnecting": "Đang ngắt kết nối",
       "reassigning": "Đang chuyển tổ chức",
@@ -1642,9 +1644,14 @@
       "description": "Danh mục các gian hàng bán hàng đa kênh được kết nối trên hệ thống",
       "connectShop": "Kết nối gian hàng",
       "filterStatus": "Trạng thái",
+      "selectStatus": "Chọn trạng thái",
+      "allStatuses": "Tất cả trạng thái",
+      "selectedStatusesCount": "{count} trạng thái đã chọn",
+      "removeStatusFilter": "Bỏ lọc trạng thái {status}",
       "allOrganizations": "Tất cả tổ chức",
       "clearFilters": "Xóa bộ lọc",
       "loadFailed": "Không thể tải danh sách gian hàng.",
+      "statsLoadFailed": "Không thể tải tổng quan trạng thái gian hàng.",
       "columns": {
         "shop": "Gian hàng",
         "platform": "Nền tảng",
@@ -1666,6 +1673,20 @@
       "noFilterResultsDescription": "Thử xóa bớt bộ lọc hoặc chọn trạng thái khác để tìm kiếm.",
       "emptyTitle": "Chưa có gian hàng nào",
       "emptyDescription": "Hãy bắt đầu bằng việc kết nối gian hàng đầu tiên cho doanh nghiệp của bạn."
+    },
+    "summary": {
+      "label": "Tổng quan trạng thái gian hàng",
+      "statusDistribution": "Phân bổ theo trạng thái",
+      "platformDistribution": "Phân bổ theo nền tảng",
+      "count": "{count} gian hàng",
+      "platform": {
+        "lazada": "Lazada: {count}",
+        "shopify": "Shopify: {count}"
+      }
+    },
+    "alert": {
+      "reconnectRequiredMessage": "{count, plural, =1 {1 gian hàng đang mất kết nối và đồng bộ bị gián đoạn.} other {# gian hàng đang mất kết nối và đồng bộ bị gián đoạn.}}",
+      "viewReconnectRequired": "Xem gian hàng cần kết nối lại"
     },
     "detail": {
       "loadFailed": "Không thể tải thông tin gian hàng.",
@@ -1702,21 +1723,39 @@
       "reconnectTitle": "Kết nối lại gian hàng",
       "reconnect": "Kết nối lại",
       "description": "Chọn nền tảng và cấp quyền truy cập qua cổng ủy quyền OAuth chính thức.",
+      "descriptionWithOrg": "Kết nối gian hàng cho tổ chức {orgName}. Chọn nền tảng và cấp quyền truy cập qua cổng ủy quyền OAuth chính thức.",
       "reconnectDescription": "Cấp quyền lại để cập nhật mới token truy cập cho gian hàng này.",
       "platformLabel": "Nền tảng thương mại điện tử",
       "lazadaDesc": "Nền tảng mở",
+      "lazadaEnvLabel": "Môi trường",
+      "lazadaEnvProduction": "Tài khoản thật (OAuth)",
+      "lazadaEnvSandbox": "Thử nghiệm (Sandbox)",
+      "authMethodLabel": "Phương thức kết nối",
+      "authMethodOAuth": "Ủy quyền qua OAuth (Khuyến nghị)",
+      "authMethodManual": "Nhập Access Token thủ công",
       "shopifyDesc": "OAuth quản trị",
       "organizationLabel": "Tổ chức liên kết",
       "selectOrgPlaceholder": "-- Chọn tổ chức --",
       "shopDomainLabel": "Tên miền cửa hàng Shopify",
       "shopDomainPlaceholder": "my-shop",
+      "sandboxTokenLabel": "Sandbox Access Token",
+      "sandboxTokenPlaceholder": "Dán access_token từ Lazada Console (Test Tools > Get Token)",
+      "sandboxShopNameLabel": "Tên gian hàng thử nghiệm (tùy chọn)",
+      "sandboxShopNamePlaceholder": "Lazada Test Store",
       "handoffNoticeTitle": "Chuyển hướng an toàn",
       "handoffNoticeDescription": "Hệ thống sẽ chuyển bạn đến trang đăng nhập và xác thực của sàn thương mại điện tử. OmniCart không bao giờ lưu trữ thông tin đăng nhập của bạn.",
+      "sandboxNoticeTitle": "Chế độ thử nghiệm Sandbox",
+      "sandboxNoticeDescription": "Tài khoản Sandbox sử dụng token do Lazada cấp trong Developer Console. Kết nối này độc lập và an toàn, không trùng lặp hay ảnh hưởng tài khoản người bán thật.",
+      "sandboxOAuthNoticeTitle": "Ủy quyền Sandbox qua OAuth",
+      "sandboxOAuthNoticeDescription": "Bạn sẽ được chuyển hướng tới cổng đăng nhập của Lazada để ủy quyền cho tài khoản thử nghiệm. Kết nối sẽ tự động gắn nhãn [Sandbox] để phân biệt với gian hàng thật.",
       "submit": "Bắt đầu xác thực",
       "connecting": "Đang chuyển hướng…",
+      "connectSandbox": "Kết nối Sandbox",
+      "connectingSandbox": "Đang kết nối…",
       "errors": {
         "missingOrg": "Vui lòng chọn tổ chức liên kết.",
         "missingShopDomain": "Vui lòng nhập tên miền gian hàng Shopify.",
+        "missingSandboxToken": "Vui lòng nhập Access Token của tài khoản Sandbox.",
         "failedToStart": "Không thể khởi tạo phiên xác thực."
       }
     },

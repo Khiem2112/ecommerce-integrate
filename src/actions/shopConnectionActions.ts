@@ -8,6 +8,7 @@ import {
   shopConnectionLabelUpdateSchema,
   shopConnectionReassignSchema,
   shopConnectionStartAuthorizationSchema,
+  shopConnectionStatsSchema,
   type ShopConnectionDisconnectValues,
   type ShopConnectionFilterInput,
   type ShopConnectionFilterValues,
@@ -17,6 +18,7 @@ import {
 } from '@/forms';
 import {
   getShopConnectionDetailForUserService,
+  getShopConnectionStatsForUserService,
   listAdminManagedOrganizationsForUserService,
   listShopConnectionActivityForUserService,
   listShopConnectionsForUserService,
@@ -24,6 +26,7 @@ import {
   requestShopConnectionReassignmentService,
   resolveShopConnectionActorService,
   startShopAuthorizationService,
+  connectLazadaSandboxService,
   updateShopConnectionLabelForUserService,
   type ShopConnectionActor,
 } from '@/services';
@@ -34,6 +37,7 @@ import type {
   ShopConnectionActivityPage,
   ShopConnectionDetail,
   ShopConnectionListResult,
+  ShopConnectionStatsSummary,
 } from '@/types';
 
 function actionError(error: unknown): string {
@@ -95,6 +99,27 @@ export async function getShopConnectionDetailAction(
   }
 }
 
+export async function getShopConnectionStatsAction(
+  input: unknown = {},
+): Promise<ActionResponse<ShopConnectionStatsSummary>> {
+  try {
+    const parsed = shopConnectionStatsSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false, error: 'INVALID_SHOP_CONNECTION_STATS_FILTER' };
+    }
+
+    const actor = await resolveCurrentUser();
+    const result = await getShopConnectionStatsForUserService(
+      actor,
+      parsed.data.organizationId,
+      prisma,
+    );
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: actionError(error) };
+  }
+}
+
 export async function getShopConnectionActivityAction(
   connectionId: number,
   cursor?: number,
@@ -132,12 +157,58 @@ export async function startShopAuthorizationAction(
     if (!parsed.success) {
       return {
         success: false,
-        error: 'Thông tin bắt đầu xác thực không hợp lệ.',
+        error: parsed.error.issues[0]?.message ?? 'Thông tin bắt đầu xác thực không hợp lệ.',
       };
     }
 
     const actor = await resolveCurrentUser();
     const result = await startShopAuthorizationService(actor, parsed.data, prisma);
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: actionError(error),
+    };
+  }
+}
+
+export async function connectLazadaSandboxShopAction(
+  input: ShopConnectionStartAuthorizationValues,
+): Promise<ActionResponse<ShopConnectionDetail>> {
+  try {
+    const parsed = shopConnectionStartAuthorizationSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message ?? 'Thông tin kết nối Sandbox không hợp lệ.',
+      };
+    }
+
+    if (!parsed.data.sandboxAccessToken?.trim()) {
+      return {
+        success: false,
+        error: 'Vui lòng cung cấp Access Token của tài khoản Sandbox.',
+      };
+    }
+
+    const actor = await resolveCurrentUser();
+    const result = await connectLazadaSandboxService(
+      actor,
+      {
+        organizationId: parsed.data.organizationId,
+        sandboxAccessToken: parsed.data.sandboxAccessToken,
+        sandboxShopName: parsed.data.sandboxShopName,
+        connectionId: parsed.data.connectionId,
+      },
+      prisma,
+    );
+
+    revalidatePath('/shops');
+    revalidatePath('/organizations');
+
     return {
       success: true,
       data: result,

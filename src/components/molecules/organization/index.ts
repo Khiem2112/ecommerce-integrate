@@ -49,3 +49,6 @@ export {
   ShopConnectionStatusBadge,
   type ShopConnectionStatusBadgeProps,
 } from './ShopConnectionStatusBadge';
+
+export { ShopConnectionSummaryStats } from './ShopConnectionSummaryStats';
+export { ShopConnectionAlertBanner } from './ShopConnectionAlertBanner';

@@ -12,9 +12,11 @@ import {
   getManageableOrganizationsAction,
   getShopConnectionActivityAction,
   getShopConnectionDetailAction,
+  getShopConnectionStatsAction,
   getShopConnectionsAction,
   reassignShopConnectionAction,
   startShopAuthorizationAction,
+  connectLazadaSandboxShopAction,
   updateShopConnectionLabelAction,
 } from '@/actions';
 import type {
@@ -30,7 +32,24 @@ import type {
   ShopConnectionActivityPage,
   ShopConnectionDetail,
   ShopConnectionListResult,
+  ShopConnectionStatsSummary,
 } from '@/types';
+
+export function useShopConnectionStats(
+  organizationId?: number,
+): UseQueryResult<ShopConnectionStatsSummary, Error> {
+  return useQuery<ShopConnectionStatsSummary>({
+    queryKey: ['shop-connections', 'stats', organizationId],
+    queryFn: async () => {
+      const res = await getShopConnectionStatsAction({ organizationId });
+      if (!res.success || !res.data) {
+        throw new Error(res.error || 'LOAD_SHOP_STATS_FAILED');
+      }
+      return res.data;
+    },
+    staleTime: 20_000,
+  });
+}
 
 export function useShopConnections(
   filters: ShopConnectionFilterInput = {},
@@ -87,10 +106,9 @@ export function useShopConnectionActivity(
   });
 }
 
-export function useManageableOrganizations(): UseQueryResult<
-  readonly ManageableOrganizationOption[],
-  Error
-> {
+export function useManageableOrganizations(options?: {
+  readonly enabled?: boolean;
+}): UseQueryResult<readonly ManageableOrganizationOption[], Error> {
   return useQuery<readonly ManageableOrganizationOption[]>({
     queryKey: ['shop-connections', 'manageable-organizations'],
     queryFn: async () => {
@@ -101,6 +119,7 @@ export function useManageableOrganizations(): UseQueryResult<
       return res.data;
     },
     staleTime: 60_000,
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -116,6 +135,30 @@ export function useStartShopAuthorization(): UseMutationResult<
         throw new Error(res.error || 'AUTH_START_FAILED');
       }
       return res.data;
+    },
+  });
+}
+
+export function useConnectLazadaSandboxShop(): UseMutationResult<
+  ShopConnectionDetail,
+  Error,
+  ShopConnectionStartAuthorizationValues
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation<ShopConnectionDetail, Error, ShopConnectionStartAuthorizationValues>({
+    mutationFn: async (input: ShopConnectionStartAuthorizationValues) => {
+      const res = await connectLazadaSandboxShopAction(input);
+      if (!res.success || !res.data) {
+        throw new Error(res.error || 'CONNECT_SANDBOX_FAILED');
+      }
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['shop-connections', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['shop-connections', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['shop-connections', 'detail', data.id] });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
     },
   });
 }
@@ -137,6 +180,7 @@ export function useUpdateShopConnectionLabel(): UseMutationResult<
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['shop-connections', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['shop-connections', 'stats'] });
       queryClient.invalidateQueries({ queryKey: ['shop-connections', 'detail', data.id] });
       queryClient.invalidateQueries({ queryKey: ['shop-connections', 'activity', data.id] });
       queryClient.invalidateQueries({ queryKey: ['organizations'] });
@@ -161,6 +205,7 @@ export function useDisconnectShopConnection(): UseMutationResult<
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['shop-connections', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['shop-connections', 'stats'] });
       queryClient.invalidateQueries({ queryKey: ['shop-connections', 'detail', data.id] });
       queryClient.invalidateQueries({ queryKey: ['shop-connections', 'activity', data.id] });
       queryClient.invalidateQueries({ queryKey: ['organizations'] });
@@ -185,6 +230,7 @@ export function useReassignShopConnection(): UseMutationResult<
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['shop-connections', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['shop-connections', 'stats'] });
       queryClient.invalidateQueries({ queryKey: ['shop-connections', 'detail', data.id] });
       queryClient.invalidateQueries({ queryKey: ['shop-connections', 'activity', data.id] });
       queryClient.invalidateQueries({ queryKey: ['organizations'] });

@@ -77,5 +77,13 @@ export {
   ShopConnectionReassignForm,
   type ShopConnectionReassignFormProps,
 } from './ShopConnectionReassignForm';
+export {
+  LazadaSelectionCard,
+  type LazadaSelectionCardProps,
+} from './LazadaSelectionCard';
+export {
+  ShopifySelectionCard,
+  type ShopifySelectionCardProps,
+} from './ShopifySelectionCard';
 export * from './ShopConnectionActionDialogs';
 export * from './ShopConnectionActionForms';

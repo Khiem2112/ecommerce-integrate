@@ -248,14 +248,20 @@ export type {
 
 export {
   SUPPORTED_SHOP_PLATFORM_CODES,
+  SHOP_ENVIRONMENTS,
+  SHOP_AUTH_METHODS,
   PLATFORM_CONNECTION_STATUS_CODES,
   PLATFORM_AUTHORIZATION_ATTEMPT_STATUS_CODES,
+  SHOP_CONNECTION_HEALTH_STATUS_CODES,
 } from './shopConnection';
 
 export type {
   SupportedShopPlatformCode,
+  ShopEnvironment,
+  ShopAuthMethod,
   PlatformConnectionStatusCode,
   PlatformAuthorizationAttemptStatusCode,
+  ShopConnectionHealthStatusCode,
   ShopConnectionSummaryPayload,
   ShopConnectionDetailPayload,
   ShopConnectionAuditLogPayload,
@@ -263,6 +269,7 @@ export type {
   ShopConnectionSummary,
   ShopConnectionDetail,
   ShopConnectionListResult,
+  ShopConnectionStatsSummary,
   ShopConnectionFilters,
   ShopConnectionActivityItem,
   ShopConnectionActivityPage,

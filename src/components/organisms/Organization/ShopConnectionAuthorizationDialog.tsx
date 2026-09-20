@@ -20,6 +20,7 @@ export type ShopConnectionAuthorizationDialogProps = {
   readonly fixedOrganizationId?: number;
   readonly fixedOrganizationName?: string;
   readonly reconnectConnectionId?: number;
+  readonly onAuthorizationStarted?: (result: { authorizationUrl: string }) => void;
   readonly onSuccess?: (result: { authorizationUrl: string }) => void;
 };
 
@@ -31,6 +32,7 @@ export function ShopConnectionAuthorizationDialog({
   fixedOrganizationId,
   fixedOrganizationName,
   reconnectConnectionId,
+  onAuthorizationStarted,
   onSuccess,
 }: ShopConnectionAuthorizationDialogProps): JSX.Element {
   const t = useTranslations('shops.connectDialog');
@@ -50,7 +52,11 @@ export function ShopConnectionAuthorizationDialog({
             {reconnectConnectionId ? t('reconnectTitle') : t('title')}
           </DialogTitle>
           <DialogDescription>
-            {reconnectConnectionId ? t('reconnectDescription') : t('description')}
+            {reconnectConnectionId
+              ? t('reconnectDescription')
+              : fixedOrganizationName
+                ? t('descriptionWithOrg', { orgName: fixedOrganizationName })
+                : t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -60,8 +66,9 @@ export function ShopConnectionAuthorizationDialog({
           fixedOrganizationId={fixedOrganizationId}
           fixedOrganizationName={fixedOrganizationName}
           reconnectConnectionId={reconnectConnectionId}
-          onSuccess={(result) => {
-            onSuccess?.(result);
+          onAuthorizationStarted={(result) => {
+            const handleStarted = onAuthorizationStarted ?? onSuccess;
+            handleStarted?.(result);
             handleOpenChange(false);
           }}
           onCancel={() => handleOpenChange(false)}

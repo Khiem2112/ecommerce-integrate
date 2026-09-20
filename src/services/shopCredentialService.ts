@@ -28,12 +28,18 @@ export type ShopifyIntegrationData = {
   readonly accessToken: string;
   readonly scopes: readonly string[];
   readonly tokenExpiresAt?: string;
+  readonly refreshTokenExpiresAt?: string;
   readonly refreshToken?: string;
   readonly customAppKey?: string;
   readonly customAppSecret?: string;
 };
 
 export type PlatformIntegrationData = LazadaIntegrationData | ShopifyIntegrationData;
+
+type ShopCredentialExpiryMetadata = {
+  readonly tokenExpiresAt: Date | null;
+  readonly refreshTokenExpiresAt: Date | null;
+};
 
 // In-memory mutex locks to prevent race conditions during refresh token rotation per connection
 const connectionRefreshLocks = new Map<number, Promise<PlatformIntegrationData>>();
@@ -66,14 +72,36 @@ export async function setShopCredentialsService(
   data: PlatformIntegrationData,
   tx: DbClient = prisma,
 ): Promise<void> {
+  const expiryMetadata = getShopCredentialExpiryMetadata(data);
+
   await tx.platformConnection.update({
     where: { id: connectionId },
     data: {
       integrations: data as unknown as Prisma.InputJsonValue,
+      tokenExpiresAt: expiryMetadata.tokenExpiresAt,
+      refreshTokenExpiresAt: expiryMetadata.refreshTokenExpiresAt,
       lastVerifiedAt: new Date(),
       lastFailureCode: null,
     },
   });
+}
+
+export function getShopCredentialExpiryMetadata(
+  data: PlatformIntegrationData,
+): ShopCredentialExpiryMetadata {
+  const toValidDate = (value: string | undefined): Date | null => {
+    if (!value) {
+      return null;
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  return {
+    tokenExpiresAt: toValidDate(data.tokenExpiresAt),
+    refreshTokenExpiresAt: toValidDate(data.refreshTokenExpiresAt),
+  };
 }
 
 /**

@@ -1632,6 +1632,8 @@
     "breadcrumb": "Shops",
     "statuses": {
       "connected": "Connected",
+      "expiring_soon": "Expiring soon",
+      "expiringSoonTooltip": "The marketplace token expires on {expiresAt}. Reconnect proactively to avoid interrupted synchronization.",
       "reconnect_required": "Reconnect required",
       "disconnecting": "Disconnecting",
       "reassigning": "Reassigning",
@@ -1642,9 +1644,14 @@
       "description": "Directory of multi-channel storefront connections across organizations",
       "connectShop": "Connect shop",
       "filterStatus": "Status",
+      "selectStatus": "Select status",
+      "allStatuses": "All statuses",
+      "selectedStatusesCount": "{count} statuses selected",
+      "removeStatusFilter": "Remove {status} filter",
       "allOrganizations": "All organizations",
       "clearFilters": "Clear filters",
       "loadFailed": "Failed to load shop connections.",
+      "statsLoadFailed": "Failed to load the shop connection overview.",
       "columns": {
         "shop": "Shop",
         "platform": "Platform",
@@ -1666,6 +1673,20 @@
       "noFilterResultsDescription": "Try adjusting or clearing your filters to see more results.",
       "emptyTitle": "No shops connected yet",
       "emptyDescription": "Get started by connecting your first shop to an organization."
+    },
+    "summary": {
+      "label": "Shop connection overview",
+      "statusDistribution": "Status distribution",
+      "platformDistribution": "Platform distribution",
+      "count": "{count} shops",
+      "platform": {
+        "lazada": "Lazada: {count}",
+        "shopify": "Shopify: {count}"
+      }
+    },
+    "alert": {
+      "reconnectRequiredMessage": "{count, plural, =1 {1 shop is disconnected and synchronization is blocked.} other {# shops are disconnected and synchronization is blocked.}}",
+      "viewReconnectRequired": "View shops that need reconnection"
     },
     "detail": {
       "loadFailed": "Failed to load shop connection details.",
@@ -1702,21 +1723,39 @@
       "reconnectTitle": "Reconnect shop",
       "reconnect": "Reconnect",
       "description": "Select platform and authorize access via the official OAuth provider portal.",
+      "descriptionWithOrg": "Connect a shop for {orgName}. Select platform and authorize access via the official OAuth provider portal.",
       "reconnectDescription": "Re-authorize to refresh access tokens for this shop connection.",
       "platformLabel": "E-commerce platform",
       "lazadaDesc": "Open Platform",
+      "lazadaEnvLabel": "Environment",
+      "lazadaEnvProduction": "Production (OAuth)",
+      "lazadaEnvSandbox": "Sandbox (Test)",
+      "authMethodLabel": "Connection method",
+      "authMethodOAuth": "Authorize via OAuth (Recommended)",
+      "authMethodManual": "Enter Access Token manually",
       "shopifyDesc": "Admin OAuth",
       "organizationLabel": "Target organization",
       "selectOrgPlaceholder": "-- Select organization --",
       "shopDomainLabel": "Shopify shop domain",
       "shopDomainPlaceholder": "my-shop",
+      "sandboxTokenLabel": "Sandbox Access Token",
+      "sandboxTokenPlaceholder": "Paste access_token from Lazada Console (Test Tools > Get Token)",
+      "sandboxShopNameLabel": "Test shop display name (optional)",
+      "sandboxShopNamePlaceholder": "Lazada Test Store",
       "handoffNoticeTitle": "Secure authorization handoff",
       "handoffNoticeDescription": "You will be securely redirected to the provider's official login portal. OmniCart never stores your account credentials.",
+      "sandboxNoticeTitle": "Sandbox Test Mode",
+      "sandboxNoticeDescription": "Sandbox accounts use credentials managed directly in the developer portal. This connection is safely isolated and never interferes with production stores.",
+      "sandboxOAuthNoticeTitle": "Sandbox Authorization via OAuth",
+      "sandboxOAuthNoticeDescription": "You will be redirected to Lazada's official portal to authorize your test account. The connection will automatically be tagged as [Sandbox] to isolate it from production stores.",
       "submit": "Start authorization",
       "connecting": "Redirecting…",
+      "connectSandbox": "Connect Sandbox",
+      "connectingSandbox": "Connecting…",
       "errors": {
         "missingOrg": "Please select an organization.",
         "missingShopDomain": "Please enter your Shopify shop domain.",
+        "missingSandboxToken": "Please provide a valid Sandbox Access Token.",
         "failedToStart": "Failed to initiate authorization session."
       }
     },
