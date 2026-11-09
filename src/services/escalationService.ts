@@ -1,10 +1,11 @@
 import { prisma } from '@/lib/prisma';
-import { redis } from '@/lib/redis';
 import { appLogger } from '@/lib/logger';
+import { chatBroadcaster } from './chatBroadcaster';
 import type {
   DbClient,
   EscalationAuditLogRecord,
   EscalationTriggerSource,
+  ChatStreamEvent,
 } from '@/types';
 
 export type CreateEscalationInput = {
@@ -56,19 +57,32 @@ export async function createEscalationAuditLog(
     },
   });
 
-  const escalationPayload = {
+  let orgId: number | undefined;
+  if (auditLog.conversation?.connectionId) {
+    try {
+      const conn = await tx.platformConnection?.findUnique?.({
+        where: { id: auditLog.conversation.connectionId },
+        select: { organizationId: true },
+      });
+      orgId = conn?.organizationId;
+    } catch {
+      // Graceful fallback
+    }
+  }
+
+  const escalationPayload: ChatStreamEvent = {
     type: 'chat:session_escalated',
     auditLogId: auditLog.id,
     conversationId: input.conversationId,
     triggerSource: input.triggerSource,
-    confidenceScore: input.confidenceScore,
+    confidenceScore: input.confidenceScore ?? 0,
     reasonSummary: input.reasonSummary,
-    suggestedDraft: input.suggestedDraft,
+    suggestedDraft: input.suggestedDraft ?? null,
     priority: input.isUrgent ? 'urgent' : 'high',
     timestamp: auditLog.escalatedAt,
   };
 
-  await redis.publish('chat:events', JSON.stringify(escalationPayload));
+  await chatBroadcaster.publishChatEvent(escalationPayload, orgId);
 
   appLogger.info('Session escalated successfully and alert published', {
     auditLogId: auditLog.id,
@@ -104,22 +118,34 @@ export async function resolveEscalation(
     },
   });
 
-  await tx.conversation.update({
+  const updatedConversation = await tx.conversation.update({
     where: { id: input.conversationId },
     data: {
       escalationStatusId: resolvedEscalationStatus?.id ?? undefined,
     },
   });
 
-  await redis.publish(
-    'chat:events',
-    JSON.stringify({
-      type: 'chat:session_resolved',
-      auditLogId: input.auditLogId,
-      conversationId: input.conversationId,
-      handledByUserId: input.handledByUserId,
-    }),
-  );
+  let orgId: number | undefined;
+  if (updatedConversation?.connectionId) {
+    try {
+      const conn = await tx.platformConnection?.findUnique?.({
+        where: { id: updatedConversation.connectionId },
+        select: { organizationId: true },
+      });
+      orgId = conn?.organizationId;
+    } catch {
+      // Graceful fallback
+    }
+  }
+
+  const resolvedPayload: ChatStreamEvent = {
+    type: 'chat:session_resolved',
+    auditLogId: input.auditLogId,
+    conversationId: input.conversationId,
+    handledByUserId: input.handledByUserId,
+  };
+
+  await chatBroadcaster.publishChatEvent(resolvedPayload, orgId);
 
   appLogger.info('Escalation resolved by operator', {
     auditLogId: input.auditLogId,

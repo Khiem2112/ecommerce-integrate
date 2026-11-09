@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
 import { withDistributedLock } from '@/lib/redlock';
 import { appLogger } from '@/lib/logger';
+import { chatBroadcaster } from './chatBroadcaster';
 import {
   CHAT_MESSAGE_QUEUE_NAME,
   type ChatWebhookJobData,
@@ -10,6 +11,7 @@ import {
 import type {
   LazadaPushMessagePayload,
   LazadaPushSessionUpdatePayload,
+  ChatStreamEvent,
 } from '@/types';
 
 const DEBOUNCE_WINDOW_SECONDS = 3;
@@ -80,6 +82,17 @@ async function handlePushMessage(
 ): Promise<void> {
   const messageId = payload.message_id;
   const sessionId = payload.session_id;
+
+  let orgId: number | undefined;
+  try {
+    const connection = await prisma.platformConnection?.findUnique?.({
+      where: { id: connectionId },
+      select: { organizationId: true },
+    });
+    orgId = connection?.organizationId;
+  } catch {
+    // Graceful fallback when platformConnection lookup is mocked or unavailable
+  }
 
   const existingMessage = await prisma.message.findUnique({
     where: {
@@ -230,18 +243,16 @@ async function handlePushMessage(
       });
     }
 
-    await redis.publish(
-      'chat:events',
-      JSON.stringify({
-        type: 'chat:operator_takeover',
-        sessionId,
-        conversationId: conversation.id,
-        sellerAccountId: payload.from_account_id,
-      }),
-    );
+    const takeoverEvent: ChatStreamEvent = {
+      type: 'chat:operator_takeover',
+      sessionId,
+      conversationId: conversation.id,
+      sellerAccountId: payload.from_account_id,
+    };
+    await chatBroadcaster.publishChatEvent(takeoverEvent, orgId);
   }
 
-  const eventPayload = {
+  const eventPayload: ChatStreamEvent = {
     type: 'chat:message_received',
     conversationId: conversation.id,
     messageId: createdMessage.id,
@@ -251,7 +262,7 @@ async function handlePushMessage(
     timestamp: createdMessage.timestamp,
   };
 
-  await redis.publish('chat:events', JSON.stringify(eventPayload));
+  await chatBroadcaster.publishChatEvent(eventPayload, orgId);
 }
 
 async function handlePushSessionUpdate(
@@ -261,6 +272,17 @@ async function handlePushSessionUpdate(
   const sessionId = payload.session_id;
   if (!sessionId) {
     return;
+  }
+
+  let orgId: number | undefined;
+  try {
+    const connection = await prisma.platformConnection?.findUnique?.({
+      where: { id: connectionId },
+      select: { organizationId: true },
+    });
+    orgId = connection?.organizationId;
+  } catch {
+    // Graceful fallback when platformConnection lookup is mocked or unavailable
   }
 
   const updateFields: { unreadCount?: number; lastMessageTime?: Date } = {};
@@ -281,15 +303,13 @@ async function handlePushSessionUpdate(
     });
   }
 
-  await redis.publish(
-    'chat:events',
-    JSON.stringify({
-      type: 'chat:session_updated',
-      sessionId,
-      connectionId,
-      unreadCount: payload.unread_count,
-    }),
-  );
+  const updateEvent: ChatStreamEvent = {
+    type: 'chat:session_updated',
+    sessionId,
+    connectionId,
+    unreadCount: payload.unread_count,
+  };
+  await chatBroadcaster.publishChatEvent(updateEvent, orgId);
 }
 
 export async function processChatWebhookJob(jobData: ChatWebhookJobData): Promise<void> {

@@ -87,6 +87,14 @@ export type {
   LazadaPushMessagePayload,
   LazadaPushSessionUpdatePayload,
   AgentSessionActionType,
+  ChatStreamEventMessageReceived,
+  ChatStreamEventSessionEscalated,
+  ChatStreamEventBotReplied,
+  ChatStreamEventOperatorTakeover,
+  ChatStreamEventSessionUpdated,
+  ChatStreamEventSessionResolved,
+  ChatStreamEventPing,
+  ChatStreamEvent,
 } from './conversation';
 
 export type {

@@ -19,3 +19,4 @@ export * from './useAuthentication';
 export * from './useUsers';
 export * from './useShopConnections';
 export * from './useOAuthPopup';
+export * from './useAgentSession';

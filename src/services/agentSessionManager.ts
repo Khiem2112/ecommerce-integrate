@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { redis } from '@/lib/redis';
 import { withDistributedLock } from '@/lib/redlock';
 import { appLogger } from '@/lib/logger';
 import {
@@ -8,10 +7,12 @@ import {
   type AutonomousGroundingResult,
 } from '@/services/rag/groundingValidator';
 import { createEscalationAuditLog } from '@/services/escalationService';
+import { chatBroadcaster } from './chatBroadcaster';
 import type {
   DbClient,
   EscalationTriggerSource,
   MessageWithSender,
+  ChatStreamEvent,
 } from '@/types';
 
 export const AgentAiDraftSchema = z.object({
@@ -182,15 +183,19 @@ export async function processAgentConversationTurn(
         },
       });
 
-      await redis.publish(
-        'chat:events',
-        JSON.stringify({
-          type: 'chat:bot_replied',
-          conversationId,
-          messageId: sentMessage.id,
-          groundedFacts: draftOutput.groundedFacts,
-          text: draftOutput.suggestedDraft,
-        }),
+      const botRepliedEvent: ChatStreamEvent = {
+        type: 'chat:bot_replied',
+        conversationId,
+        messageId: sentMessage.id,
+        groundedFacts: draftOutput.groundedFacts,
+        text: draftOutput.suggestedDraft,
+        confidence: groundingResult.confidenceScore,
+        timestamp: sentMessage.timestamp,
+      };
+
+      await chatBroadcaster.publishChatEvent(
+        botRepliedEvent,
+        conversation.connection?.organizationId,
       );
 
       return {

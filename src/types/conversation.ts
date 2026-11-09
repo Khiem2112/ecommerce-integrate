@@ -122,6 +122,74 @@ type AgentSessionActionType =
   | 'send_draft'
   | 'resolve';
 
+/** Server-Sent Events payloads for real-time chat updates */
+type ChatStreamEventMessageReceived = {
+  type: 'chat:message_received';
+  conversationId: number;
+  messageId: number;
+  platformMessageId: string;
+  senderCode: string;
+  text: string | null;
+  timestamp: Date | string;
+};
+
+type ChatStreamEventSessionEscalated = {
+  type: 'chat:session_escalated';
+  auditLogId: number;
+  conversationId: number;
+  triggerSource: EscalationTriggerSource;
+  confidenceScore: number;
+  reasonSummary: string;
+  suggestedDraft: string | null;
+  priority: string;
+  timestamp: Date | string;
+};
+
+type ChatStreamEventBotReplied = {
+  type: 'chat:bot_replied';
+  conversationId: number;
+  messageId: number;
+  text: string;
+  groundedFacts: readonly string[];
+  confidence: number;
+  timestamp: Date | string;
+};
+
+type ChatStreamEventOperatorTakeover = {
+  type: 'chat:operator_takeover';
+  sessionId: string;
+  conversationId: number;
+  sellerAccountId: string;
+};
+
+type ChatStreamEventSessionUpdated = {
+  type: 'chat:session_updated';
+  sessionId: string;
+  connectionId: number;
+  unreadCount?: number;
+};
+
+type ChatStreamEventSessionResolved = {
+  type: 'chat:session_resolved';
+  auditLogId: number;
+  conversationId: number;
+  handledByUserId: number;
+};
+
+type ChatStreamEventPing = {
+  type: 'ping';
+  timestamp: string;
+};
+
+type ChatStreamEvent =
+  | ChatStreamEventMessageReceived
+  | ChatStreamEventSessionEscalated
+  | ChatStreamEventBotReplied
+  | ChatStreamEventOperatorTakeover
+  | ChatStreamEventSessionUpdated
+  | ChatStreamEventSessionResolved
+  | ChatStreamEventPing;
+
 export type {
   MessageWithSender,
   ConversationWithRelations,
@@ -135,4 +203,12 @@ export type {
   LazadaPushSessionUpdatePayload,
   AgentSessionActionType,
   MessageType,
+  ChatStreamEventMessageReceived,
+  ChatStreamEventSessionEscalated,
+  ChatStreamEventBotReplied,
+  ChatStreamEventOperatorTakeover,
+  ChatStreamEventSessionUpdated,
+  ChatStreamEventSessionResolved,
+  ChatStreamEventPing,
+  ChatStreamEvent,
 };
