@@ -310,3 +310,125 @@ export function validateMultiDraftGrounding(
     sanitizedResponse,
   };
 }
+
+export type AutonomousGroundingInput = {
+  customerMessage: string;
+  suggestedDraft: string;
+  confidenceScore: number;
+  citedFactCodes: readonly string[];
+  customerVipTierCode?: string;
+  sentiment?: 'positive' | 'neutral' | 'negative';
+  availableFactCodes?: readonly string[];
+};
+
+export type AutonomousGroundingResult = {
+  canAutoReply: boolean;
+  triggerSource?: 'grounding_failure' | 'sentiment_negative' | 'vip_dispute' | 'tool_error' | 'manual_operator';
+  reasonSummary?: string;
+  confidenceScore: number;
+  isVipNegativeSentiment: boolean;
+  invalidFactCodes: string[];
+};
+
+const NEGATIVE_COMPLAINT_PATTERNS = [
+  /giao\s*chậm/i,
+  /khiếu\s*nại/i,
+  /lừa\s*đảo/i,
+  /hỏng/i,
+  /vỡ/i,
+  /bể/i,
+  /trả\s*hàng/i,
+  /hoàn\s*tiền/i,
+  /tệ/i,
+  /bức\s*xúc/i,
+  /thất\s*vọng/i,
+  /báo\s*công\s*an/i,
+  /tố\s*cáo/i,
+  /kiện/i,
+  /ăn\s*cắp/i,
+  /gian\s*lận/i,
+  /hết\s*hạn/i,
+  /hết\s*date/i,
+];
+
+export function evaluateAutonomousGrounding(
+  input: AutonomousGroundingInput,
+): AutonomousGroundingResult {
+  const normalizedVipCode = input.customerVipTierCode?.toLowerCase();
+  const isVip =
+    normalizedVipCode === 'platinum' ||
+    normalizedVipCode === 'gold';
+
+  const hasNegativePattern = NEGATIVE_COMPLAINT_PATTERNS.some((p) =>
+    p.test(input.customerMessage),
+  );
+  const isNegativeSentiment =
+    input.sentiment === 'negative' || hasNegativePattern;
+
+  if (isVip && isNegativeSentiment) {
+    return {
+      canAutoReply: false,
+      triggerSource: 'vip_dispute',
+      reasonSummary: `Khách hàng VIP (${input.customerVipTierCode}) gửi khiếu nại hoặc bày tỏ bức xúc`,
+      confidenceScore: input.confidenceScore,
+      isVipNegativeSentiment: true,
+      invalidFactCodes: [],
+    };
+  }
+
+  if (isNegativeSentiment) {
+    return {
+      canAutoReply: false,
+      triggerSource: 'sentiment_negative',
+      reasonSummary: 'Phát hiện cảm xúc tiêu cực hoặc từ khóa khiếu nại',
+      confidenceScore: input.confidenceScore,
+      isVipNegativeSentiment: false,
+      invalidFactCodes: [],
+    };
+  }
+
+  if (input.confidenceScore < 0.9) {
+    return {
+      canAutoReply: false,
+      triggerSource: 'grounding_failure',
+      reasonSummary: `Điểm tin cậy (${input.confidenceScore.toFixed(2)}) dưới ngưỡng an toàn 0.90`,
+      confidenceScore: input.confidenceScore,
+      isVipNegativeSentiment: false,
+      invalidFactCodes: [],
+    };
+  }
+
+  if (!input.citedFactCodes || input.citedFactCodes.length === 0) {
+    return {
+      canAutoReply: false,
+      triggerSource: 'grounding_failure',
+      reasonSummary: 'Câu trả lời thiếu Fact bảo chứng từ FactCatalog',
+      confidenceScore: input.confidenceScore,
+      isVipNegativeSentiment: false,
+      invalidFactCodes: [],
+    };
+  }
+
+  const availableSet = new Set(input.availableFactCodes ?? []);
+  const invalidFactCodes = input.citedFactCodes.filter(
+    (code) => !availableSet.has(code),
+  );
+
+  if (invalidFactCodes.length > 0) {
+    return {
+      canAutoReply: false,
+      triggerSource: 'grounding_failure',
+      reasonSummary: `Trích dẫn Fact không tồn tại trong FactCatalog: ${invalidFactCodes.join(', ')}`,
+      confidenceScore: input.confidenceScore,
+      isVipNegativeSentiment: false,
+      invalidFactCodes,
+    };
+  }
+
+  return {
+    canAutoReply: true,
+    confidenceScore: input.confidenceScore,
+    isVipNegativeSentiment: false,
+    invalidFactCodes: [],
+  };
+}
