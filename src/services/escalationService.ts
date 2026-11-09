@@ -58,7 +58,7 @@ export async function createEscalationAuditLog(
   });
 
   let orgId: number | undefined;
-  if (auditLog.conversation?.connectionId) {
+  if (auditLog?.conversation?.connectionId) {
     try {
       const conn = await tx.platformConnection?.findUnique?.({
         where: { id: auditLog.conversation.connectionId },

@@ -86,8 +86,10 @@ export function ChatPanel({
     variant: 'slate' as BadgeVariant,
   };
 
-  const lastTime = conversation.updatedAt
-    ? new Date(conversation.updatedAt).getTime()
+  const lastMessageTimestampStr =
+    conversation.latestMessage?.timestamp || conversation.updatedAt;
+  const lastTime = lastMessageTimestampStr
+    ? new Date(lastMessageTimestampStr).getTime()
     : Date.now();
   const elapsedMs = Date.now() - lastTime;
   const isExpired = elapsedMs > LAZADA_SESSION_EXPIRATION_MS;
