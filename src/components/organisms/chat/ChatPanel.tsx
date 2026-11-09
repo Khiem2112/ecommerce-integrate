@@ -1,28 +1,41 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { Badge, type BadgeVariant, IconButton } from '@/components/atoms';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
+import { Badge, type BadgeVariant, Button, IconButton } from '@/components/atoms';
 import { EmptyChat, MessageBubble, MessageInput } from '@/components/molecules';
 import { ErrorBanner } from '@/components/molecules/ErrorBanner';
-import type { ConversationDetail, MultiDraftRagDraft, AiDraftDetailDto } from '@/types';
+import { EscalationAlertBanner } from './EscalationAlertBanner';
+import {
+  takeoverSessionAction,
+  handbackToBotAction,
+  resolveSessionAction,
+} from '@/actions/agentSessionActions';
+import type {
+  ConversationDetail,
+  MultiDraftRagDraft,
+  AiDraftDetailDto,
+} from '@/types';
 
-const STATUS_CONFIG: Record<string, { label: string; variant: BadgeVariant }> = {
-  open: { label: 'Open', variant: 'emerald' },
-  awaiting_reply: { label: 'Awaiting Reply', variant: 'amber' },
-  in_progress: { label: 'In Progress', variant: 'purple' },
-  escalated: { label: 'Escalated', variant: 'rose' },
-  resolved: { label: 'Resolved', variant: 'teal' },
-  closed: { label: 'Closed', variant: 'slate' },
+const LAZADA_SESSION_EXPIRATION_MS = 5 * 24 * 60 * 60 * 1000;
+
+const STATUS_CONFIG: Record<string, { labelKey: string; variant: BadgeVariant }> = {
+  open: { labelKey: 'filters.open', variant: 'emerald' },
+  awaiting_reply: { labelKey: 'filters.awaitingReply', variant: 'amber' },
+  in_progress: { labelKey: 'filters.inProgress', variant: 'purple' },
+  escalated: { labelKey: 'filters.escalated', variant: 'rose' },
+  resolved: { labelKey: 'filters.resolved', variant: 'teal' },
+  closed: { labelKey: 'filters.closed', variant: 'slate' },
 };
 
-const PRIORITY_CONFIG: Record<string, { label: string; variant: BadgeVariant }> = {
-  urgent: { label: 'Urgent', variant: 'rose' },
-  high: { label: 'High', variant: 'amber' },
-  normal: { label: 'Normal', variant: 'info' },
-  low: { label: 'Low', variant: 'slate' },
+const PRIORITY_CONFIG: Record<string, { labelKey: string; variant: BadgeVariant }> = {
+  urgent: { labelKey: 'filters.urgent', variant: 'rose' },
+  high: { labelKey: 'filters.high', variant: 'amber' },
+  normal: { labelKey: 'filters.normal', variant: 'info' },
+  low: { labelKey: 'filters.low', variant: 'slate' },
 };
 
-type ChatPanelProps = {
+export type ChatPanelProps = {
   readonly conversation: ConversationDetail | null;
   readonly isLoading: boolean;
   readonly onBack: () => void;
@@ -49,7 +62,11 @@ export function ChatPanel({
   onRefresh,
   onViewDraft,
 }: ChatPanelProps) {
+  const t = useTranslations('workspace');
+  const tSession = useTranslations('workspace.agentSession');
   const threadEndRef = useRef<HTMLDivElement>(null);
+  const [isPendingAction, startTransition] = useTransition();
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     threadEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -60,14 +77,71 @@ export function ChatPanel({
 
   const statusCode = conversation.status.code;
   const statusInfo = STATUS_CONFIG[statusCode] ?? {
-    label: conversation.status.name,
+    labelKey: 'filters.open',
     variant: 'slate' as BadgeVariant,
   };
 
   const priorityInfo = PRIORITY_CONFIG[conversation.priority] ?? {
-    label: conversation.priority,
+    labelKey: 'filters.normal',
     variant: 'slate' as BadgeVariant,
   };
+
+  const lastTime = conversation.updatedAt
+    ? new Date(conversation.updatedAt).getTime()
+    : Date.now();
+  const elapsedMs = Date.now() - lastTime;
+  const isExpired = elapsedMs > LAZADA_SESSION_EXPIRATION_MS;
+  const remainingHours = Math.max(
+    0,
+    Math.floor((LAZADA_SESSION_EXPIRATION_MS - elapsedMs) / (1000 * 60 * 60)),
+  );
+
+  const handleTakeover = (): void => {
+    setActionError(null);
+    startTransition(async () => {
+      const res = await takeoverSessionAction({
+        conversationId: conversation.id,
+      });
+      if (!res.success) {
+        setActionError(res.error || tSession('actions.takeoverFailed'));
+      } else {
+        onRefresh();
+      }
+    });
+  };
+
+  const handleHandback = (): void => {
+    setActionError(null);
+    startTransition(async () => {
+      const res = await handbackToBotAction({
+        conversationId: conversation.id,
+      });
+      if (!res.success) {
+        setActionError(res.error || tSession('actions.handbackFailed'));
+      } else {
+        onRefresh();
+      }
+    });
+  };
+
+  const handleResolve = (): void => {
+    setActionError(null);
+    startTransition(async () => {
+      const res = await resolveSessionAction({
+        conversationId: conversation.id,
+      });
+      if (!res.success) {
+        setActionError(res.error || tSession('actions.resolveFailed'));
+      } else {
+        onRefresh();
+      }
+    });
+  };
+
+  const factsUsed: readonly string[] =
+    draft && 'groundedFactsUsed' in draft && Array.isArray(draft.groundedFactsUsed)
+      ? draft.groundedFactsUsed
+      : [];
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
@@ -75,8 +149,8 @@ export function ChatPanel({
         <IconButton
           size="sm"
           variant="ghost"
-          ariaLabel="Back to conversations"
-          tooltip="Back to conversations"
+          ariaLabel={tSession('header.backAria')}
+          tooltip={tSession('header.backAria')}
           onClick={onBack}
           className="size-11 xl:hidden"
           icon={
@@ -101,18 +175,17 @@ export function ChatPanel({
               {conversation.customerIdentifier}
             </h2>
           </div>
-          {/* Full conversation metadata in header */}
           <div className="mt-1 flex flex-wrap items-center gap-1">
             <Badge
               variant={statusInfo.variant}
               size="xs"
               useDot
-              label={statusInfo.label}
+              label={t(statusInfo.labelKey)}
             />
             <Badge
               variant={priorityInfo.variant}
               size="xs"
-              label={priorityInfo.label}
+              label={t(priorityInfo.labelKey)}
             />
             {conversation.intent && (
               <Badge
@@ -121,53 +194,112 @@ export function ChatPanel({
                 label={conversation.intent.name}
               />
             )}
+            {!isExpired && (
+              <span className="text-[11px] text-muted">
+                {tSession('sessionExpiration.activeWindow', { hours: remainingHours })}
+              </span>
+            )}
           </div>
         </div>
 
-        {conversation.humanApprovalRequired && (
-          <Badge
-            variant="warning"
-            size="xs"
-            label="Review required"
-            className="hidden sm:inline-flex"
-          />
-        )}
-
-        {onToggleContext && (
-          <IconButton
-            size="sm"
-            variant="subtle"
-            isActive={isContextOpen}
-            ariaLabel={isContextOpen ? 'Close sidebar' : 'Open sidebar'}
-            tooltip={isContextOpen ? 'Close sidebar' : 'Open sidebar'}
-            onClick={onToggleContext}
-            icon={
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="size-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+        <div className="flex items-center gap-2">
+          {statusCode === 'in_progress' ? (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleHandback}
+                disabled={isPendingAction}
+                className="text-xs"
               >
-                <rect width="18" height="18" x="3" y="3" rx="2" />
-                <path d="M15 3v18" />
-                <path d={isContextOpen ? 'm11 9-3 3 3 3' : 'm8 9 3 3-3 3'} />
-              </svg>
-            }
-          />
-        )}
+                {isPendingAction ? tSession('actions.handingBack') : tSession('actions.handback')}
+              </Button>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={handleResolve}
+                disabled={isPendingAction}
+                className="text-xs"
+              >
+                {isPendingAction ? tSession('actions.resolving') : tSession('actions.resolve')}
+              </Button>
+            </>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleTakeover}
+              disabled={isPendingAction}
+              className="text-xs"
+            >
+              {isPendingAction ? tSession('actions.takingOver') : tSession('actions.takeover')}
+            </Button>
+          )}
+
+          {conversation.humanApprovalRequired && (
+            <Badge
+              variant="warning"
+              size="xs"
+              label={tSession('header.reviewRequired')}
+              className="hidden sm:inline-flex"
+            />
+          )}
+
+          {onToggleContext && (
+            <IconButton
+              size="sm"
+              variant="subtle"
+              isActive={isContextOpen}
+              ariaLabel={isContextOpen ? tSession('header.closeSidebar') : tSession('header.openSidebar')}
+              tooltip={isContextOpen ? tSession('header.closeSidebar') : tSession('header.openSidebar')}
+              onClick={onToggleContext}
+              icon={
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="size-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect width="18" height="18" x="3" y="3" rx="2" />
+                  <path d="M15 3v18" />
+                  <path d={isContextOpen ? 'm11 9-3 3 3 3' : 'm8 9 3 3-3 3'} />
+                </svg>
+              }
+            />
+          )}
+        </div>
       </header>
 
       <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
+        <EscalationAlertBanner
+          conversation={conversation}
+          isTakingOver={isPendingAction}
+          onTakeover={handleTakeover}
+          onViewDraft={onViewDraft}
+          hasDraft={Boolean(draft)}
+        />
+
+        {actionError && (
+          <div className="mx-auto mb-4 max-w-3xl">
+            <ErrorBanner
+              message={actionError}
+              onRetry={() => setActionError(null)}
+            />
+          </div>
+        )}
+
         {conversation.messages.length === 0 ? (
           <div className="grid h-full min-h-48 place-items-center text-center">
             <div>
-              <p className="text-base font-semibold tracking-tight text-foreground">Start the conversation</p>
+              <p className="text-base font-semibold tracking-tight text-foreground">
+                {tSession('header.startConversation')}
+              </p>
               <p className="mt-1.5 text-sm leading-6 text-muted">
-                Write a reply or request a grounded AI draft.
+                {tSession('header.startDescription')}
               </p>
             </div>
           </div>
@@ -179,7 +311,6 @@ export function ChatPanel({
           </div>
         )}
 
-        {/* Compact draft-ready banner — links to sidebar tab */}
         {draft && (
           <div className="mx-auto mt-4 max-w-3xl">
             <button
@@ -187,12 +318,26 @@ export function ChatPanel({
               onClick={onViewDraft}
               className="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-status-warning/25 bg-status-warning/8 px-4 py-3 text-left text-sm transition duration-150 hover:bg-status-warning/15"
             >
-              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-foreground text-xs font-bold text-background">
-                ✦
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-foreground text-[10px] font-bold text-background">
+                AI
               </span>
-              <span className="flex-1 font-medium text-foreground">
-                AI draft ready — View in sidebar
-              </span>
+              <div className="min-w-0 flex-1">
+                <span className="block font-medium text-foreground">
+                  {tSession('header.aiDraftReady')}
+                </span>
+                {factsUsed.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {factsUsed.map((factCode) => (
+                      <span
+                        key={factCode}
+                        className="rounded bg-surface-card px-1.5 py-0.5 text-[10px] font-mono font-medium text-muted"
+                      >
+                        {factCode}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
               <svg
                 aria-hidden="true"
                 viewBox="0 0 20 20"
@@ -209,11 +354,10 @@ export function ChatPanel({
           </div>
         )}
 
-        {/* Generate error with retry */}
         {generateError && !draft && (
           <div className="mx-auto mt-4 max-w-3xl">
             <ErrorBanner
-              message={`Unable to generate an AI response. ${generateError.message}`}
+              message={tSession('header.generateError', { error: generateError.message })}
               onRetry={onGenerate}
             />
           </div>
@@ -223,12 +367,18 @@ export function ChatPanel({
 
       <div className="shrink-0 border-t border-hairline bg-surface-lifted p-3 md:px-6">
         <div className="mx-auto max-w-3xl">
-          <MessageInput
-            conversationId={conversation.id}
-            isGenerating={isGenerating}
-            onGenerate={onGenerate}
-            onSent={onRefresh}
-          />
+          {isExpired ? (
+            <div className="rounded-lg border border-status-danger/30 bg-status-danger/10 px-4 py-3 text-center text-xs font-medium text-status-danger-foreground">
+              {tSession('sessionExpiration.expired')}
+            </div>
+          ) : (
+            <MessageInput
+              conversationId={conversation.id}
+              isGenerating={isGenerating}
+              onGenerate={onGenerate}
+              onSent={onRefresh}
+            />
+          )}
         </div>
       </div>
     </div>

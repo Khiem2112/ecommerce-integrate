@@ -586,6 +586,56 @@
       "aiDraft": "✦ Bản nháp AI",
       "outdated": "⚠️ Đã cũ",
       "aiSaved": "✓ AI đã lưu"
+    },
+    "agentSession": {
+      "tabs": {
+        "escalated": "Cần can thiệp",
+        "humanHandling": "Đang xử lý",
+        "botListening": "Đang theo dõi"
+      },
+      "actions": {
+        "takeover": "Tiếp quản phiên",
+        "takingOver": "Đang tiếp quản...",
+        "handback": "Bàn giao Bot",
+        "handingBack": "Đang bàn giao...",
+        "sendDraft": "Duyệt & gửi",
+        "sendingDraft": "Đang gửi...",
+        "resolve": "Đóng phiên",
+        "resolving": "Đang đóng...",
+        "viewDraft": "Xem bản nháp",
+        "takeoverFailed": "Không thể tiếp quản phiên",
+        "handbackFailed": "Không thể bàn giao lại cho Bot",
+        "resolveFailed": "Không thể hoàn tất phiên",
+        "invalidInput": "Dữ liệu không hợp lệ",
+        "conversationNotFound": "Không tìm thấy cuộc hội thoại",
+        "sessionExpired": "Phiên chat Lazada đã quá hạn 5 ngày. Không thể gửi tin mới.",
+        "platformSendFailed": "Gửi tin nhắn lên sàn Lazada thất bại",
+        "systemError": "Lỗi hệ thống khi xử lý yêu cầu"
+      },
+      "banner": {
+        "badgeUrgent": "KHẨN CẤP",
+        "badgeAttention": "CHÚ Ý",
+        "escalatedTitle": "Yêu cầu can thiệp nhân viên",
+        "vipAlert": "Khách hàng VIP cần hỗ trợ giải quyết vấn đề",
+        "groundingAlert": "Độ tin cậy câu trả lời thấp, cần kiểm tra đối chiếu Fact",
+        "confidenceScore": "Điểm tin cậy",
+        "verifiedFacts": "Fact bảo chứng",
+        "reason": "Lý do"
+      },
+      "sessionExpiration": {
+        "activeWindow": "Phiên chat còn hiệu lực {hours} giờ",
+        "expired": "Phiên chat Lazada đã quá hạn 5 ngày. Không thể gửi tin mới."
+      },
+      "header": {
+        "startConversation": "Bắt đầu cuộc trò chuyện",
+        "startDescription": "Nhập tin nhắn phản hồi hoặc yêu cầu bản nháp AI bảo chứng.",
+        "aiDraftReady": "Bản nháp AI đã sẵn sàng — Xem trong thanh bên",
+        "reviewRequired": "Cần kiểm duyệt",
+        "openSidebar": "Mở thanh bên",
+        "closeSidebar": "Đóng thanh bên",
+        "backAria": "Quay lại danh sách hội thoại",
+        "generateError": "Không thể tạo câu trả lời tự động: {error}"
+      }
     }
   },
   "common": {
@@ -1725,6 +1775,45 @@
       "description": "Chọn nền tảng và cấp quyền truy cập qua cổng ủy quyền OAuth chính thức.",
       "descriptionWithOrg": "Kết nối gian hàng cho tổ chức {orgName}. Chọn nền tảng và cấp quyền truy cập qua cổng ủy quyền OAuth chính thức.",
       "reconnectDescription": "Cấp quyền lại để cập nhật mới token truy cập cho gian hàng này.",
+      "stepper": {
+        "navLabel": "Tiến trình kết nối gian hàng",
+        "step1Badge": "Bước 1",
+        "step1Title": "Thiết lập kênh",
+        "step2Badge": "Bước 2",
+        "step2Title": "Cấp quyền & Nhận diện"
+      },
+      "step1": {
+        "nextButton": "Tiếp tục: Cấp quyền",
+        "shopifySub": "Custom App / OAuth",
+        "shopifyDescription": "Ủy quyền thông qua URL gian hàng Shopify riêng.",
+        "shopifyDomainHint": "Nhập tiền tố myshopify mà bạn dùng để đăng nhập quản trị cửa hàng.",
+        "adminOnlyBadge": "Dành cho Admin tổng",
+        "guidanceNotice": "Ở bước tiếp theo, hệ thống sẽ mở cửa sổ ủy quyền bảo mật từ sàn thương mại. Bạn chỉ cần đăng nhập và bấm cho phép OmniCart truy cập."
+      },
+      "step2": {
+        "channelSummary": "Kênh đang kết nối",
+        "authorizeTitle": "Cấp quyền ủy quyền tài khoản",
+        "authorizeDescription": "Mở cửa sổ ủy quyền chính thức từ sàn. Thông tin bảo mật được mã hóa đa tầng.",
+        "openOAuthButton": "Mở cửa sổ ủy quyền sàn (OAuth)",
+        "validating": "Đang xác minh quyền ủy quyền với sàn...",
+        "validatingDesc": "Hệ thống đang truy vấn mã gian hàng và hạn mức token an toàn.",
+        "verifiedTitle": "Xác thực thành công từ sàn",
+        "verifiedBadge": "Đã cấp quyền",
+        "sellerIdLabel": "Seller ID",
+        "tokenExpiryLabel": "Thời hạn Access Token",
+        "tokenDaysRemaining": "{days} ngày (Hết hạn: {date})",
+        "tokenPermanent": "Vĩnh viễn (Offline token)",
+        "displayLabelTitle": "Đặt tên hiển thị gợi nhớ cho gian hàng",
+        "displayLabelPlaceholder": "Ví dụ: Lazada Mall - Kho Tổng HCM",
+        "displayLabelHint": "Tên này giúp phân biệt các shop trong cùng một tổ chức trên OmniCart.",
+        "displayLabelTip": "Mẹo vận hành: Khi doanh nghiệp mở nhiều gian hàng trên cùng 1 sàn, tên hiển thị này giúp phân biệt chính xác shop trong đơn hàng và báo cáo.",
+        "backButton": "Quay lại bước 1",
+        "finishButton": "Hoàn tất kết nối",
+        "waitingAuth": "Đang chờ xác thực",
+        "successToast": "Đã kết nối thành công: {displayLabel}",
+        "simNotice": "Công cụ Prototype:",
+        "simButton": "Bấm để mô phỏng sàn cấp quyền thành công ngay"
+      },
       "platformLabel": "Nền tảng thương mại điện tử",
       "lazadaDesc": "Nền tảng mở",
       "lazadaEnvLabel": "Môi trường",

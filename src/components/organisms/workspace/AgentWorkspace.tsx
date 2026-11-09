@@ -6,12 +6,11 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { selectedConversationIdAtom, sidebarCollapsedAtom } from '@/atoms/workspaceAtoms';
 import { IconButton } from '@/components/atoms';
-import { ChatPanel } from '@/components/organisms/chat/ChatPanel';
+import { ChatPanel, AgentSessionList } from '@/components/organisms/chat';
 import { ContextSidebar } from '@/components/organisms/context/ContextSidebar';
-import { ConversationInbox } from '@/components/organisms/inbox/ConversationInbox';
 import { useConversationDetail } from '@/hooks/useConversationDetail';
 import { useRagGenerate } from '@/hooks/useRagGenerate';
-import { useBreadcrumb } from '@/hooks';
+import { useBreadcrumb, useAgentSession } from '@/hooks';
 import { cn } from '@/lib/cn';
 import type { MultiDraftRagDraft } from '@/types';
 
@@ -30,6 +29,8 @@ export function AgentWorkspace() {
   const { mutate: generateResponse, isPending: isGenerating, error: generateError } =
     useRagGenerate();
   const [draft, setDraft] = useState<MultiDraftRagDraft | null>(null);
+
+  useAgentSession({ activeConversationId: selectedConversationId });
 
   useEffect(() => {
     setBreadcrumb([{ label: tBreadcrumb('workspace') }]);
@@ -102,7 +103,7 @@ export function AgentWorkspace() {
           inboxCollapsed ? 'xl:hidden' : 'xl:block',
         )}
       >
-        <ConversationInbox
+        <AgentSessionList
           selectedConversationId={selectedConversationId}
           onSelectConversation={selectConversation}
         />

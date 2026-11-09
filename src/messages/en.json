@@ -586,6 +586,56 @@
       "aiDraft": "✦ AI draft",
       "outdated": "⚠️ Outdated",
       "aiSaved": "✓ AI saved"
+    },
+    "agentSession": {
+      "tabs": {
+        "escalated": "Escalated",
+        "humanHandling": "In Progress",
+        "botListening": "Bot Listening"
+      },
+      "actions": {
+        "takeover": "Take over",
+        "takingOver": "Taking over...",
+        "handback": "Hand back to Bot",
+        "handingBack": "Handing back...",
+        "sendDraft": "Approve & send",
+        "sendingDraft": "Sending...",
+        "resolve": "Resolve",
+        "resolving": "Resolving...",
+        "viewDraft": "View draft",
+        "takeoverFailed": "Failed to take over session",
+        "handbackFailed": "Failed to hand back to Bot",
+        "resolveFailed": "Failed to resolve session",
+        "invalidInput": "Invalid input data",
+        "conversationNotFound": "Conversation not found",
+        "sessionExpired": "Lazada chat session expired (5-day window). Cannot send new messages.",
+        "platformSendFailed": "Failed to send message to Lazada",
+        "systemError": "System error processing request"
+      },
+      "banner": {
+        "badgeUrgent": "URGENT",
+        "badgeAttention": "ATTENTION",
+        "escalatedTitle": "Operator intervention required",
+        "vipAlert": "VIP customer requires immediate assistance",
+        "groundingAlert": "Low grounding confidence, Fact verification needed",
+        "confidenceScore": "Confidence score",
+        "verifiedFacts": "Verified Facts",
+        "reason": "Reason"
+      },
+      "sessionExpiration": {
+        "activeWindow": "Session valid for {hours} hours",
+        "expired": "Lazada chat session expired (5-day window). Cannot send new messages."
+      },
+      "header": {
+        "startConversation": "Start the conversation",
+        "startDescription": "Write a reply or request a grounded AI draft.",
+        "aiDraftReady": "AI draft ready — View in sidebar",
+        "reviewRequired": "Review required",
+        "openSidebar": "Open sidebar",
+        "closeSidebar": "Close sidebar",
+        "backAria": "Back to conversations",
+        "generateError": "Unable to generate an AI response: {error}"
+      }
     }
   },
   "common": {
@@ -1725,6 +1775,45 @@
       "description": "Select platform and authorize access via the official OAuth provider portal.",
       "descriptionWithOrg": "Connect a shop for {orgName}. Select platform and authorize access via the official OAuth provider portal.",
       "reconnectDescription": "Re-authorize to refresh access tokens for this shop connection.",
+      "stepper": {
+        "navLabel": "Shop connection progress",
+        "step1Badge": "Step 1",
+        "step1Title": "Channel setup",
+        "step2Badge": "Step 2",
+        "step2Title": "Authorize & Identity"
+      },
+      "step1": {
+        "nextButton": "Continue: Authorize",
+        "shopifySub": "Custom App / OAuth",
+        "shopifyDescription": "Authorize through your unique Shopify store URL.",
+        "shopifyDomainHint": "Enter the myshopify prefix used to access your store admin.",
+        "adminOnlyBadge": "Super Admin only",
+        "guidanceNotice": "In the next step, a secure marketplace authorization window will open. Simply log in and grant OmniCart access."
+      },
+      "step2": {
+        "channelSummary": "Connecting channel",
+        "authorizeTitle": "Authorize account access",
+        "authorizeDescription": "Open the provider's official login window. All confidential tokens are encrypted multi-layered.",
+        "openOAuthButton": "Open marketplace authorization (OAuth)",
+        "validating": "Verifying authorization with marketplace...",
+        "validatingDesc": "The system is querying seller identity and secure token validity.",
+        "verifiedTitle": "Successfully verified by marketplace",
+        "verifiedBadge": "Authorized",
+        "sellerIdLabel": "Seller ID",
+        "tokenExpiryLabel": "Access Token Expiry",
+        "tokenDaysRemaining": "{days} days (Expires: {date})",
+        "tokenPermanent": "Permanent (Offline token)",
+        "displayLabelTitle": "Set a memorable display name for this shop",
+        "displayLabelPlaceholder": "e.g. Lazada Mall - Central Warehouse",
+        "displayLabelHint": "This name helps differentiate shops under the same organization in OmniCart.",
+        "displayLabelTip": "Operational Tip: When your company runs multiple storefronts on one platform, this display label avoids confusion in orders and reporting.",
+        "backButton": "Back to step 1",
+        "finishButton": "Complete connection",
+        "waitingAuth": "Awaiting authorization",
+        "successToast": "Shop successfully connected: {displayLabel}",
+        "simNotice": "Prototype Tool:",
+        "simButton": "Click to simulate successful authorization"
+      },
       "platformLabel": "E-commerce platform",
       "lazadaDesc": "Open Platform",
       "lazadaEnvLabel": "Environment",

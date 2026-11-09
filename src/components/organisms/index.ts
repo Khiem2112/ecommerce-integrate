@@ -1,5 +1,5 @@
 export { AppShell } from './AppShell';
-export { ChatPanel } from './chat/ChatPanel';
+export { ChatPanel, AgentSessionList, EscalationAlertBanner } from './chat';
 export { AiResponsePreview } from './copilot/AiResponsePreview';
 export { ConversationInbox } from './inbox/ConversationInbox';
 export { ContextSidebar } from './context/ContextSidebar';
