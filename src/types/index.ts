@@ -33,6 +33,8 @@ export type {
   OrganizationMembershipStatus,
   OrganizationContextPreference,
   OrganizationAuditLog,
+  EscalationAuditLog,
+  FactCatalog,
 } from '@prisma/client';
 
 
@@ -78,6 +80,13 @@ export type {
   ConversationWithRelations,
   ConversationWithMessages,
   InboxConversationRecord,
+  EscalationAuditLogRecord,
+  FactCatalogRecord,
+  EscalationTriggerSource,
+  SessionLifecycleStatus,
+  LazadaPushMessagePayload,
+  LazadaPushSessionUpdatePayload,
+  AgentSessionActionType,
 } from './conversation';
 
 export type {
@@ -276,6 +285,10 @@ export type {
   AuthorizationStartResult,
   AuthorizationAttemptDetail,
   ManageableOrganizationOption,
+  ShopConnectionStepperStep,
+  ShopConnectionAuthState,
+  ShopVerifiedIdentity,
+  ShopOAuthCallbackMessage,
   LazadaTokenResponse,
   ShopifyTokenResponse,
 } from './shopConnection';

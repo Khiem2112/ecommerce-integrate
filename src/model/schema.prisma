@@ -78,6 +78,8 @@ model PlatformConnection {
   customers             Customer[]
   orders                Order[]
   conversations         Conversation[]
+  messages              Message[]
+  facts                 FactCatalog[]
   syncBatches           SyncBatch[]
   authorizationAttempts PlatformAuthorizationAttempt[]
   auditLogs             PlatformConnectionAuditLog[]
@@ -161,6 +163,7 @@ model User {
   auditEvents        OrganizationAuditLog[]          @relation("OrganizationAuditActor")
   shopAuthorizationAttempts PlatformAuthorizationAttempt[]
   shopConnectionAuditLogs   PlatformConnectionAuditLog[]
+  escalationAuditLogs       EscalationAuditLog[]
   isActive           Boolean                         @default(true)
   createdAt          DateTime                        @default(now())
   updatedAt          DateTime                        @default(now()) @updatedAt
@@ -660,7 +663,10 @@ model Conversation {
   experimentArmId     Int?
   experimentArm       ExperimentArmCatalog? @relation(fields: [experimentArmId], references: [id])
 
-  // Timestamps
+  // Activity & Timestamps
+  platformStatus      String?
+  unreadCount         Int      @default(0)
+  lastMessageTime     DateTime?
   startedAt           DateTime @default(now())
   resolvedAt          DateTime?
   isActive            Boolean  @default(true)
@@ -670,8 +676,12 @@ model Conversation {
   messages           Message[]
   routingDecisions   RoutingDecision[]
   aiDrafts           AiDraftResponse[]
+  escalationAuditLogs EscalationAuditLog[]
 
+  @@unique([connectionId, platformSessionId])
   @@index([connectionId])
+  @@index([statusId])
+  @@index([escalationStatusId])
   @@map("conversation")
 }
 
@@ -679,6 +689,8 @@ model Message {
   id               Int      @id @default(autoincrement())
   conversationId   Int
   conversation     Conversation @relation(fields: [conversationId], references: [id])
+  connectionId     Int?
+  connection       PlatformConnection? @relation(fields: [connectionId], references: [id])
   platformMessageId String?     // Lazada message_id
 
   // Sender — references the sender_type table
@@ -696,6 +708,8 @@ model Message {
   ungroundedClaims Json?       // JSON array of claims that couldn't be grounded
   confidence       Float?
   suggestedAction  String?     // "auto_reply" | "await_approval" | "escalate_to_human"
+  processMsg       String?     // Platform moderation warning message
+  status           String?     // "SENT" | "RECALLED" | "FILTERED" | "RECEIVED"
 
   // Timing
   timestamp        DateTime   @default(now())
@@ -708,8 +722,53 @@ model Message {
   triggeredDrafts  AiDraftResponse[] @relation("TriggerMessage")
   appliedDrafts    AiDraftResponse[] @relation("AppliedMessage")
 
+  @@unique([connectionId, platformMessageId])
+  @@index([connectionId])
   @@index([conversationId, senderTypeId, timestamp, id])
   @@map("message")
+}
+
+/// Records urgent escalation events and handovers between agent and human operators.
+model EscalationAuditLog {
+  id              Int          @id @default(autoincrement())
+  conversationId  Int
+  conversation    Conversation @relation(fields: [conversationId], references: [id])
+  triggerSource   String       @db.VarChar(50) // "grounding_failure" | "sentiment_negative" | "vip_dispute" | "tool_error" | "manual_operator"
+  confidenceScore Float?
+  reasonSummary   String       @db.Text
+  suggestedDraft  String?      @db.Text
+  escalatedAt     DateTime     @default(now())
+  handledByUserId Int?
+  handledByUser   User?        @relation(fields: [handledByUserId], references: [id])
+  resolvedAt      DateTime?
+  resolutionNote  String?      @db.Text
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now()) @updatedAt
+
+  @@index([conversationId])
+  @@index([triggerSource])
+  @@index([handledByUserId])
+  @@map("escalation_audit_log")
+}
+
+/// Stores verified policy facts (warranty, returns, shipping, store policies) for grounding validation.
+model FactCatalog {
+  id                  Int                 @id @default(autoincrement())
+  connectionId        Int?
+  connection          PlatformConnection? @relation(fields: [connectionId], references: [id])
+  category            String              @db.VarChar(50) // "return_policy" | "warranty" | "shipping" | "general"
+  factCode            String              @db.VarChar(100)
+  title               String              @db.VarChar(255)
+  content             String              @db.Text
+  confidenceThreshold Float               @default(0.90)
+  isActive            Boolean             @default(true)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @default(now()) @updatedAt
+
+  @@unique([connectionId, factCode])
+  @@index([connectionId, category])
+  @@map("fact_catalog")
 }
 
 // ============================================================
