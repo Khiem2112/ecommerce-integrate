@@ -2,8 +2,9 @@
 
 import { useAtom } from 'jotai';
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import { useTranslations } from 'next-intl';
+import { markConversationReadAction } from '@/actions/agentSessionActions';
 import { selectedConversationIdAtom, sidebarCollapsedAtom } from '@/atoms/workspaceAtoms';
 import { IconButton } from '@/components/atoms';
 import { ChatPanel, AgentSessionList } from '@/components/organisms/chat';
@@ -12,9 +13,9 @@ import { useConversationDetail } from '@/hooks/useConversationDetail';
 import { useRagGenerate } from '@/hooks/useRagGenerate';
 import { useBreadcrumb, useAgentSession } from '@/hooks';
 import { cn } from '@/lib/cn';
-import type { MultiDraftRagDraft } from '@/types';
+import type { ConversationDetail, ConversationSummary, MultiDraftRagDraft } from '@/types';
 
-export function AgentWorkspace() {
+export function AgentWorkspace(): ReactElement {
   const t = useTranslations('workspace');
   const tBreadcrumb = useTranslations('breadcrumb');
   const { setBreadcrumb } = useBreadcrumb();
@@ -29,8 +30,55 @@ export function AgentWorkspace() {
   const { mutate: generateResponse, isPending: isGenerating, error: generateError } =
     useRagGenerate();
   const [draft, setDraft] = useState<MultiDraftRagDraft | null>(null);
+  const inFlightReadIdsRef = useRef<Set<number>>(new Set());
+  const lastAttemptedUnreadRef = useRef<Map<number, number>>(new Map());
 
   useAgentSession({ activeConversationId: selectedConversationId });
+
+  const syncConversationRead = useCallback(
+    (conversationId: number, unreadCount: number): void => {
+      if (unreadCount <= 0) {
+        return;
+      }
+      if (inFlightReadIdsRef.current.has(conversationId)) {
+        return;
+      }
+      if (lastAttemptedUnreadRef.current.get(conversationId) === unreadCount) {
+        return;
+      }
+
+      inFlightReadIdsRef.current.add(conversationId);
+      lastAttemptedUnreadRef.current.set(conversationId, unreadCount);
+
+      void markConversationReadAction({ conversationId })
+        .then((res) => {
+          if (!res.success) {
+            return;
+          }
+
+          lastAttemptedUnreadRef.current.delete(conversationId);
+          queryClient.setQueryData<ConversationDetail | null>(
+            ['conversation', conversationId],
+            (prev) => (prev ? { ...prev, unreadCount: 0 } : prev),
+          );
+          queryClient.setQueriesData<ConversationSummary[]>(
+            { queryKey: ['conversations'] },
+            (prevList) =>
+              Array.isArray(prevList)
+                ? prevList.map((item) =>
+                    item.id === conversationId ? { ...item, unreadCount: 0 } : item,
+                  )
+                : prevList,
+          );
+          void queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        })
+        .catch(() => {})
+        .finally(() => {
+          inFlightReadIdsRef.current.delete(conversationId);
+        });
+    },
+    [queryClient],
+  );
 
   useEffect(() => {
     setBreadcrumb([{ label: tBreadcrumb('workspace') }]);
@@ -39,7 +87,7 @@ export function AgentWorkspace() {
   useEffect(() => {
     const compactWorkspace = window.matchMedia('(max-width: 1535px)');
 
-    function handleWorkspaceWidth(event: MediaQueryListEvent | MediaQueryList) {
+    function handleWorkspaceWidth(event: MediaQueryListEvent | MediaQueryList): void {
       if (event.matches) {
         setSidebarCollapsed(true);
       }
@@ -51,25 +99,38 @@ export function AgentWorkspace() {
     return () => compactWorkspace.removeEventListener('change', handleWorkspaceWidth);
   }, [setSidebarCollapsed]);
 
-  function selectConversation(conversationId: number) {
+  function selectConversation(conversationId: number): void {
     setSelectedConversationId(conversationId);
     setMobileView('chat');
     setDraft(null);
+
+    const cachedLists = queryClient.getQueriesData<ConversationSummary[]>({
+      queryKey: ['conversations'],
+    });
+    for (const [, list] of cachedLists) {
+      const matched = Array.isArray(list)
+        ? list.find((item) => item.id === conversationId)
+        : undefined;
+      if (matched && (matched.unreadCount ?? 0) > 0) {
+        syncConversationRead(conversationId, matched.unreadCount ?? 0);
+        break;
+      }
+    }
   }
 
-  function refreshConversation() {
+  const refreshConversation = useCallback((): void => {
     if (!selectedConversationId) return;
     void queryClient.invalidateQueries({ queryKey: ['conversation', selectedConversationId] });
     void queryClient.invalidateQueries({ queryKey: ['conversations'] });
     void queryClient.invalidateQueries({ queryKey: ['ai-draft', selectedConversationId] });
     void queryClient.invalidateQueries({ queryKey: ['ai-draft-history', selectedConversationId] });
-  }
+  }, [queryClient, selectedConversationId]);
 
-  function handleGenerate() {
+  function handleGenerate(): void {
     if (!selectedConversationId) return;
     const requestConversationId = selectedConversationId;
     generateResponse(requestConversationId, {
-      onSuccess: (generatedDraft) => {
+      onSuccess: (generatedDraft): void => {
         if (selectedConversationId !== requestConversationId) return;
         setDraft(generatedDraft);
         void queryClient.invalidateQueries({ queryKey: ['ai-draft', requestConversationId] });
@@ -82,14 +143,14 @@ export function AgentWorkspace() {
     });
   }
 
-  function handleViewDraft() {
+  function handleViewDraft(): void {
     if (sidebarCollapsed) {
       setSidebarCollapsed(false);
     }
     /* ContextSidebar auto-switches to AI Draft tab via useEffect when draft is set */
   }
 
-  function handleToggleContext() {
+  function handleToggleContext(): void {
     setSidebarCollapsed((current) => !current);
   }
 
@@ -178,6 +239,7 @@ export function AgentWorkspace() {
           onGenerate={handleGenerate}
           onRefresh={refreshConversation}
           onViewDraft={handleViewDraft}
+          onMarkRead={syncConversationRead}
         />
       </section>
 

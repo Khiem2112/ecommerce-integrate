@@ -19,6 +19,8 @@ export const sendApprovedDraftSchema = z.object({
     .min(1, { message: 'Message text cannot be empty.' })
     .max(2000, { message: 'Message text cannot exceed 2000 characters.' }),
   draftId: z.number().int().positive().optional(),
+  selectedStrategyCode: z.string().trim().min(1).optional(),
+  customDraftText: z.string().max(2000).nullable().optional(),
 });
 
 export const handbackToBotSchema = z.object({
@@ -37,7 +39,15 @@ export const resolveSessionSchema = z.object({
   auditLogId: z.number().int().positive().optional(),
 });
 
+export const markConversationReadSchema = z.object({
+  conversationId: z
+    .number()
+    .int()
+    .positive({ message: 'A valid conversation ID is required.' }),
+});
+
 export type TakeoverSessionInput = z.infer<typeof takeoverSessionSchema>;
 export type SendApprovedDraftInput = z.infer<typeof sendApprovedDraftSchema>;
 export type HandbackToBotInput = z.infer<typeof handbackToBotSchema>;
 export type ResolveSessionInput = z.infer<typeof resolveSessionSchema>;
+export type MarkConversationReadInput = z.infer<typeof markConversationReadSchema>;

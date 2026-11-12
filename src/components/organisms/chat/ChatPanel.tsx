@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition, type ReactElement } from 'react';
 import { useTranslations } from 'next-intl';
 import { Badge, type BadgeVariant, Button, IconButton } from '@/components/atoms';
 import { EmptyChat, MessageBubble, MessageInput } from '@/components/molecules';
@@ -10,7 +10,9 @@ import {
   takeoverSessionAction,
   handbackToBotAction,
   resolveSessionAction,
+  markConversationReadAction,
 } from '@/actions/agentSessionActions';
+import { resolveChatActionErrorMessage } from '@/utils';
 import type {
   ConversationDetail,
   MultiDraftRagDraft,
@@ -47,6 +49,7 @@ export type ChatPanelProps = {
   readonly onGenerate: () => void;
   readonly onRefresh: () => void;
   readonly onViewDraft?: () => void;
+  readonly onMarkRead?: (conversationId: number, unreadCount: number) => void;
 };
 
 export function ChatPanel({
@@ -61,16 +64,51 @@ export function ChatPanel({
   onGenerate,
   onRefresh,
   onViewDraft,
-}: ChatPanelProps) {
+  onMarkRead,
+}: ChatPanelProps): ReactElement {
   const t = useTranslations('workspace');
   const tSession = useTranslations('workspace.agentSession');
+  const tErrors = useTranslations('chat.errors');
   const threadEndRef = useRef<HTMLDivElement>(null);
+  const localReadAttemptRef = useRef<string | null>(null);
   const [isPendingAction, startTransition] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNowMs(Date.now());
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     threadEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [conversation?.messages.length]);
+
+  useEffect(() => {
+    const unreadCount = conversation?.unreadCount ?? 0;
+    if (!conversation || unreadCount <= 0) {
+      return;
+    }
+
+    if (onMarkRead) {
+      onMarkRead(conversation.id, unreadCount);
+      return;
+    }
+
+    const attemptKey = `${conversation.id}:${unreadCount}`;
+    if (localReadAttemptRef.current === attemptKey) {
+      return;
+    }
+    localReadAttemptRef.current = attemptKey;
+
+    void markConversationReadAction({ conversationId: conversation.id }).then((res) => {
+      if (res.success) {
+        onRefresh();
+      }
+    });
+  }, [conversation, onMarkRead, onRefresh]);
 
   if (isLoading) return <ChatLoading />;
   if (!conversation) return <EmptyChat />;
@@ -86,17 +124,38 @@ export function ChatPanel({
     variant: 'slate' as BadgeVariant,
   };
 
-  const lastMessageTimestampStr =
-    conversation.latestMessage?.timestamp || conversation.updatedAt;
-  const lastTime = lastMessageTimestampStr
-    ? new Date(lastMessageTimestampStr).getTime()
-    : Date.now();
-  const elapsedMs = Date.now() - lastTime;
-  const isExpired = elapsedMs > LAZADA_SESSION_EXPIRATION_MS;
-  const remainingHours = Math.max(
-    0,
-    Math.floor((LAZADA_SESSION_EXPIRATION_MS - elapsedMs) / (1000 * 60 * 60)),
-  );
+  const isLazada = !conversation.platformCode || conversation.platformCode === 'lazada';
+  const fallbackBuyerMessage = [...conversation.messages]
+    .reverse()
+    .find((msg) => msg.senderCode === 'buyer');
+  const effectiveBuyerTimeStr =
+    conversation.lastBuyerMessageTime !== undefined
+      ? conversation.lastBuyerMessageTime
+      : (fallbackBuyerMessage?.timestamp ??
+          (conversation.messages.length === 0 ? conversation.updatedAt : null));
+  const parsedBuyerTimeMs = effectiveBuyerTimeStr
+    ? new Date(effectiveBuyerTimeStr).getTime()
+    : null;
+  const validBuyerTimeMs =
+    parsedBuyerTimeMs !== null && Number.isFinite(parsedBuyerTimeMs)
+      ? parsedBuyerTimeMs
+      : null;
+  const elapsedMs =
+    validBuyerTimeMs !== null ? Math.max(0, nowMs - validBuyerTimeMs) : null;
+  const within5DayBuyerWindow =
+    elapsedMs !== null && elapsedMs <= LAZADA_SESSION_EXPIRATION_MS;
+  const remainingHours =
+    within5DayBuyerWindow && elapsedMs !== null
+      ? Math.max(
+          0,
+          Math.floor((LAZADA_SESSION_EXPIRATION_MS - elapsedMs) / (1000 * 60 * 60)),
+        )
+      : 0;
+  const canReopenFromOrder =
+    isLazada &&
+    !within5DayBuyerWindow &&
+    Boolean(conversation.hasRecentOrderWithin7Days);
+  const isExpired = isLazada && !within5DayBuyerWindow && !canReopenFromOrder;
 
   const handleTakeover = (): void => {
     setActionError(null);
@@ -105,7 +164,14 @@ export function ChatPanel({
         conversationId: conversation.id,
       });
       if (!res.success) {
-        setActionError(res.error || tSession('actions.takeoverFailed'));
+        setActionError(
+          resolveChatActionErrorMessage(
+            res.code,
+            res.error,
+            tErrors,
+            tSession('actions.takeoverFailed'),
+          ),
+        );
       } else {
         onRefresh();
       }
@@ -119,7 +185,14 @@ export function ChatPanel({
         conversationId: conversation.id,
       });
       if (!res.success) {
-        setActionError(res.error || tSession('actions.handbackFailed'));
+        setActionError(
+          resolveChatActionErrorMessage(
+            res.code,
+            res.error,
+            tErrors,
+            tSession('actions.handbackFailed'),
+          ),
+        );
       } else {
         onRefresh();
       }
@@ -133,7 +206,14 @@ export function ChatPanel({
         conversationId: conversation.id,
       });
       if (!res.success) {
-        setActionError(res.error || tSession('actions.resolveFailed'));
+        setActionError(
+          resolveChatActionErrorMessage(
+            res.code,
+            res.error,
+            tErrors,
+            tSession('actions.resolveFailed'),
+          ),
+        );
       } else {
         onRefresh();
       }
@@ -196,11 +276,15 @@ export function ChatPanel({
                 label={conversation.intent.name}
               />
             )}
-            {!isExpired && (
+            {isLazada && within5DayBuyerWindow ? (
               <span className="text-[11px] text-muted">
                 {tSession('sessionExpiration.activeWindow', { hours: remainingHours })}
               </span>
-            )}
+            ) : isLazada && canReopenFromOrder ? (
+              <span className="text-[11px] text-muted">
+                {tSession('sessionExpiration.orderWindowEligible')}
+              </span>
+            ) : null}
           </div>
         </div>
 
@@ -370,11 +454,12 @@ export function ChatPanel({
       <div className="shrink-0 border-t border-hairline bg-surface-lifted p-3 md:px-6">
         <div className="mx-auto max-w-3xl">
           {isExpired ? (
-            <div className="rounded-lg border border-status-danger/30 bg-status-danger/10 px-4 py-3 text-center text-xs font-medium text-status-danger-foreground">
+            <div className="rounded-lg border border-semantic-error/30 bg-semantic-error/10 px-4 py-3 text-center text-xs font-medium text-semantic-error">
               {tSession('sessionExpiration.expired')}
             </div>
           ) : (
             <MessageInput
+              key={conversation.id}
               conversationId={conversation.id}
               isGenerating={isGenerating}
               onGenerate={onGenerate}
@@ -387,7 +472,7 @@ export function ChatPanel({
   );
 }
 
-function ChatLoading() {
+function ChatLoading(): ReactElement {
   return (
     <div className="flex h-full min-h-96 flex-col animate-pulse bg-background">
       <div className="h-14 border-b border-hairline bg-surface-card" />

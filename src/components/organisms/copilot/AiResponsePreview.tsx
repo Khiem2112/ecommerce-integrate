@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useTranslations } from 'next-intl';
+import { useState, useMemo, type ReactElement } from 'react';
+import { useFormatter, useTranslations } from 'next-intl';
 import { saveAiResponseAction } from '@/actions/conversationActions';
 import { rejectAiDraftAction } from '@/actions/aiDraftActions';
 import { Badge, Button, type BadgeVariant } from '@/components/atoms';
 import { GroundingAnnotation } from '@/components/molecules';
 import { ErrorBanner } from '@/components/molecules/ErrorBanner';
 import { cn } from '@/lib/cn';
+import { resolveChatActionErrorMessage } from '@/utils';
 import type {
   AiDraftDetailDto,
   MultiDraftRagDraft,
@@ -33,14 +34,24 @@ function isDetailDto(
   return 'status' in draft && 'recommendedStrategyCode' in draft;
 }
 
-export function AiResponsePreview({
+export function AiResponsePreview(props: AiResponsePreviewProps): ReactElement {
+  const isFullDraft = isDetailDto(props.draft);
+  const draftId = isFullDraft ? props.draft.id : props.draft.draftId;
+  const resetKey = `${props.conversationId}:${draftId ?? 'ephemeral'}`;
+
+  return <AiResponsePreviewContent key={resetKey} {...props} />;
+}
+
+function AiResponsePreviewContent({
   draft,
   conversationId,
   onDismiss,
   onSaved,
-}: AiResponsePreviewProps) {
+}: AiResponsePreviewProps): ReactElement | null {
   const t = useTranslations('chat.preview');
+  const tErrors = useTranslations('chat.errors');
   const tc = useTranslations('common');
+  const format = useFormatter();
   const isFullDraft = isDetailDto(draft);
   const draftId = isFullDraft ? draft.id : draft.draftId;
   const draftStatus = isFullDraft ? draft.status : 'pending';
@@ -79,14 +90,6 @@ export function AiResponsePreview({
     { value: 'customer_cancelled', label: t('rejectionReasons.customer_cancelled') },
   ], [t]);
 
-  /* Reset draft-specific state whenever the active draft identity changes */
-  useEffect(() => {
-    setActiveStrategyId(defaultStrategyId);
-    setIsEditing(false);
-    setCustomTexts({});
-    setError(null);
-  }, [draftId, defaultStrategyId]);
-
   const activeStrategy =
     strategies.find((s) => s.id === activeStrategyId) ?? strategies[0];
 
@@ -121,20 +124,29 @@ export function AiResponsePreview({
     activeStrategy?.suggestedAction !== 'escalate_to_human' &&
     currentText.trim().length > 0;
 
-  function handleSelectStrategy(strategyId: string) {
+  function handleSelectStrategy(strategyId: string): void {
     setActiveStrategyId(strategyId);
     setIsEditing(false);
+    if (error) {
+      setError(null);
+    }
   }
 
-  function handleTextChange(newText: string) {
+  function handleTextChange(newText: string): void {
     if (!activeStrategy) return;
+    if (error) {
+      setError(null);
+    }
     setCustomTexts((prev) => ({
       ...prev,
       [activeStrategy.id]: newText,
     }));
   }
 
-  function toggleEditing() {
+  function toggleEditing(): void {
+    if (error) {
+      setError(null);
+    }
     if (isEditing) {
       if (activeStrategy) {
         setCustomTexts((prev) => {
@@ -149,7 +161,7 @@ export function AiResponsePreview({
     setIsEditing(true);
   }
 
-  async function handleApprove() {
+  async function handleApprove(): Promise<void> {
     if (!activeStrategy || !canApprove || isSaving || !draftId) return;
 
     setIsSaving(true);
@@ -164,17 +176,18 @@ export function AiResponsePreview({
       });
 
       if (!res.success) {
-        throw new Error(res.error ?? 'Unable to save the AI response.');
+        setError(resolveChatActionErrorMessage(res.code, res.error, tErrors));
+        return;
       }
       onSaved();
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Unable to save the AI response.');
+    } catch {
+      setError(tErrors('genericSendError'));
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function handleRejectConfirm() {
+  async function handleRejectConfirm(): Promise<void> {
     if (!draftId || isRejecting) return;
 
     setIsRejecting(true);
@@ -187,12 +200,13 @@ export function AiResponsePreview({
       });
 
       if (!res.success) {
-        throw new Error(res.error ?? 'Unable to reject the draft.');
+        setError(t('rejectError'));
+        return;
       }
       setShowRejectModal(false);
       onSaved();
-    } catch (rejectErr) {
-      setError(rejectErr instanceof Error ? rejectErr.message : 'Unable to reject the draft.');
+    } catch {
+      setError(t('rejectError'));
     } finally {
       setIsRejecting(false);
     }
@@ -208,10 +222,21 @@ export function AiResponsePreview({
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-surface-lifted px-1 pb-2">
         <div className="flex items-center gap-2">
           <span
-            className="grid size-6 place-items-center rounded-full bg-foreground text-xs font-bold text-background"
+            className="grid size-6 place-items-center rounded-full bg-foreground text-background"
             aria-hidden="true"
           >
-            ✦
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="size-3.5"
+            >
+              <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" />
+            </svg>
           </span>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold tracking-tight text-foreground">
@@ -219,7 +244,7 @@ export function AiResponsePreview({
             </h3>
             {isFullDraft && draft.createdAt && (
               <span className="text-xs tabular-nums text-muted">
-                {new Date(draft.createdAt).toLocaleTimeString('vi-VN', {
+                {format.dateTime(new Date(draft.createdAt), {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}
@@ -265,7 +290,12 @@ export function AiResponsePreview({
           <div className="rounded-xl border border-hairline bg-background p-2.5 text-sm">
             <div className="flex items-center justify-between text-xs tabular-nums text-muted">
               <span className="font-medium">{t('triggerMessage', { sender: triggerMessage.senderName })}</span>
-              <span>{new Date(triggerMessage.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+              <span>
+                {format.dateTime(new Date(triggerMessage.timestamp), {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
             </div>
             <p className="mt-1.5 line-clamp-2 text-sm leading-5 italic text-foreground/80">
               &ldquo;{triggerMessage.text}&rdquo;
@@ -283,7 +313,20 @@ export function AiResponsePreview({
         {/* Recommendation Rationale Callout */}
         {draft.response?.recommendationReason && (
           <div className="flex items-center gap-2 rounded-xl border border-status-warning/20 bg-status-warning/5 px-3 py-2 text-sm text-foreground">
-            <span className="text-sm font-bold text-status-warning">💡</span>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="size-4 shrink-0 text-status-warning"
+            >
+              <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
+              <path d="M9 18h6" />
+              <path d="M10 22h4" />
+            </svg>
             <div className="truncate">
               <span className="font-semibold text-status-warning">{t('recommendation')} </span>
               <span className="text-foreground">{draft.response.recommendationReason}</span>
@@ -298,11 +341,11 @@ export function AiResponsePreview({
               {t('strategies', { count: strategies.length })}
             </span>
             <span className="text-xs text-muted">
-              {activeStrategy.strategy?.tone ? `Tone: ${activeStrategy.strategy.tone}` : ''}
+              {activeStrategy.strategy?.tone ? t('toneLabel', { tone: activeStrategy.strategy.tone }) : ''}
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Draft strategy options">
+          <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label={t('strategyOptionsAria')}>
             {strategies.map((strategy) => {
               const isSelectedTab = strategy.id === activeStrategyId;
               const isRecommended = strategy.id === recommendedStrategyCode;
@@ -332,7 +375,7 @@ export function AiResponsePreview({
                           : 'border-hairline bg-background text-foreground hover:border-foreground/30 hover:bg-hairline',
                   )}
                 >
-                  <span>{strategy.strategy?.name ?? `Rank #${strategy.rank}`}</span>
+                  <span>{strategy.strategy?.name ?? t('rankFallback', { rank: strategy.rank })}</span>
 
                   {/* Recommendation Badge */}
                   {draftStatus === 'pending' && isRecommended && (
@@ -539,7 +582,7 @@ export function AiResponsePreview({
         {draftStatus === 'rejected' && isFullDraft && (
           <div className="rounded-xl border border-semantic-error/20 bg-semantic-error/10 p-2 text-center text-xs text-semantic-error">
             {t.rich('rejectedNotice', {
-              reason: draft.rejectionReason ?? 'Manual review',
+              reason: draft.rejectionReason ?? t('defaultRejectionReason'),
               strong: (chunks) => <strong>{chunks}</strong>,
             })}
           </div>

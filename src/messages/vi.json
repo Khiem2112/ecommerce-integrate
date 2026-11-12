@@ -609,7 +609,10 @@
         "invalidInput": "Dữ liệu không hợp lệ",
         "conversationNotFound": "Không tìm thấy cuộc hội thoại",
         "sessionExpired": "Phiên chat Lazada đã quá hạn 5 ngày. Không thể gửi tin mới.",
+        "antiSpamQuotaExceeded": "Đã đạt giới hạn chống spam của Lazada: tối đa 5 tin nhắn liên tiếp khi khách chưa phản hồi trong 24 giờ.",
         "platformSendFailed": "Gửi tin nhắn lên sàn Lazada thất bại",
+        "draftValidationFailed": "Kiểm tra bản nháp thất bại. Vui lòng làm mới và thử lại.",
+        "unauthorized": "Vui lòng đăng nhập để thực hiện thao tác này.",
         "systemError": "Lỗi hệ thống khi xử lý yêu cầu"
       },
       "banner": {
@@ -624,6 +627,7 @@
       },
       "sessionExpiration": {
         "activeWindow": "Phiên chat còn hiệu lực {hours} giờ",
+        "orderWindowEligible": "Khách có đơn hàng trong 7 ngày — gửi tin sẽ mở lại phiên chat Lazada.",
         "expired": "Phiên chat Lazada đã quá hạn 5 ngày. Không thể gửi tin mới."
       },
       "header": {
@@ -1256,6 +1260,32 @@
       "sending": "Đang gửi...",
       "sendError": "Không thể gửi tin nhắn."
     },
+    "errors": {
+      "sessionExpired": "Phiên chat Lazada đã quá hạn 5 ngày kể từ tin nhắn cuối của khách hàng. Không thể gửi tin.",
+      "antiSpamQuota": "Đã đạt giới hạn chống spam của Lazada: tối đa 5 tin nhắn liên tiếp khi khách chưa phản hồi trong 24 giờ.",
+      "platformSendFailed": "Không thể gửi tin nhắn lên sàn Lazada",
+      "draftValidationFailed": "Kiểm tra bản nháp thất bại. Vui lòng kiểm tra và thử lại.",
+      "draftOutdated": "Bản nháp đã lỗi thời vì có tin nhắn hoặc bản nháp mới hơn. Vui lòng tạo lại.",
+      "draftAlreadyReviewed": "Bản nháp này đã được xử lý hoặc gửi trước đó.",
+      "draftSafetyFailed": "Nội dung chỉnh sửa chưa đạt kiểm tra an toàn và chính sách.",
+      "unauthorized": "Vui lòng đăng nhập để gửi tin nhắn.",
+      "conversationNotFound": "Không tìm thấy cuộc hội thoại.",
+      "invalidInput": "Dữ liệu không hợp lệ. Vui lòng kiểm tra tin nhắn và thử lại.",
+      "genericSendError": "Không thể gửi tin nhắn. Vui lòng thử lại."
+    },
+    "sender": {
+      "customer": "Khách hàng",
+      "system": "Hệ thống",
+      "aiAssistant": "Trợ lý AI"
+    },
+    "status": {
+      "escalated": "Cần can thiệp",
+      "inProgress": "Đang xử lý",
+      "resolved": "Đã giải quyết"
+    },
+    "stream": {
+      "reconnecting": "Mất kết nối. Đang kết nối lại sau {seconds}s..."
+    },
     "preview": {
       "title": "AI Multi-Draft Co-Pilot",
       "triggerMessage": "Tin nhắn kích hoạt ({sender}):",
@@ -1263,27 +1293,32 @@
       "outdatedDesc": "Tin nhắn mới từ khách hàng đã xuất hiện sau khi draft này được tạo. Vui lòng bấm Generate AI Response để cập nhật.",
       "recommendation": "Đề xuất:",
       "strategies": "Chiến lược ({count} phương án)",
-      "aiRecommended": "★ AI đề xuất",
-      "approved": "✓ Đã duyệt",
+      "strategyOptionsAria": "Các tùy chọn chiến lược phản hồi",
+      "toneLabel": "Giọng điệu: {tone}",
+      "rankFallback": "Phương án #{rank}",
+      "defaultRejectionReason": "Kiểm duyệt thủ công",
+      "aiRecommended": "AI đề xuất",
+      "approved": "Đã duyệt",
       "backup": "Dự phòng",
-      "voucher": "🎫 Voucher",
+      "voucher": "Voucher",
       "editDraft": "Chỉnh sửa phản hồi AI",
-      "highRiskNotice": "⚠️ Chiến lược này có rủi ro cao, yêu cầu nhân viên xử lý thủ công.",
-      "safetyNotice": "⚠️ Draft này không thể duyệt do chưa đáp ứng yêu cầu an toàn/grounding.",
+      "highRiskNotice": "Chiến lược này có rủi ro cao, yêu cầu nhân viên xử lý thủ công.",
+      "safetyNotice": "Draft này không thể duyệt do chưa đáp ứng yêu cầu an toàn/grounding.",
       "rejectTitle": "Từ chối AI Draft — Chọn lý do:",
+      "rejectError": "Không thể từ chối bản nháp.",
       "close": "Đóng",
       "reject": "Từ chối draft",
       "confirmReject": "Xác nhận từ chối",
       "cancelEdit": "Hủy sửa",
       "edit": "Sửa văn bản",
-      "approveEdited": "Duyệt bản chỉnh sửa",
-      "approve": "Duyệt & Lưu nội bộ",
-      "appliedSuccess": "✓ Draft đã được duyệt và lưu vào hội thoại nội bộ.",
-      "rejectedNotice": "✕ Draft đã bị từ chối: <strong>{reason}</strong>",
-      "statusApplied": "✓ Đã duyệt lưu",
-      "statusRejected": "✕ Đã từ chối",
-      "statusOutdated": "⚠️ Draft lỗi thời",
-      "statusPending": "🟡 Chờ duyệt",
+      "approveEdited": "Duyệt sửa & gửi",
+      "approve": "Duyệt & gửi",
+      "appliedSuccess": "Bản nháp đã được duyệt và gửi tới khách hàng.",
+      "rejectedNotice": "Draft đã bị từ chối: <strong>{reason}</strong>",
+      "statusApplied": "Đã duyệt & gửi",
+      "statusRejected": "Đã từ chối",
+      "statusOutdated": "Draft lỗi thời",
+      "statusPending": "Chờ duyệt",
       "actions": {
         "auto_reply": "Đủ điều kiện trả lời tự động",
         "await_approval": "Khuyến nghị phê duyệt",

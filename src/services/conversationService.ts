@@ -37,8 +37,22 @@ const CONVERSATION_INCLUDE = {
 /** Fetch a single conversation by ID with messages */
 export async function getConversationById(
   id: number,
-  tx: DbClient = prisma,
+  organizationIdOrTx: number | null | DbClient = prisma,
+  maybeTx?: DbClient,
 ): Promise<ConversationWithMessages | null> {
+  const organizationId =
+    typeof organizationIdOrTx === 'number' || organizationIdOrTx === null
+      ? organizationIdOrTx
+      : undefined;
+  const tx: DbClient =
+    typeof organizationIdOrTx === 'object' && organizationIdOrTx !== null
+      ? organizationIdOrTx
+      : (maybeTx ?? prisma);
+
+  if (organizationId === null) {
+    return null;
+  }
+
   const conv = await tx.conversation.findUnique({
     where: { id },
     include: {
@@ -52,19 +66,42 @@ export async function getConversationById(
     },
   });
 
-  return conv ? (withPlatform(conv) as unknown as ConversationWithMessages) : null;
+  if (
+    !conv ||
+    !conv.isActive ||
+    (organizationId !== undefined && conv.connection?.organizationId !== organizationId)
+  ) {
+    return null;
+  }
+
+  return withPlatform(conv);
 }
 
 /** Fetch inbox conversations with their customer and newest active message */
 export async function getInboxConversations(
   filters: InboxConversationFilters = {},
-  tx: DbClient = prisma,
+  organizationIdOrTx: number | null | DbClient = prisma,
+  maybeTx?: DbClient,
 ): Promise<InboxConversationRecord[]> {
+  const organizationId =
+    typeof organizationIdOrTx === 'number' || organizationIdOrTx === null
+      ? organizationIdOrTx
+      : undefined;
+  const tx: DbClient =
+    typeof organizationIdOrTx === 'object' && organizationIdOrTx !== null
+      ? organizationIdOrTx
+      : (maybeTx ?? prisma);
+
+  if (organizationId === null) {
+    return [];
+  }
+
   const searchQuery = filters.searchQuery?.trim();
 
   const conversations = await tx.conversation.findMany({
     where: {
       isActive: true,
+      ...(organizationId !== undefined ? { connection: { organizationId } } : {}),
       ...(filters.statusCode && filters.statusCode !== 'all'
         ? { status: { code: filters.statusCode } }
         : {}),
@@ -99,7 +136,7 @@ export async function getInboxConversations(
     orderBy: { updatedAt: 'desc' },
   });
 
-  return withPlatforms(conversations) as unknown as InboxConversationRecord[];
+  return withPlatforms(conversations);
 }
 
 /** Persist a seller or AI-agent reply and return it with sender information */
@@ -147,11 +184,11 @@ export async function resolveResponseSenderTypeService(
   tx: DbClient = prisma,
 ): Promise<string> {
   const conversation = await tx.conversation.findUnique({
-    where: { id: conversationId, isActive: true },
+    where: { id: conversationId },
     include: { assignedAgent: true },
   });
 
-  if (!conversation) {
+  if (!conversation || !conversation.isActive) {
     throw new Error(`Conversation ${conversationId} was not found.`);
   }
 
@@ -170,7 +207,7 @@ export async function getConversationsByCustomerId(
     include: CONVERSATION_INCLUDE,
     orderBy: { startedAt: 'desc' },
   });
-  return withPlatforms(conversations) as unknown as ConversationWithRelations[];
+  return withPlatforms(conversations);
 }
 
 /** Fetch unresolved (non-final status) conversations for a customer */
@@ -187,7 +224,7 @@ export async function getUnresolvedConversations(
     include: CONVERSATION_INCLUDE,
     orderBy: { startedAt: 'desc' },
   });
-  return withPlatforms(conversations) as unknown as ConversationWithRelations[];
+  return withPlatforms(conversations);
 }
 
 /** Fetch the most recent N messages for a conversation (chronological) */
@@ -235,4 +272,29 @@ export async function getConversationCount(
   return tx.conversation.count({
     where: { customerId, isActive: true },
   });
+}
+
+/** Check whether the customer has an active order within the specified recent day window */
+export async function hasRecentCustomerOrderWithinDays(
+  connectionId: number,
+  customerId: number,
+  days: number = 7,
+  tx: DbClient = prisma,
+): Promise<boolean> {
+  if (typeof tx.order?.findFirst !== 'function') {
+    return false;
+  }
+
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const recentOrder = await tx.order.findFirst({
+    where: {
+      connectionId,
+      customerId,
+      isActive: true,
+      createdAt: { gte: cutoff },
+    },
+    select: { id: true },
+  });
+
+  return Boolean(recentOrder);
 }

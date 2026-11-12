@@ -50,6 +50,7 @@ export type {
 
 // Common cross-layer utility types
 export type {
+  ActionErrorCode,
   ActionResponse,
   DbClient,
 } from './common';

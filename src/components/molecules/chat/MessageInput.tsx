@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, type KeyboardEvent } from 'react';
+import { useState, type KeyboardEvent, type ReactElement } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
 import { sendMessageAction } from '@/actions/conversationActions';
 import { Button } from '@/components/atoms';
 import { ErrorBanner } from '@/components/molecules/ErrorBanner';
+import { resolveChatActionErrorMessage } from '@/utils';
 
 type MessageInputProps = {
   readonly conversationId: number;
@@ -19,32 +20,38 @@ export function MessageInput({
   isGenerating,
   onGenerate,
   onSent,
-}: MessageInputProps) {
+}: MessageInputProps): ReactElement {
   const t = useTranslations('chat.composer');
+  const tErrors = useTranslations('chat.errors');
   const queryClient = useQueryClient();
   const [text, setText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSend() {
+  async function handleSend(): Promise<void> {
     const message = text.trim();
     if (!message || isSending) return;
 
     setIsSending(true);
     setError(null);
     try {
-      await sendMessageAction(conversationId, message);
+      const res = await sendMessageAction(conversationId, message);
+      if (!res.success) {
+        setError(resolveChatActionErrorMessage(res.code, res.error, tErrors));
+        return;
+      }
+
       setText('');
       onSent();
       await queryClient.invalidateQueries({ queryKey: ['conversations'] });
-    } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : t('sendError'));
+    } catch {
+      setError(t('sendError'));
     } finally {
       setIsSending(false);
     }
   }
 
-  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       void handleSend();
@@ -58,8 +65,10 @@ export function MessageInput({
           <ErrorBanner
             message={error}
             variant="inline"
-            onRetry={() => void handleSend()}
-            onDismiss={() => setError(null)}
+            onRetry={(): void => {
+              void handleSend();
+            }}
+            onDismiss={(): void => setError(null)}
           />
         </div>
       )}
@@ -106,7 +115,12 @@ export function MessageInput({
           id={`composer-${conversationId}`}
           rows={2}
           value={text}
-          onChange={(event) => setText(event.target.value)}
+          onChange={(event) => {
+            setText(event.target.value);
+            if (error) {
+              setError(null);
+            }
+          }}
           onKeyDown={handleKeyDown}
           placeholder={t('placeholder')}
           className="block w-full resize-none bg-transparent text-base leading-6 text-foreground outline-none placeholder:text-muted"

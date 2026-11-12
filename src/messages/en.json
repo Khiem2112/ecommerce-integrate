@@ -609,7 +609,10 @@
         "invalidInput": "Invalid input data",
         "conversationNotFound": "Conversation not found",
         "sessionExpired": "Lazada chat session expired (5-day window). Cannot send new messages.",
+        "antiSpamQuotaExceeded": "Lazada anti-spam limit reached: up to 5 consecutive replies are allowed when the buyer has not replied within 24 hours.",
         "platformSendFailed": "Failed to send message to Lazada",
+        "draftValidationFailed": "Draft validation failed. Please refresh and try again.",
+        "unauthorized": "Authentication required to perform this action.",
         "systemError": "System error processing request"
       },
       "banner": {
@@ -624,6 +627,7 @@
       },
       "sessionExpiration": {
         "activeWindow": "Session valid for {hours} hours",
+        "orderWindowEligible": "Recent order within 7 days — sending will reopen the Lazada session.",
         "expired": "Lazada chat session expired (5-day window). Cannot send new messages."
       },
       "header": {
@@ -1256,6 +1260,32 @@
       "sending": "Sending...",
       "sendError": "Unable to send message."
     },
+    "errors": {
+      "sessionExpired": "Lazada chat session expired beyond the 5-day buyer reply window. Cannot send message.",
+      "antiSpamQuota": "Lazada anti-spam limit reached: up to 5 consecutive replies are allowed when the customer has not replied within 24 hours.",
+      "platformSendFailed": "Failed to deliver message to Lazada",
+      "draftValidationFailed": "Draft validation failed. Please review and try again.",
+      "draftOutdated": "This draft is outdated because a newer message or draft arrived. Please regenerate.",
+      "draftAlreadyReviewed": "This draft has already been reviewed or applied.",
+      "draftSafetyFailed": "Edited text did not pass safety and policy checks.",
+      "unauthorized": "Authentication required to send messages.",
+      "conversationNotFound": "Conversation not found.",
+      "invalidInput": "Invalid input data. Please check your message and try again.",
+      "genericSendError": "Unable to send message. Please try again."
+    },
+    "sender": {
+      "customer": "Customer",
+      "system": "System",
+      "aiAssistant": "AI Assistant"
+    },
+    "status": {
+      "escalated": "Escalated",
+      "inProgress": "In Progress",
+      "resolved": "Resolved"
+    },
+    "stream": {
+      "reconnecting": "Connection lost. Reconnecting in {seconds}s..."
+    },
     "preview": {
       "title": "AI Multi-Draft Co-Pilot",
       "triggerMessage": "Trigger message ({sender}):",
@@ -1263,27 +1293,32 @@
       "outdatedDesc": "A new message from the customer has arrived since this draft was generated. Please click Generate AI Response to update.",
       "recommendation": "Recommendation:",
       "strategies": "Strategies ({count} options)",
-      "aiRecommended": "★ AI recommended",
-      "approved": "✓ Approved",
+      "strategyOptionsAria": "Draft strategy options",
+      "toneLabel": "Tone: {tone}",
+      "rankFallback": "Rank #{rank}",
+      "defaultRejectionReason": "Manual review",
+      "aiRecommended": "AI recommended",
+      "approved": "Approved",
       "backup": "Backup",
-      "voucher": "🎫 Voucher",
+      "voucher": "Voucher",
       "editDraft": "Edit AI response",
-      "highRiskNotice": "⚠️ This strategy has high risk and requires manual agent handling.",
-      "safetyNotice": "⚠️ This draft cannot be approved because safety/grounding criteria are not met.",
+      "highRiskNotice": "This strategy has high risk and requires manual agent handling.",
+      "safetyNotice": "This draft cannot be approved because safety/grounding criteria are not met.",
       "rejectTitle": "Reject AI Draft — Select reason:",
+      "rejectError": "Unable to reject the draft.",
       "close": "Close",
       "reject": "Reject draft",
       "confirmReject": "Confirm Rejection",
       "cancelEdit": "Cancel edit",
       "edit": "Edit text",
-      "approveEdited": "Approve edited draft",
-      "approve": "Approve & save internally",
-      "appliedSuccess": "✓ Draft approved and saved to internal conversation.",
-      "rejectedNotice": "✕ Draft was rejected: <strong>{reason}</strong>",
-      "statusApplied": "✓ Approved & saved",
-      "statusRejected": "✕ Rejected",
-      "statusOutdated": "⚠️ Draft outdated",
-      "statusPending": "🟡 Awaiting approval",
+      "approveEdited": "Approve & send edit",
+      "approve": "Approve & send",
+      "appliedSuccess": "Draft approved and sent to customer.",
+      "rejectedNotice": "Draft was rejected: <strong>{reason}</strong>",
+      "statusApplied": "Approved & sent",
+      "statusRejected": "Rejected",
+      "statusOutdated": "Draft outdated",
+      "statusPending": "Awaiting approval",
       "actions": {
         "auto_reply": "Auto-reply eligible",
         "await_approval": "Approval recommended",

@@ -8,23 +8,46 @@ import {
   sendOperatorMessage,
   handbackSessionToBot,
   resolveConversationSession,
-  SessionExpiredError,
-  ConversationNotFoundError,
+  markConversationAsRead,
+  classifyOutboundSessionError,
   type TakeoverSessionResult,
   type HandbackSessionResult,
   type ResolveSessionResult,
+  type MarkConversationReadResult,
 } from '@/services/agentSessionService';
 import {
   takeoverSessionSchema,
   sendApprovedDraftSchema,
   handbackToBotSchema,
   resolveSessionSchema,
+  markConversationReadSchema,
   type TakeoverSessionInput,
   type SendApprovedDraftInput,
   type HandbackToBotInput,
   type ResolveSessionInput,
+  type MarkConversationReadInput,
 } from '@/forms/agentSessionFormSchema';
 import type { ActionResponse, Message } from '@/types';
+
+async function resolveAuthorizedActor(): Promise<
+  | { readonly ok: true; readonly userId: number; readonly organizationId: number }
+  | { readonly ok: false; readonly response: ActionResponse<never> }
+> {
+  const session = await getAuthenticatedSessionContextService();
+  const userId = session?.user?.id;
+  const organizationId = session?.activeOrganization?.organizationId;
+  if (!userId || organizationId == null) {
+    return {
+      ok: false,
+      response: {
+        success: false,
+        code: 'UNAUTHORIZED',
+        error: 'Unauthorized',
+      },
+    };
+  }
+  return { ok: true, userId, organizationId };
+}
 
 export async function takeoverSessionAction(
   rawInput: TakeoverSessionInput,
@@ -34,15 +57,22 @@ export async function takeoverSessionAction(
     if (!parseResult.success) {
       return {
         success: false,
+        code: 'INVALID_INPUT',
         error: parseResult.error.issues[0]?.message || 'Invalid input data',
       };
     }
 
-    const { conversationId } = parseResult.data;
-    const session = await getAuthenticatedSessionContextService();
-    const userId = session?.user?.id ?? null;
+    const auth = await resolveAuthorizedActor();
+    if (!auth.ok) {
+      return auth.response;
+    }
 
-    const result = await takeoverConversationSession(conversationId, userId);
+    const { conversationId } = parseResult.data;
+    const result = await takeoverConversationSession(
+      conversationId,
+      auth.userId,
+      auth.organizationId,
+    );
 
     revalidatePath('/workspace');
     return {
@@ -51,12 +81,14 @@ export async function takeoverSessionAction(
     };
   } catch (error) {
     appLogger.error('Failed to take over conversation session', error);
-    if (error instanceof ConversationNotFoundError) {
-      return { success: false, error: 'Conversation not found' };
-    }
+    const mapped = classifyOutboundSessionError(
+      error,
+      'System error while taking over session',
+    );
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'System error while taking over session',
+      code: mapped.code,
+      error: mapped.message,
     };
   }
 }
@@ -69,20 +101,32 @@ export async function sendApprovedDraftAction(
     if (!parseResult.success) {
       return {
         success: false,
+        code: 'INVALID_INPUT',
         error: parseResult.error.issues[0]?.message || 'Invalid input data',
       };
     }
 
-    const { conversationId, text, draftId } = parseResult.data;
-    const session = await getAuthenticatedSessionContextService();
-    const userId = session?.user?.id ?? null;
+    const auth = await resolveAuthorizedActor();
+    if (!auth.ok) {
+      return auth.response;
+    }
 
-    const createdMessage = await sendOperatorMessage(
+    const {
       conversationId,
       text,
       draftId,
-      userId,
-    );
+      selectedStrategyCode,
+      customDraftText,
+    } = parseResult.data;
+
+    const createdMessage = await sendOperatorMessage(conversationId, text, {
+      draftId,
+      selectedStrategyCode,
+      customDraftText,
+      operatorUserId: auth.userId,
+      organizationId: auth.organizationId,
+      approvedById: String(auth.userId),
+    });
 
     revalidatePath('/workspace');
     return {
@@ -91,18 +135,14 @@ export async function sendApprovedDraftAction(
     };
   } catch (error) {
     appLogger.error('Failed to send approved message', error);
-    if (error instanceof SessionExpiredError) {
-      return {
-        success: false,
-        error: 'Lazada chat session expired (5-day window). Cannot send new messages.',
-      };
-    }
-    if (error instanceof ConversationNotFoundError) {
-      return { success: false, error: 'Conversation not found' };
-    }
+    const mapped = classifyOutboundSessionError(
+      error,
+      'System error while sending message',
+    );
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'System error while sending message',
+      code: mapped.code,
+      error: mapped.message,
     };
   }
 }
@@ -115,12 +155,18 @@ export async function handbackToBotAction(
     if (!parseResult.success) {
       return {
         success: false,
+        code: 'INVALID_INPUT',
         error: parseResult.error.issues[0]?.message || 'Invalid input data',
       };
     }
 
+    const auth = await resolveAuthorizedActor();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
     const { conversationId } = parseResult.data;
-    const result = await handbackSessionToBot(conversationId);
+    const result = await handbackSessionToBot(conversationId, auth.organizationId);
 
     revalidatePath('/workspace');
     return {
@@ -129,12 +175,14 @@ export async function handbackToBotAction(
     };
   } catch (error) {
     appLogger.error('Failed to hand back session control to bot', error);
-    if (error instanceof ConversationNotFoundError) {
-      return { success: false, error: 'Conversation not found' };
-    }
+    const mapped = classifyOutboundSessionError(
+      error,
+      'System error while handing back to bot',
+    );
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'System error while handing back to bot',
+      code: mapped.code,
+      error: mapped.message,
     };
   }
 }
@@ -147,19 +195,25 @@ export async function resolveSessionAction(
     if (!parseResult.success) {
       return {
         success: false,
+        code: 'INVALID_INPUT',
         error: parseResult.error.issues[0]?.message || 'Invalid input data',
       };
     }
 
-    const { conversationId, resolutionNote = 'Resolved by operator', auditLogId } = parseResult.data;
-    const session = await getAuthenticatedSessionContextService();
-    const userId = session?.user?.id ?? 1;
+    const auth = await resolveAuthorizedActor();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const { conversationId, resolutionNote = 'Resolved by operator', auditLogId } =
+      parseResult.data;
 
     const result = await resolveConversationSession(
       conversationId,
       resolutionNote,
-      userId,
+      auth.userId,
       auditLogId,
+      auth.organizationId,
     );
 
     revalidatePath('/workspace');
@@ -169,12 +223,56 @@ export async function resolveSessionAction(
     };
   } catch (error) {
     appLogger.error('Failed to resolve conversation session', error);
-    if (error instanceof ConversationNotFoundError) {
-      return { success: false, error: 'Conversation not found' };
-    }
+    const mapped = classifyOutboundSessionError(
+      error,
+      'System error while resolving session',
+    );
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'System error while resolving session',
+      code: mapped.code,
+      error: mapped.message,
+    };
+  }
+}
+
+export async function markConversationReadAction(
+  rawInput: MarkConversationReadInput,
+): Promise<ActionResponse<MarkConversationReadResult>> {
+  try {
+    const parseResult = markConversationReadSchema.safeParse(rawInput);
+    if (!parseResult.success) {
+      return {
+        success: false,
+        code: 'INVALID_INPUT',
+        error: parseResult.error.issues[0]?.message || 'Invalid input data',
+      };
+    }
+
+    const auth = await resolveAuthorizedActor();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const result = await markConversationAsRead(
+      parseResult.data.conversationId,
+      auth.organizationId,
+    );
+
+    revalidatePath('/workspace');
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error) {
+    appLogger.error('Failed to mark conversation as read', error);
+    const mapped = classifyOutboundSessionError(
+      error,
+      'System error while marking conversation as read',
+    );
+    return {
+      success: false,
+      code: mapped.code,
+      error: mapped.message,
     };
   }
 }

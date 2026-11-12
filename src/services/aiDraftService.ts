@@ -18,7 +18,6 @@ import type {
   DbClient,
   AiDraftResponseWithRelations,
   AiDraftStrategyRecord,
-  AiDraftResponseForHistory,
   AiDraftDetailDto,
   AiDraftSummaryDto,
   AiDraftStrategyDto,
@@ -460,17 +459,39 @@ export async function getAiDraftHistoryService(
  * create an internal message with strategy metadata,
  * and conditional-update the draft to 'applied'.
  */
-export async function applyAiDraftService(
+export class DraftValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DraftValidationError';
+  }
+}
+
+export type PreparedAiDraftPayload = {
+  readonly draftId: number;
+  readonly selectedStrategyCode: string;
+  readonly customDraftText: string | null;
+  readonly messageText: string;
+  readonly senderTypeCode: string;
+  readonly groundedFacts: readonly string[];
+  readonly ungroundedClaims: readonly string[];
+  readonly confidence: number;
+  readonly suggestedAction: string;
+};
+
+/**
+ * Validate draft ownership, freshness, and safety rules before external delivery.
+ * Keeps the draft pending so failed outbound deliveries can still be retried.
+ */
+export async function validateAndPrepareAiDraftService(
   draftId: number,
   input: {
     readonly conversationId: number;
-    readonly selectedStrategyCode: string;
+    readonly selectedStrategyCode?: string | null;
     readonly customDraftText?: string | null;
-    readonly approvedById?: string | null;
+    readonly candidateText?: string | null;
   },
   tx: DbClient = prisma,
-): Promise<{ appliedMessageId: number }> {
-  // Load the draft and verify ownership + status + active
+): Promise<PreparedAiDraftPayload> {
   const draft = await tx.aiDraftResponse.findFirst({
     where: { id: draftId, isActive: true },
     include: {
@@ -479,39 +500,40 @@ export async function applyAiDraftService(
   });
 
   if (!draft) {
-    throw new Error(`AI Draft ${draftId} was not found or is inactive.`);
+    throw new DraftValidationError(`AI Draft ${draftId} was not found or is inactive.`);
   }
   if (draft.conversationId !== input.conversationId) {
-    throw new Error('Draft does not belong to the specified conversation.');
+    throw new DraftValidationError('Draft does not belong to the specified conversation.');
   }
   if (draft.status !== 'pending') {
-    throw new Error(`Draft has already been ${draft.status}. Cannot approve again.`);
-  }
-
-  // Validate selected strategy exists within this draft
-  const selectedStrategy = draft.strategies.find(
-    (s) => s.strategyCode === input.selectedStrategyCode,
-  );
-  if (!selectedStrategy) {
-    throw new Error(
-      `Strategy "${input.selectedStrategyCode}" does not belong to draft ${draftId}.`,
+    throw new DraftValidationError(
+      `Draft has already been ${draft.status}. Cannot approve again.`,
     );
   }
 
-  // Verify freshness:
-  // Check if a newer buyer message has arrived
+  const effectiveStrategyCode =
+    input.selectedStrategyCode?.trim() || draft.recommendedStrategyCode;
+
+  const selectedStrategy = draft.strategies.find(
+    (s) => s.strategyCode === effectiveStrategyCode,
+  );
+  if (!selectedStrategy) {
+    throw new DraftValidationError(
+      `Strategy "${effectiveStrategyCode}" does not belong to draft ${draftId}.`,
+    );
+  }
+
   const latestBuyerMsg = await getLatestBuyerMessage(input.conversationId, tx);
   if (
     latestBuyerMsg &&
     draft.triggerMessageId !== null &&
     draft.triggerMessageId !== latestBuyerMsg.id
   ) {
-    throw new Error(
+    throw new DraftValidationError(
       'This draft is outdated because a newer buyer message has been received. Please generate a new draft.',
     );
   }
 
-  // Check if a newer draft exists for the same trigger
   if (draft.triggerMessageId !== null) {
     const newestDraftForTrigger = await tx.aiDraftResponse.findFirst({
       where: {
@@ -524,14 +546,21 @@ export async function applyAiDraftService(
     });
 
     if (newestDraftForTrigger && newestDraftForTrigger.id !== draftId) {
-      throw new Error(
+      throw new DraftValidationError(
         'This draft is outdated because a newer AI response has been generated for this customer message.',
       );
     }
   }
 
-  // Determine effective message text and run server-side safety checks if customDraftText is provided
-  const effectiveCustomText = input.customDraftText?.trim() || null;
+  const normalizedCustomText = input.customDraftText?.trim() || null;
+  const normalizedCandidateText = input.candidateText?.trim() || null;
+  const effectiveCustomText =
+    normalizedCustomText ??
+    (input.customDraftText === undefined &&
+    normalizedCandidateText &&
+    normalizedCandidateText !== selectedStrategy.draftText.trim()
+      ? normalizedCandidateText
+      : null);
   const messageText = effectiveCustomText || selectedStrategy.draftText;
 
   if (effectiveCustomText) {
@@ -542,43 +571,112 @@ export async function applyAiDraftService(
 
     if (allViolations.length > 0) {
       const errorMsg = allViolations.map((v) => v.description).join(' ');
-      throw new Error(`Safety validation failed for edited text: ${errorMsg}`);
+      throw new DraftValidationError(`Safety validation failed for edited text: ${errorMsg}`);
     }
   }
 
-  // Resolve the sender type for the response message
   const senderTypeCode = await resolveResponseSenderTypeService(input.conversationId, tx);
 
-  // Create the internal message with AI grounding metadata derived from the selected strategy in DB
-  const message = await createConversationMessage(
+  return {
+    draftId,
+    selectedStrategyCode: effectiveStrategyCode,
+    customDraftText: effectiveCustomText,
+    messageText,
+    senderTypeCode,
+    groundedFacts: serializeJsonStringArray(selectedStrategy.groundedFactsUsed),
+    ungroundedClaims: serializeJsonStringArray(selectedStrategy.ungroundedClaims),
+    confidence: selectedStrategy.confidence,
+    suggestedAction: selectedStrategy.suggestedAction,
+  };
+}
+
+/**
+ * Mark an approved draft as applied once message delivery has succeeded.
+ */
+export async function finalizeAppliedAiDraftService(
+  draftId: number,
+  input: {
+    readonly selectedStrategyCode?: string | null;
+    readonly customDraftText?: string | null;
+    readonly appliedMessageId: number;
+    readonly approvedById?: string | null;
+  },
+  tx: DbClient = prisma,
+): Promise<void> {
+  const updateData: {
+    status: string;
+    appliedMessageId: number;
+    approvedById: string | null;
+    approvedAt: Date;
+    selectedStrategyCode?: string;
+    customDraftText?: string | null;
+  } = {
+    status: 'applied',
+    appliedMessageId: input.appliedMessageId,
+    approvedById: input.approvedById ?? null,
+    approvedAt: new Date(),
+  };
+
+  if (input.selectedStrategyCode !== undefined && input.selectedStrategyCode !== null) {
+    updateData.selectedStrategyCode = input.selectedStrategyCode;
+    updateData.customDraftText = input.customDraftText ?? null;
+  }
+
+  const updateResult = await tx.aiDraftResponse.updateMany({
+    where: { id: draftId, status: 'pending', isActive: true },
+    data: updateData,
+  });
+
+  if (updateResult && updateResult.count === 0) {
+    throw new DraftValidationError(
+      'Draft was concurrently reviewed by another request. Rolling back.',
+    );
+  }
+}
+
+export async function applyAiDraftService(
+  draftId: number,
+  input: {
+    readonly conversationId: number;
+    readonly selectedStrategyCode: string;
+    readonly customDraftText?: string | null;
+    readonly approvedById?: string | null;
+  },
+  tx: DbClient = prisma,
+): Promise<{ appliedMessageId: number }> {
+  const prepared = await validateAndPrepareAiDraftService(
+    draftId,
     {
       conversationId: input.conversationId,
-      text: messageText,
-      senderTypeCode,
-      groundedFacts: serializeJsonStringArray(selectedStrategy.groundedFactsUsed),
-      ungroundedClaims: serializeJsonStringArray(selectedStrategy.ungroundedClaims),
-      confidence: selectedStrategy.confidence,
-      suggestedAction: selectedStrategy.suggestedAction,
+      selectedStrategyCode: input.selectedStrategyCode,
+      customDraftText: input.customDraftText,
     },
     tx,
   );
 
-  // Conditional-update: only set applied if draft is still pending & active (idempotency guard)
-  const updateResult = await tx.aiDraftResponse.updateMany({
-    where: { id: draftId, status: 'pending', isActive: true },
-    data: {
-      status: 'applied',
-      selectedStrategyCode: input.selectedStrategyCode,
-      customDraftText: effectiveCustomText,
-      appliedMessageId: message.id,
-      approvedById: input.approvedById ?? null,
-      approvedAt: new Date(),
+  const message = await createConversationMessage(
+    {
+      conversationId: input.conversationId,
+      text: prepared.messageText,
+      senderTypeCode: prepared.senderTypeCode,
+      groundedFacts: prepared.groundedFacts,
+      ungroundedClaims: prepared.ungroundedClaims,
+      confidence: prepared.confidence,
+      suggestedAction: prepared.suggestedAction,
     },
-  });
+    tx,
+  );
 
-  if (updateResult.count === 0) {
-    throw new Error('Draft was concurrently reviewed by another request. Rolling back.');
-  }
+  await finalizeAppliedAiDraftService(
+    draftId,
+    {
+      selectedStrategyCode: prepared.selectedStrategyCode,
+      customDraftText: prepared.customDraftText,
+      appliedMessageId: message.id,
+      approvedById: input.approvedById,
+    },
+    tx,
+  );
 
   return { appliedMessageId: message.id };
 }

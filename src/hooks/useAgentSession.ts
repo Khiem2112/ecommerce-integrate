@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
 import type {
   ConversationDetail,
@@ -39,7 +40,9 @@ export function useAgentSession(
   options: UseAgentSessionOptions = {},
 ): UseAgentSessionReturn {
   const { orgId, activeConversationId, enabled = true, onEvent } = options;
+  const t = useTranslations('chat');
   const queryClient = useQueryClient();
+  const activeConversationIdRef = useRef<number | null | undefined>(activeConversationId);
 
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isReconnecting, setIsReconnecting] = useState<boolean>(false);
@@ -51,7 +54,13 @@ export function useAgentSession(
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const attemptRef = useRef<number>(0);
   const onEventRef = useRef(onEvent);
-  onEventRef.current = onEvent;
+  const tRef = useRef(t);
+
+  useEffect(() => {
+    activeConversationIdRef.current = activeConversationId;
+    onEventRef.current = onEvent;
+    tRef.current = t;
+  }, [activeConversationId, onEvent, t]);
 
   const handleStreamEvent = useCallback(
     (event: ChatStreamEvent): void => {
@@ -68,7 +77,9 @@ export function useAgentSession(
           const incomingMessage: WorkspaceMessage = {
             id: event.messageId,
             senderCode: event.senderCode,
-            senderName: isCustomer ? 'Khách hàng' : 'Hệ thống',
+            senderName: isCustomer
+              ? tRef.current('sender.customer')
+              : tRef.current('sender.system'),
             isHuman: isCustomer,
             isAgent: event.senderCode === 'agent' || event.senderCode === 'bot',
             messageType: 'TEXT',
@@ -95,6 +106,10 @@ export function useAgentSession(
               return {
                 ...prev,
                 latestMessage: incomingMessage,
+                ...(isCustomer ? { lastBuyerMessageTime: formattedTime } : {}),
+                ...(activeConversationIdRef.current !== event.conversationId && isCustomer
+                  ? { unreadCount: (prev.unreadCount ?? 0) + 1 }
+                  : {}),
                 updatedAt: formattedTime,
                 messages: [...prev.messages, incomingMessage],
               };
@@ -127,7 +142,7 @@ export function useAgentSession(
           const botMessage: WorkspaceMessage = {
             id: event.messageId,
             senderCode: 'bot',
-            senderName: 'Trợ lý AI',
+            senderName: tRef.current('sender.aiAssistant'),
             isHuman: false,
             isAgent: true,
             messageType: 'TEXT',
@@ -192,7 +207,7 @@ export function useAgentSession(
                 humanApprovalRequired: true,
                 status: {
                   code: 'escalated',
-                  name: 'Cần can thiệp',
+                  name: tRef.current('status.escalated'),
                 },
               };
             },
@@ -212,7 +227,7 @@ export function useAgentSession(
                     humanApprovalRequired: true,
                     status: {
                       code: 'escalated',
-                      name: 'Cần can thiệp',
+                      name: tRef.current('status.escalated'),
                     },
                   };
                 }
@@ -235,7 +250,7 @@ export function useAgentSession(
                 humanApprovalRequired: true,
                 status: {
                   code: 'in_progress',
-                  name: 'Đang xử lý',
+                  name: tRef.current('status.inProgress'),
                 },
               };
             },
@@ -254,7 +269,7 @@ export function useAgentSession(
                     humanApprovalRequired: true,
                     status: {
                       code: 'in_progress',
-                      name: 'Đang xử lý',
+                      name: tRef.current('status.inProgress'),
                     },
                   };
                 }
@@ -277,7 +292,7 @@ export function useAgentSession(
                 humanApprovalRequired: false,
                 status: {
                   code: 'resolved',
-                  name: 'Đã giải quyết',
+                  name: tRef.current('status.resolved'),
                 },
               };
             },
@@ -296,7 +311,7 @@ export function useAgentSession(
                     humanApprovalRequired: false,
                     status: {
                       code: 'resolved',
-                      name: 'Đã giải quyết',
+                      name: tRef.current('status.resolved'),
                     },
                   };
                 }
@@ -308,6 +323,13 @@ export function useAgentSession(
         }
 
         case 'chat:session_updated': {
+          if (event.conversationId && event.unreadCount !== undefined) {
+            queryClient.setQueryData<ConversationDetail | null>(
+              ['conversation', event.conversationId],
+              (prev) =>
+                prev ? { ...prev, unreadCount: event.unreadCount } : prev,
+            );
+          }
           void queryClient.invalidateQueries({ queryKey: ['conversations'] });
           break;
         }
@@ -375,7 +397,9 @@ export function useAgentSession(
 
         setError(
           new Error(
-            `Connection lost. Reconnecting in ${Math.round(backoffDelay / 1000)}s...`,
+            tRef.current('stream.reconnecting', {
+              seconds: Math.round(backoffDelay / 1000),
+            }),
           ),
         );
 

@@ -7,3 +7,4 @@ export * from './syncErrors';
 export * from './url';
 export * from './email';
 export * from './shopConnectionTokenHealth';
+export * from './chatErrors';

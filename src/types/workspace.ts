@@ -17,6 +17,7 @@ export type WorkspaceMessage = {
   readonly groundedFacts: readonly string[];
   readonly ungroundedClaims: readonly string[];
   readonly suggestedAction: string | null;
+  readonly status?: string | null;
 };
 
 export type ConversationSummary = {
@@ -27,9 +28,13 @@ export type ConversationSummary = {
   readonly vipTierName: string;
   readonly intent: { readonly code: string; readonly name: string } | null;
   readonly priority: string;
+  readonly platformCode?: string;
   readonly status: { readonly code: string; readonly name: string };
   readonly assignedAgentName: string | null;
   readonly humanApprovalRequired: boolean;
+  readonly unreadCount?: number;
+  readonly lastBuyerMessageTime?: string | null;
+  readonly hasRecentOrderWithin7Days?: boolean;
   readonly latestMessage: WorkspaceMessage | null;
   readonly latestDraft?: {
     readonly status: string;
