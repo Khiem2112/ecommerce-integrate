@@ -12,6 +12,9 @@ export type WorkspaceMessage = {
   readonly isAgent: boolean;
   readonly messageType: string;
   readonly text: string | null;
+  readonly mediaUrl?: string | null;
+  readonly referenceId?: string | null;
+  readonly processMsg?: string | null;
   readonly timestamp: string;
   readonly confidence: number | null;
   readonly groundedFacts: readonly string[];
@@ -24,6 +27,8 @@ export type ConversationSummary = {
   readonly id: number;
   readonly customerId: number;
   readonly customerIdentifier: string;
+  readonly customerDisplayName?: string | null;
+  readonly customerAvatarUrl?: string | null;
   readonly vipTierCode: string;
   readonly vipTierName: string;
   readonly intent: { readonly code: string; readonly name: string } | null;

@@ -1,14 +1,25 @@
 'use client';
 
+import { useEffect, useState, type ReactElement } from 'react';
 import { Badge, type BadgeVariant } from '@/components/atoms';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/cn';
+import { getSafeDisplayUrl } from '@/utils';
 import type { ConversationSummary } from '@/types';
 
 type ConversationRowProps = {
   readonly conversation: ConversationSummary;
   readonly isActive: boolean;
   readonly onSelect: (conversationId: number) => void;
+};
+
+const PREVIEW_TYPE_KEYS: Record<string, string> = {
+  IMAGE: 'row.imagePreview',
+  VIDEO: 'row.videoPreview',
+  EMOJI: 'row.emojiPreview',
+  ITEM: 'row.itemPreview',
+  ORDER: 'row.orderPreview',
+  VOUCHER: 'row.voucherPreview',
 };
 
 const INTENT_LABEL_KEYS: Record<string, string> = {
@@ -45,10 +56,24 @@ const VIP_TIER_CONFIG: Record<string, { variant: BadgeVariant }> = {
   standard: { variant: 'slate' },
 };
 
-export function ConversationRow({ conversation, isActive, onSelect }: ConversationRowProps) {
+export function ConversationRow({
+  conversation,
+  isActive,
+  onSelect,
+}: ConversationRowProps): ReactElement {
   const t = useTranslations('workspace');
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNowMs(Date.now());
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
   const formatRelativeTime = (timestamp: string): string => {
-    const elapsedMs = Date.now() - new Date(timestamp).getTime();
+    const elapsedMs = nowMs - new Date(timestamp).getTime();
     const minutes = Math.max(0, Math.floor(elapsedMs / 60_000));
     if (minutes < 1) return t('row.now');
     if (minutes < 60) return t('row.minutes', { count: minutes });
@@ -56,8 +81,25 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
     if (hours < 24) return t('row.hours', { count: hours });
     return t('row.days', { count: Math.floor(hours / 24) });
   };
-  const preview = conversation.latestMessage?.text ?? t('row.noMessages');
-  const initial = conversation.customerIdentifier.slice(-2).toUpperCase();
+
+  const displayName = conversation.customerDisplayName?.trim() || conversation.customerIdentifier;
+  const initial = conversation.customerDisplayName?.trim()
+    ? conversation.customerDisplayName.trim().slice(0, 2).toUpperCase()
+    : conversation.customerIdentifier.slice(-2).toUpperCase();
+
+  const latestMessage = conversation.latestMessage;
+  const preview =
+    latestMessage?.status === 'RECALLED'
+      ? t('row.recalledPreview')
+      : latestMessage?.text?.trim()
+        ? latestMessage.text
+        : latestMessage?.messageType && PREVIEW_TYPE_KEYS[latestMessage.messageType]
+          ? t(PREVIEW_TYPE_KEYS[latestMessage.messageType])
+          : t('row.noMessages');
+
+  const unreadCount = conversation.unreadCount ?? 0;
+  const safeAvatarUrl = getSafeDisplayUrl(conversation.customerAvatarUrl);
+  const showAvatarImage = safeAvatarUrl !== null && failedAvatarUrl !== safeAvatarUrl;
 
   const statusCode = conversation.status.code;
   const statusInfo = STATUS_CONFIG[statusCode] ?? {
@@ -109,16 +151,27 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
       <div className="flex items-start gap-2.5">
         {/* Avatar with priority indicator dot */}
         <div className="relative shrink-0">
-          <div
-            className={cn(
-              'grid size-8 place-items-center rounded-full text-sm font-bold transition duration-150',
-              isActive
-                ? 'bg-foreground text-background'
-                : 'bg-background text-foreground border border-hairline group-hover:bg-hairline',
-            )}
-          >
-            {initial}
-          </div>
+          {showAvatarImage && safeAvatarUrl ? (
+            // Marketplace CDN avatar domains vary dynamically per shop and buyer
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={safeAvatarUrl}
+              alt={displayName}
+              onError={() => setFailedAvatarUrl(safeAvatarUrl)}
+              className="size-8 rounded-full border border-hairline object-cover"
+            />
+          ) : (
+            <div
+              className={cn(
+                'grid size-8 place-items-center rounded-full text-sm font-bold transition duration-150',
+                isActive
+                  ? 'bg-foreground text-background'
+                  : 'bg-background text-foreground border border-hairline group-hover:bg-hairline',
+              )}
+            >
+              {initial}
+            </div>
+          )}
           {/* Priority dot */}
           <span
             className={cn(
@@ -131,14 +184,24 @@ export function ConversationRow({ conversation, isActive, onSelect }: Conversati
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <span className="truncate text-sm font-semibold tracking-tight text-foreground">
-              {conversation.customerIdentifier}
+              {displayName}
             </span>
-            <time
-              className="shrink-0 text-xs font-medium tabular-nums text-muted"
-              dateTime={conversation.updatedAt}
-            >
-              {relativeTime}
-            </time>
+            <div className="flex shrink-0 items-center gap-1.5">
+              {unreadCount > 0 && (
+                <span
+                  aria-label={t('row.unreadAria', { count: unreadCount })}
+                  className="inline-flex min-w-5 items-center justify-center rounded-full bg-semantic-error px-1.5 py-0.5 text-[11px] font-bold leading-none tabular-nums text-on-primary"
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+              <time
+                className="text-xs font-medium tabular-nums text-muted"
+                dateTime={conversation.updatedAt}
+              >
+                {relativeTime}
+              </time>
+            </div>
           </div>
 
           {/* Preview line with intent prefix */}

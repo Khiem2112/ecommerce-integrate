@@ -34,3 +34,33 @@ export function validateSafeReturnUrl(
 
   return trimmed;
 }
+
+/**
+ * Validates and normalizes an external or relative display URL for avatars and chat media.
+ * Allows only http://, https://, or single-slash relative paths while rejecting
+ * protocol-relative (//), backslash, and script/data schemes.
+ */
+export function getSafeDisplayUrl(url?: string | null): string | null {
+  if (!url || typeof url !== 'string') {
+    return null;
+  }
+
+  const trimmed = url.trim();
+  if (!trimmed || trimmed.includes('\\')) {
+    return null;
+  }
+
+  if (trimmed.startsWith('/')) {
+    return trimmed.startsWith('//') ? null : trimmed;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      return trimmed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}

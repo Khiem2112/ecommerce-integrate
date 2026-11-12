@@ -9,6 +9,7 @@
 import { prisma } from '@/lib/prisma';
 import {
   getConversationById,
+  getConversationByIdInternal,
   getUnresolvedConversations,
   getCustomerPastIntents,
   getConversationCount,
@@ -95,9 +96,18 @@ async function buildEvidenceContext(
  */
 export async function buildFullContext(
   conversationId: number,
-  tx: DbClient = prisma,
+  organizationIdOrTx: number | DbClient = prisma,
+  maybeTx?: DbClient,
 ): Promise<FullCustomerContext | null> {
-  const conversation = await getConversationById(conversationId, tx);
+  const organizationId =
+    typeof organizationIdOrTx === 'number' ? organizationIdOrTx : undefined;
+  const tx: DbClient =
+    typeof organizationIdOrTx === 'number' ? (maybeTx ?? prisma) : organizationIdOrTx;
+
+  const conversation =
+    organizationId !== undefined
+      ? await getConversationById(conversationId, organizationId, tx)
+      : await getConversationByIdInternal(conversationId, tx);
   if (!conversation) return null;
 
   const customerId = conversation.customerId;

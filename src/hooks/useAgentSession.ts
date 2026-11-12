@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { computeMonotonicLastMessageTime } from '@/utils';
 import type {
   ConversationDetail,
   ConversationSummary,
@@ -36,54 +37,73 @@ function formatIsoTimestamp(inputDate: Date | string): string {
   return inputDate.toISOString();
 }
 
-export function useAgentSession(
-  options: UseAgentSessionOptions = {},
-): UseAgentSessionReturn {
-  const { orgId, activeConversationId, enabled = true, onEvent } = options;
-  const t = useTranslations('chat');
-  const queryClient = useQueryClient();
-  const activeConversationIdRef = useRef<number | null | undefined>(activeConversationId);
+function resolveMonotonicIsoTimestamp(
+  incomingIso: string,
+  existingIso: string | null | undefined,
+): string {
+  const incomingDate = new Date(incomingIso);
+  if (Number.isNaN(incomingDate.getTime())) {
+    return existingIso ?? incomingIso;
+  }
+  const existingDate = existingIso ? new Date(existingIso) : null;
+  const monotonic = computeMonotonicLastMessageTime(
+    incomingDate,
+    existingDate && !Number.isNaN(existingDate.getTime()) ? existingDate : null,
+  );
+  return monotonic ? monotonic.toISOString() : incomingIso;
+}
 
-  const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [isReconnecting, setIsReconnecting] = useState<boolean>(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [reconnectCount, setReconnectCount] = useState<number>(0);
-  const [lastEvent, setLastEvent] = useState<ChatStreamEvent | null>(null);
+type StreamCacheClient = Pick<
+  QueryClient,
+  'setQueryData' | 'setQueriesData' | 'getQueriesData' | 'invalidateQueries'
+>;
 
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const attemptRef = useRef<number>(0);
-  const onEventRef = useRef(onEvent);
-  const tRef = useRef(t);
+export type ApplyChatStreamEventParams = {
+  readonly event: ChatStreamEvent;
+  readonly queryClient: StreamCacheClient;
+  readonly activeConversationId?: number | null;
+  readonly translate: (key: string) => string;
+};
 
-  useEffect(() => {
-    activeConversationIdRef.current = activeConversationId;
-    onEventRef.current = onEvent;
-    tRef.current = t;
-  }, [activeConversationId, onEvent, t]);
+export function applyChatStreamEventToQueryCache({
+  event,
+  queryClient,
+  activeConversationId,
+  translate,
+}: ApplyChatStreamEventParams): void {
+  const activeConversationIdRef = { current: activeConversationId };
+  const tRef = { current: translate };
 
-  const handleStreamEvent = useCallback(
-    (event: ChatStreamEvent): void => {
-      setLastEvent(event);
-      if (onEventRef.current) {
-        onEventRef.current(event);
-      }
-
-      switch (event.type) {
+  switch (event.type) {
         case 'chat:message_received': {
           const formattedTime = formatIsoTimestamp(event.timestamp);
           const isCustomer =
             event.senderCode === 'customer' || event.senderCode === 'buyer';
+          const isSellerOperator = event.senderCode === 'seller';
+          const isBot =
+            event.senderCode === 'agent' ||
+            event.senderCode === 'bot' ||
+            event.senderCode.startsWith('agent_');
+          const senderName = isCustomer
+            ? tRef.current('sender.customer')
+            : isSellerOperator
+              ? tRef.current('sender.sellerOperator')
+              : isBot
+                ? tRef.current('sender.aiAssistant')
+                : tRef.current('sender.system');
+
           const incomingMessage: WorkspaceMessage = {
             id: event.messageId,
             senderCode: event.senderCode,
-            senderName: isCustomer
-              ? tRef.current('sender.customer')
-              : tRef.current('sender.system'),
-            isHuman: isCustomer,
-            isAgent: event.senderCode === 'agent' || event.senderCode === 'bot',
-            messageType: 'TEXT',
+            senderName,
+            isHuman: isCustomer || isSellerOperator,
+            isAgent: isBot,
+            messageType: event.messageType ?? 'TEXT',
             text: event.text,
+            mediaUrl: event.mediaUrl ?? null,
+            referenceId: event.referenceId ?? null,
+            status: event.status ?? null,
+            processMsg: event.processMsg ?? null,
             timestamp: formattedTime,
             confidence: null,
             groundedFacts: [],
@@ -106,20 +126,39 @@ export function useAgentSession(
               return {
                 ...prev,
                 latestMessage: incomingMessage,
-                ...(isCustomer ? { lastBuyerMessageTime: formattedTime } : {}),
+                ...(isCustomer
+                  ? {
+                      lastBuyerMessageTime: resolveMonotonicIsoTimestamp(
+                        formattedTime,
+                        prev.lastBuyerMessageTime,
+                      ),
+                    }
+                  : {}),
                 ...(activeConversationIdRef.current !== event.conversationId && isCustomer
                   ? { unreadCount: (prev.unreadCount ?? 0) + 1 }
                   : {}),
-                updatedAt: formattedTime,
+                updatedAt: resolveMonotonicIsoTimestamp(formattedTime, prev.updatedAt),
                 messages: [...prev.messages, incomingMessage],
               };
             },
           );
 
+          const existingLists = queryClient.getQueriesData<ConversationSummary[]>({
+            queryKey: ['conversations'],
+          });
+          let hasColdConversationMiss =
+            existingLists.length === 0 ||
+            existingLists.every(([, list]) => !list || !Array.isArray(list));
+
           queryClient.setQueriesData<ConversationSummary[]>(
             { queryKey: ['conversations'] },
             (prevList) => {
               if (!prevList || !Array.isArray(prevList)) {
+                hasColdConversationMiss = true;
+                return prevList;
+              }
+              if (!prevList.some((item) => item.id === event.conversationId)) {
+                hasColdConversationMiss = true;
                 return prevList;
               }
               return prevList.map((item) => {
@@ -127,13 +166,28 @@ export function useAgentSession(
                   return {
                     ...item,
                     latestMessage: incomingMessage,
-                    updatedAt: formattedTime,
+                    ...(isCustomer
+                      ? {
+                          lastBuyerMessageTime: resolveMonotonicIsoTimestamp(
+                            formattedTime,
+                            item.lastBuyerMessageTime,
+                          ),
+                        }
+                      : {}),
+                    ...(activeConversationIdRef.current !== event.conversationId && isCustomer
+                      ? { unreadCount: (item.unreadCount ?? 0) + 1 }
+                      : {}),
+                    updatedAt: resolveMonotonicIsoTimestamp(formattedTime, item.updatedAt),
                   };
                 }
                 return item;
               });
             },
           );
+
+          if (hasColdConversationMiss) {
+            void queryClient.invalidateQueries({ queryKey: ['conversations'] });
+          }
           break;
         }
 
@@ -167,7 +221,7 @@ export function useAgentSession(
               return {
                 ...prev,
                 latestMessage: botMessage,
-                updatedAt: formattedTime,
+                updatedAt: resolveMonotonicIsoTimestamp(formattedTime, prev.updatedAt),
                 messages: [...prev.messages, botMessage],
               };
             },
@@ -184,7 +238,7 @@ export function useAgentSession(
                   return {
                     ...item,
                     latestMessage: botMessage,
-                    updatedAt: formattedTime,
+                    updatedAt: resolveMonotonicIsoTimestamp(formattedTime, item.updatedAt),
                   };
                 }
                 return item;
@@ -247,7 +301,7 @@ export function useAgentSession(
               }
               return {
                 ...prev,
-                humanApprovalRequired: true,
+                humanApprovalRequired: false,
                 status: {
                   code: 'in_progress',
                   name: tRef.current('status.inProgress'),
@@ -266,11 +320,62 @@ export function useAgentSession(
                 if (item.id === event.conversationId) {
                   return {
                     ...item,
-                    humanApprovalRequired: true,
+                    humanApprovalRequired: false,
                     status: {
                       code: 'in_progress',
                       name: tRef.current('status.inProgress'),
                     },
+                  };
+                }
+                return item;
+              });
+            },
+          );
+          break;
+        }
+
+        case 'chat:message_updated': {
+          const isRecalled = event.status === 'RECALLED';
+          const applyMessagePatch = (message: WorkspaceMessage): WorkspaceMessage => {
+            if (message.id !== event.messageId) {
+              return message;
+            }
+            return {
+              ...message,
+              status: event.status,
+              text: event.text,
+              ...(isRecalled ? { mediaUrl: null, referenceId: null } : {}),
+              ...(event.processMsg !== undefined ? { processMsg: event.processMsg } : {}),
+            };
+          };
+
+          queryClient.setQueryData<ConversationDetail | null>(
+            ['conversation', event.conversationId],
+            (prev) => {
+              if (!prev) {
+                return prev;
+              }
+              return {
+                ...prev,
+                latestMessage: prev.latestMessage
+                  ? applyMessagePatch(prev.latestMessage)
+                  : null,
+                messages: prev.messages.map(applyMessagePatch),
+              };
+            },
+          );
+
+          queryClient.setQueriesData<ConversationSummary[]>(
+            { queryKey: ['conversations'] },
+            (prevList) => {
+              if (!prevList || !Array.isArray(prevList)) {
+                return prevList;
+              }
+              return prevList.map((item) => {
+                if (item.id === event.conversationId && item.latestMessage) {
+                  return {
+                    ...item,
+                    latestMessage: applyMessagePatch(item.latestMessage),
                   };
                 }
                 return item;
@@ -323,21 +428,129 @@ export function useAgentSession(
         }
 
         case 'chat:session_updated': {
-          if (event.conversationId && event.unreadCount !== undefined) {
-            queryClient.setQueryData<ConversationDetail | null>(
-              ['conversation', event.conversationId],
-              (prev) =>
-                prev ? { ...prev, unreadCount: event.unreadCount } : prev,
-            );
+          const incomingLastTime = event.lastMessageTime
+            ? formatIsoTimestamp(event.lastMessageTime)
+            : null;
+
+          if (!event.conversationId) {
+            void queryClient.invalidateQueries({ queryKey: ['conversations'] });
+            break;
           }
-          void queryClient.invalidateQueries({ queryKey: ['conversations'] });
+
+          queryClient.setQueryData<ConversationDetail | null>(
+            ['conversation', event.conversationId],
+            (prev) => {
+              if (!prev) {
+                return prev;
+              }
+              return {
+                ...prev,
+                ...(event.unreadCount !== undefined
+                  ? { unreadCount: event.unreadCount }
+                  : {}),
+                ...(incomingLastTime
+                  ? {
+                      updatedAt: resolveMonotonicIsoTimestamp(
+                        incomingLastTime,
+                        prev.updatedAt,
+                      ),
+                    }
+                  : {}),
+              };
+            },
+          );
+
+          const existingLists = queryClient.getQueriesData<ConversationSummary[]>({
+            queryKey: ['conversations'],
+          });
+          let hasColdMiss =
+            existingLists.length === 0 ||
+            existingLists.every(([, list]) => !list || !Array.isArray(list));
+
+          queryClient.setQueriesData<ConversationSummary[]>(
+            { queryKey: ['conversations'] },
+            (prevList) => {
+              if (!prevList || !Array.isArray(prevList)) {
+                hasColdMiss = true;
+                return prevList;
+              }
+              if (!prevList.some((item) => item.id === event.conversationId)) {
+                hasColdMiss = true;
+                return prevList;
+              }
+              return prevList.map((item) => {
+                if (item.id === event.conversationId) {
+                  return {
+                    ...item,
+                    ...(event.unreadCount !== undefined
+                      ? { unreadCount: event.unreadCount }
+                      : {}),
+                    ...(incomingLastTime
+                      ? {
+                          updatedAt: resolveMonotonicIsoTimestamp(
+                            incomingLastTime,
+                            item.updatedAt,
+                          ),
+                        }
+                      : {}),
+                  };
+                }
+                return item;
+              });
+            },
+          );
+
+          if (hasColdMiss) {
+            void queryClient.invalidateQueries({ queryKey: ['conversations'] });
+          }
           break;
         }
 
         case 'ping':
         default:
           break;
+  }
+}
+
+export function useAgentSession(
+  options: UseAgentSessionOptions = {},
+): UseAgentSessionReturn {
+  const { orgId, activeConversationId, enabled = true, onEvent } = options;
+  const t = useTranslations('chat');
+  const queryClient = useQueryClient();
+  const activeConversationIdRef = useRef<number | null | undefined>(activeConversationId);
+
+  const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [isReconnecting, setIsReconnecting] = useState<boolean>(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [reconnectCount, setReconnectCount] = useState<number>(0);
+  const [lastEvent, setLastEvent] = useState<ChatStreamEvent | null>(null);
+
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const attemptRef = useRef<number>(0);
+  const onEventRef = useRef(onEvent);
+  const tRef = useRef(t);
+
+  useEffect(() => {
+    activeConversationIdRef.current = activeConversationId;
+    onEventRef.current = onEvent;
+    tRef.current = t;
+  }, [activeConversationId, onEvent, t]);
+
+  const handleStreamEvent = useCallback(
+    (event: ChatStreamEvent): void => {
+      setLastEvent(event);
+      if (onEventRef.current) {
+        onEventRef.current(event);
       }
+
+      applyChatStreamEventToQueryCache({
+        event,
+        queryClient,
+        activeConversationId: activeConversationIdRef.current,
+        translate: (key: string) => tRef.current(key as never),
+      });
     },
     [queryClient],
   );
@@ -359,9 +572,7 @@ export function useAgentSession(
         eventSourceRef.current = null;
       }
 
-      const streamUrl = orgId !== undefined
-        ? `/api/chat/stream?orgId=${encodeURIComponent(orgId)}`
-        : '/api/chat/stream';
+      const streamUrl = '/api/chat/stream';
 
       const source = new EventSource(streamUrl);
       eventSourceRef.current = source;
@@ -410,6 +621,7 @@ export function useAgentSession(
 
       const eventNames = [
         'chat:message_received',
+        'chat:message_updated',
         'chat:session_escalated',
         'chat:bot_replied',
         'chat:operator_takeover',

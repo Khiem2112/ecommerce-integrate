@@ -1057,6 +1057,7 @@ export async function ingestLazadaMessage(
         where: { id: conversation.id },
         data: {
           statusId: inProgressStatusId,
+          humanApprovalRequired: false,
         },
       });
 

@@ -585,7 +585,15 @@
       "tooltipWithoutIntent": "Ưu tiên: {priority}\nTrạng thái: {status}\nVIP: {tier}\nCập nhật: {time} trước",
       "aiDraft": "✦ Bản nháp AI",
       "outdated": "⚠️ Đã cũ",
-      "aiSaved": "✓ AI đã lưu"
+      "aiSaved": "✓ AI đã lưu",
+      "unreadAria": "{count} tin nhắn chưa đọc",
+      "recalledPreview": "Tin nhắn đã được thu hồi",
+      "imagePreview": "[Hình ảnh]",
+      "videoPreview": "[Video]",
+      "emojiPreview": "[Biểu tượng cảm xúc]",
+      "itemPreview": "[Sản phẩm]",
+      "orderPreview": "[Đơn hàng]",
+      "voucherPreview": "[Mã giảm giá]"
     },
     "agentSession": {
       "tabs": {
@@ -1280,7 +1288,26 @@
     "sender": {
       "customer": "Khách hàng",
       "system": "Hệ thống",
-      "aiAssistant": "Trợ lý AI"
+      "aiAssistant": "Trợ lý AI",
+      "sellerOperator": "Nhân viên CSKH"
+    },
+    "message": {
+      "systemFallback": "Cập nhật hệ thống",
+      "groundedBadge": "Đã xác thực dữ kiện",
+      "aiTag": "AI",
+      "recalled": "Tin nhắn này đã được thu hồi",
+      "filteredNotice": "Thông báo kiểm duyệt: {reason}",
+      "filteredDefault": "Tin nhắn đã bị lọc theo chính sách sàn",
+      "imageAlt": "Hình ảnh đính kèm",
+      "openImage": "Xem ảnh gốc",
+      "emojiLabel": "Biểu tượng cảm xúc",
+      "videoLabel": "Video đính kèm",
+      "openVideo": "Mở video",
+      "itemLabel": "Thẻ sản phẩm",
+      "orderLabel": "Thẻ đơn hàng",
+      "voucherLabel": "Mã giảm giá",
+      "referenceCode": "Mã: {id}",
+      "emptyAttachment": "Không có nội dung xem trước"
     },
     "status": {
       "escalated": "Cần can thiệp",

@@ -34,25 +34,10 @@ const CONVERSATION_INCLUDE = {
 
 
 
-/** Fetch a single conversation by ID with messages */
-export async function getConversationById(
+async function findActiveConversationSnapshot(
   id: number,
-  organizationIdOrTx: number | null | DbClient = prisma,
-  maybeTx?: DbClient,
+  tx: DbClient,
 ): Promise<ConversationWithMessages | null> {
-  const organizationId =
-    typeof organizationIdOrTx === 'number' || organizationIdOrTx === null
-      ? organizationIdOrTx
-      : undefined;
-  const tx: DbClient =
-    typeof organizationIdOrTx === 'object' && organizationIdOrTx !== null
-      ? organizationIdOrTx
-      : (maybeTx ?? prisma);
-
-  if (organizationId === null) {
-    return null;
-  }
-
   const conv = await tx.conversation.findUnique({
     where: { id },
     include: {
@@ -66,33 +51,46 @@ export async function getConversationById(
     },
   });
 
-  if (
-    !conv ||
-    !conv.isActive ||
-    (organizationId !== undefined && conv.connection?.organizationId !== organizationId)
-  ) {
+  if (!conv || !conv.isActive || !conv.connection?.isActive) {
     return null;
   }
 
   return withPlatform(conv);
 }
 
-/** Fetch inbox conversations with their customer and newest active message */
+/** Fetch a single conversation by ID scoped strictly to an active tenant organization */
+export async function getConversationById(
+  id: number,
+  organizationId: number,
+  tx: DbClient = prisma,
+): Promise<ConversationWithMessages | null> {
+  if (!Number.isInteger(organizationId) || organizationId <= 0) {
+    return null;
+  }
+
+  const conv = await findActiveConversationSnapshot(id, tx);
+  if (!conv || conv.connection?.organizationId !== organizationId) {
+    return null;
+  }
+
+  return conv;
+}
+
+/** Fetch a single active conversation snapshot for trusted background system turns */
+export async function getConversationByIdInternal(
+  id: number,
+  tx: DbClient = prisma,
+): Promise<ConversationWithMessages | null> {
+  return findActiveConversationSnapshot(id, tx);
+}
+
+/** Fetch inbox conversations scoped strictly to an active tenant organization */
 export async function getInboxConversations(
   filters: InboxConversationFilters = {},
-  organizationIdOrTx: number | null | DbClient = prisma,
-  maybeTx?: DbClient,
+  organizationId: number,
+  tx: DbClient = prisma,
 ): Promise<InboxConversationRecord[]> {
-  const organizationId =
-    typeof organizationIdOrTx === 'number' || organizationIdOrTx === null
-      ? organizationIdOrTx
-      : undefined;
-  const tx: DbClient =
-    typeof organizationIdOrTx === 'object' && organizationIdOrTx !== null
-      ? organizationIdOrTx
-      : (maybeTx ?? prisma);
-
-  if (organizationId === null) {
+  if (!Number.isInteger(organizationId) || organizationId <= 0) {
     return [];
   }
 
@@ -101,7 +99,10 @@ export async function getInboxConversations(
   const conversations = await tx.conversation.findMany({
     where: {
       isActive: true,
-      ...(organizationId !== undefined ? { connection: { organizationId } } : {}),
+      connection: {
+        organizationId,
+        isActive: true,
+      },
       ...(filters.statusCode && filters.statusCode !== 'all'
         ? { status: { code: filters.statusCode } }
         : {}),
@@ -112,6 +113,7 @@ export async function getInboxConversations(
         ? {
             OR: [
               { customer: { platformBuyerId: { contains: searchQuery } } },
+              { customer: { displayName: { contains: searchQuery } } },
               { intent: { name: { contains: searchQuery } } },
               { messages: { some: { text: { contains: searchQuery }, isActive: true } } },
             ],

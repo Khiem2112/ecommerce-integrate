@@ -129,7 +129,10 @@ function requireNumericOrderId(platformOrderId: string | null | undefined): stri
 function isAuthorizedConversation<
   T extends {
     readonly isActive: boolean;
-    readonly connection?: { readonly organizationId?: number | null } | null;
+    readonly connection?: {
+      readonly isActive?: boolean;
+      readonly organizationId?: number | null;
+    } | null;
   },
 >(
   conversation: T | null,
@@ -138,13 +141,17 @@ function isAuthorizedConversation<
   if (!conversation || !conversation.isActive) {
     return false;
   }
-  if (organizationId === null) {
+  if (!conversation.connection?.isActive) {
     return false;
   }
-  if (organizationId !== undefined && conversation.connection?.organizationId !== organizationId) {
+  if (
+    typeof organizationId !== 'number' ||
+    !Number.isInteger(organizationId) ||
+    organizationId <= 0
+  ) {
     return false;
   }
-  return true;
+  return conversation.connection.organizationId === organizationId;
 }
 
 async function findLatestReadMessageId(
@@ -240,7 +247,7 @@ export async function takeoverConversationSession(
       where: { id: conversationId },
       data: {
         statusId: inProgressStatus?.id ?? conversation.statusId,
-        humanApprovalRequired: true,
+        humanApprovalRequired: false,
         unreadCount: 0,
       },
     });

@@ -9,6 +9,7 @@
  * - Return safe, grounded response
  */
 
+import { ConversationNotFoundError } from '@/services/agentSessionService';
 import { buildFullContext } from './contextBuilder';
 import { getActiveRetentionStrategies } from './strategyCatalog';
 import { generateResponse, getAvailableProvidersForTier } from './llmService';
@@ -39,11 +40,17 @@ export type GenerateGroundedResponseResult = {
  */
 export async function generateGroundedResponse(
   conversationId: number,
+  organizationId?: number,
 ): Promise<GenerateGroundedResponseResult> {
   // Build 3-Layer Context
-  const context = await buildFullContext(conversationId);
+  const context =
+    organizationId !== undefined
+      ? await buildFullContext(conversationId, organizationId)
+      : await buildFullContext(conversationId);
   if (!context) {
-    throw new Error(`Conversation with ID ${conversationId} or associated customer not found.`);
+    throw new ConversationNotFoundError(
+      `Conversation with ID ${conversationId} or associated customer not found.`,
+    );
   }
 
   // Extract latest incoming buyer turn

@@ -1,7 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { prisma } from '@/lib/prisma';
+import { getAuthenticatedSessionContextService } from '@/services/authentication/authSessionService';
+import { getConversationById } from '@/services/conversationService';
 import {
   getLatestAiDraftService,
   getAiDraftDetailService,
@@ -9,6 +10,7 @@ import {
   rejectAiDraftService,
 } from '@/services/aiDraftService';
 import { rejectAiDraftSchema } from '@/forms/aiDraftForm';
+import { appLogger } from '@/lib/logger';
 import type {
   ActionResponse,
   AiDraftDetailDto,
@@ -16,21 +18,68 @@ import type {
   RejectAiDraftInput,
 } from '@/types';
 
+async function resolveAuthorizedActor(): Promise<
+  | {
+      readonly ok: true;
+      readonly userId: number;
+      readonly organizationId: number;
+    }
+  | { readonly ok: false; readonly response: ActionResponse<never> }
+> {
+  const session = await getAuthenticatedSessionContextService();
+  const userId = session?.user?.id;
+  const organizationId = session?.activeOrganization?.organizationId;
+  if (!userId || organizationId == null) {
+    return {
+      ok: false,
+      response: {
+        success: false,
+        code: 'UNAUTHORIZED',
+        error: 'Unauthorized',
+      },
+    };
+  }
+  return {
+    ok: true,
+    userId,
+    organizationId,
+  };
+}
+
 /** Fetch the most recent AI draft response for a conversation thread. */
 export async function fetchLatestAiDraftAction(
   conversationId: number,
 ): Promise<ActionResponse<AiDraftDetailDto | null>> {
   try {
-    if (!conversationId || conversationId <= 0) {
-      return { success: false, error: 'A valid conversation ID is required.' };
+    if (!Number.isInteger(conversationId) || conversationId <= 0) {
+      return {
+        success: false,
+        code: 'INVALID_INPUT',
+        error: 'A valid conversation ID is required.',
+      };
+    }
+
+    const auth = await resolveAuthorizedActor();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const conversation = await getConversationById(conversationId, auth.organizationId);
+    if (!conversation) {
+      return {
+        success: false,
+        code: 'CONVERSATION_NOT_FOUND',
+        error: 'Conversation not found.',
+      };
     }
 
     const draft = await getLatestAiDraftService(conversationId);
     return { success: true, data: draft };
   } catch (error) {
-    console.error('Error in fetchLatestAiDraftAction:', error);
+    appLogger.error('Error in fetchLatestAiDraftAction', error);
     return {
       success: false,
+      code: 'SYSTEM_ERROR',
       error: error instanceof Error ? error.message : 'Unable to fetch latest AI draft.',
     };
   }
@@ -42,16 +91,40 @@ export async function fetchAiDraftDetailAction(
   conversationId: number,
 ): Promise<ActionResponse<AiDraftDetailDto | null>> {
   try {
-    if (!draftId || draftId <= 0 || !conversationId || conversationId <= 0) {
-      return { success: false, error: 'Valid draft and conversation IDs are required.' };
+    if (
+      !Number.isInteger(draftId) ||
+      draftId <= 0 ||
+      !Number.isInteger(conversationId) ||
+      conversationId <= 0
+    ) {
+      return {
+        success: false,
+        code: 'INVALID_INPUT',
+        error: 'Valid draft and conversation IDs are required.',
+      };
+    }
+
+    const auth = await resolveAuthorizedActor();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const conversation = await getConversationById(conversationId, auth.organizationId);
+    if (!conversation) {
+      return {
+        success: false,
+        code: 'CONVERSATION_NOT_FOUND',
+        error: 'Conversation not found.',
+      };
     }
 
     const draft = await getAiDraftDetailService(draftId, conversationId);
     return { success: true, data: draft };
   } catch (error) {
-    console.error('Error in fetchAiDraftDetailAction:', error);
+    appLogger.error('Error in fetchAiDraftDetailAction', error);
     return {
       success: false,
+      code: 'SYSTEM_ERROR',
       error: error instanceof Error ? error.message : 'Unable to fetch AI draft detail.',
     };
   }
@@ -62,16 +135,35 @@ export async function fetchAiDraftHistoryAction(
   conversationId: number,
 ): Promise<ActionResponse<AiDraftSummaryDto[]>> {
   try {
-    if (!conversationId || conversationId <= 0) {
-      return { success: false, error: 'A valid conversation ID is required.' };
+    if (!Number.isInteger(conversationId) || conversationId <= 0) {
+      return {
+        success: false,
+        code: 'INVALID_INPUT',
+        error: 'A valid conversation ID is required.',
+      };
+    }
+
+    const auth = await resolveAuthorizedActor();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const conversation = await getConversationById(conversationId, auth.organizationId);
+    if (!conversation) {
+      return {
+        success: false,
+        code: 'CONVERSATION_NOT_FOUND',
+        error: 'Conversation not found.',
+      };
     }
 
     const history = await getAiDraftHistoryService(conversationId);
     return { success: true, data: history };
   } catch (error) {
-    console.error('Error in fetchAiDraftHistoryAction:', error);
+    appLogger.error('Error in fetchAiDraftHistoryAction', error);
     return {
       success: false,
+      code: 'SYSTEM_ERROR',
       error: error instanceof Error ? error.message : 'Unable to fetch AI draft history.',
     };
   }
@@ -84,26 +176,43 @@ export async function rejectAiDraftAction(
   try {
     const parsed = rejectAiDraftSchema.safeParse(input);
     if (!parsed.success) {
-      return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input.' };
+      return {
+        success: false,
+        code: 'INVALID_INPUT',
+        error: parsed.error.issues[0]?.message ?? 'Invalid input.',
+      };
     }
 
-    await prisma.$transaction(async (tx) => {
-      await rejectAiDraftService(
-        parsed.data.draftId,
-        {
-          conversationId: parsed.data.conversationId,
-          rejectionReason: parsed.data.rejectionReason,
-        },
-        tx,
-      );
+    const auth = await resolveAuthorizedActor();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const conversation = await getConversationById(
+      parsed.data.conversationId,
+      auth.organizationId,
+    );
+    if (!conversation) {
+      return {
+        success: false,
+        code: 'CONVERSATION_NOT_FOUND',
+        error: 'Conversation not found.',
+      };
+    }
+
+    await rejectAiDraftService(parsed.data.draftId, {
+      conversationId: parsed.data.conversationId,
+      rejectionReason: parsed.data.rejectionReason,
+      rejectedById: String(auth.userId),
     });
 
     revalidatePath('/conversations');
     return { success: true };
   } catch (error) {
-    console.error('Error in rejectAiDraftAction:', error);
+    appLogger.error('Error in rejectAiDraftAction', error);
     return {
       success: false,
+      code: 'SYSTEM_ERROR',
       error: error instanceof Error ? error.message : 'Unable to reject AI draft.',
     };
   }

@@ -15,7 +15,11 @@ import { useBreadcrumb, useAgentSession } from '@/hooks';
 import { cn } from '@/lib/cn';
 import type { ConversationDetail, ConversationSummary, MultiDraftRagDraft } from '@/types';
 
-export function AgentWorkspace(): ReactElement {
+type AgentWorkspaceProps = {
+  readonly orgId?: number;
+};
+
+export function AgentWorkspace({ orgId }: AgentWorkspaceProps): ReactElement {
   const t = useTranslations('workspace');
   const tBreadcrumb = useTranslations('breadcrumb');
   const { setBreadcrumb } = useBreadcrumb();
@@ -33,7 +37,7 @@ export function AgentWorkspace(): ReactElement {
   const inFlightReadIdsRef = useRef<Set<number>>(new Set());
   const lastAttemptedUnreadRef = useRef<Map<number, number>>(new Map());
 
-  useAgentSession({ activeConversationId: selectedConversationId });
+  useAgentSession({ orgId, activeConversationId: selectedConversationId });
 
   const syncConversationRead = useCallback(
     (conversationId: number, unreadCount: number): void => {

@@ -1,9 +1,10 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import {
   chatBroadcaster,
   formatSsePayload,
   formatSsePing,
 } from '@/services/chatBroadcaster';
+import { getAuthenticatedSessionContextService } from '@/services/authentication/authSessionService';
 import { appLogger } from '@/lib/logger';
 import type { ChatStreamEvent } from '@/types';
 
@@ -13,10 +14,17 @@ export const runtime = 'nodejs';
 const HEARTBEAT_INTERVAL_MS = 15000;
 
 export async function GET(request: NextRequest): Promise<Response> {
+  const session = await getAuthenticatedSessionContextService();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const orgId = session.activeOrganization?.organizationId;
+  if (orgId == null) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const encoder = new TextEncoder();
-  const searchParams = request.nextUrl.searchParams;
-  const rawOrgId = searchParams.get('orgId');
-  const orgId = rawOrgId ? parseInt(rawOrgId, 10) : undefined;
 
   let heartbeatTimer: NodeJS.Timeout | null = null;
   let unsubscribe: (() => void) | null = null;
@@ -77,7 +85,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
       unsubscribe = chatBroadcaster.subscribeClient((event: ChatStreamEvent) => {
         safeEnqueue(formatSsePayload(event.type, event));
-      }, isNaN(orgId as number) ? undefined : orgId);
+      }, orgId);
 
       request.signal.addEventListener('abort', () => {
         cleanup();

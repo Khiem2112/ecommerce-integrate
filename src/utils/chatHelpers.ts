@@ -79,3 +79,35 @@ export function summarizeOutboundTurnWindow(
     consecutiveOutboundReplies,
   };
 }
+
+export type SessionTabKey = 'escalated' | 'human' | 'bot';
+
+export function classifyConversationTab(conversation: {
+  readonly status: { readonly code: string };
+  readonly priority: string;
+  readonly humanApprovalRequired: boolean;
+}): SessionTabKey | null {
+  const statusCode = conversation.status.code;
+
+  if (statusCode === 'in_progress') {
+    return 'human';
+  }
+
+  if (statusCode === 'resolved' || statusCode === 'closed') {
+    return null;
+  }
+
+  if (
+    statusCode === 'escalated' ||
+    conversation.priority === 'urgent' ||
+    conversation.humanApprovalRequired
+  ) {
+    return 'escalated';
+  }
+
+  if (statusCode === 'open' || statusCode === 'awaiting_reply') {
+    return 'bot';
+  }
+
+  return null;
+}

@@ -585,7 +585,15 @@
       "tooltipWithoutIntent": "Priority: {priority}\nStatus: {status}\nVIP: {tier}\nUpdated: {time} ago",
       "aiDraft": "✦ AI draft",
       "outdated": "⚠️ Outdated",
-      "aiSaved": "✓ AI saved"
+      "aiSaved": "✓ AI saved",
+      "unreadAria": "{count} unread messages",
+      "recalledPreview": "Message recalled",
+      "imagePreview": "[Image]",
+      "videoPreview": "[Video]",
+      "emojiPreview": "[Emoji]",
+      "itemPreview": "[Product]",
+      "orderPreview": "[Order]",
+      "voucherPreview": "[Voucher]"
     },
     "agentSession": {
       "tabs": {
@@ -1280,7 +1288,26 @@
     "sender": {
       "customer": "Customer",
       "system": "System",
-      "aiAssistant": "AI Assistant"
+      "aiAssistant": "AI Assistant",
+      "sellerOperator": "Operator"
+    },
+    "message": {
+      "systemFallback": "System update",
+      "groundedBadge": "Grounded",
+      "aiTag": "AI",
+      "recalled": "This message was recalled",
+      "filteredNotice": "Moderation notice: {reason}",
+      "filteredDefault": "Message was filtered by marketplace policy",
+      "imageAlt": "Chat image attachment",
+      "openImage": "View full image",
+      "emojiLabel": "Emoji",
+      "videoLabel": "Video attachment",
+      "openVideo": "Open video",
+      "itemLabel": "Product card",
+      "orderLabel": "Order card",
+      "voucherLabel": "Voucher",
+      "referenceCode": "Ref: {id}",
+      "emptyAttachment": "No preview available"
     },
     "status": {
       "escalated": "Escalated",

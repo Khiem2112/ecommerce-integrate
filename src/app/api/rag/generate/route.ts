@@ -1,10 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ragGenerateSchema } from '@/forms/ragForm';
+import { getAuthenticatedSessionContextService } from '@/services/authentication/authSessionService';
+import { ConversationNotFoundError } from '@/services/agentSessionService';
 import { generateGroundedResponse } from '@/services/rag';
 import { createAiDraftService, getAiDraftDetailService } from '@/services/aiDraftService';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const session = await getAuthenticatedSessionContextService();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 },
+      );
+    }
+
+    const organizationId = session.activeOrganization?.organizationId;
+    if (organizationId == null) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden' },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
     const parseResult = ragGenerateSchema.safeParse(body);
 
@@ -20,7 +38,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const { conversationId } = parseResult.data;
-    const result = await generateGroundedResponse(conversationId);
+    const result = await generateGroundedResponse(conversationId, organizationId);
 
     // Persist draft to MySQL database for lifecycle tracking
     const createdDraft = await createAiDraftService({
@@ -73,13 +91,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     });
   } catch (error) {
+    const isNotFound = error instanceof ConversationNotFoundError;
     const message = error instanceof Error ? error.message : 'Internal server error';
-    const isNotFound = message.includes('not found');
 
     return NextResponse.json(
       {
         success: false,
-        error: message,
+        error: isNotFound ? 'Conversation not found' : message,
       },
       { status: isNotFound ? 404 : 500 },
     );

@@ -39,6 +39,9 @@ function serializeJsonArray(value: unknown): readonly string[] {
 function toWorkspaceMessage(message: {
   id: number;
   text: string | null;
+  mediaUrl?: string | null;
+  referenceId?: string | null;
+  processMsg?: string | null;
   messageType?: string;
   status?: string | null;
   timestamp: Date;
@@ -62,6 +65,9 @@ function toWorkspaceMessage(message: {
     messageType: message.messageType ?? 'TEXT',
     status: message.status ?? null,
     text: message.text,
+    mediaUrl: message.mediaUrl ?? null,
+    referenceId: message.referenceId ?? null,
+    processMsg: message.processMsg ?? null,
     timestamp: message.timestamp.toISOString(),
     confidence: message.confidence,
     groundedFacts: serializeJsonArray(message.groundedFacts),
@@ -87,6 +93,8 @@ function toConversationSummary(
     id: conversation.id,
     customerId: conversation.customerId,
     customerIdentifier: conversation.customer.platformBuyerId,
+    customerDisplayName: conversation.customer.displayName ?? null,
+    customerAvatarUrl: conversation.customer.avatarUrl ?? null,
     vipTierCode: conversation.customer.vipTier.code,
     vipTierName: conversation.customer.vipTier.name,
     intent: conversation.intent
@@ -98,6 +106,10 @@ function toConversationSummary(
     assignedAgentName: conversation.assignedAgent?.name ?? null,
     humanApprovalRequired: conversation.humanApprovalRequired,
     unreadCount: conversation.unreadCount,
+    lastBuyerMessageTime:
+      latestMsg?.senderType.code === 'buyer'
+        ? latestMsg.timestamp.toISOString()
+        : (conversation.lastMessageTime?.toISOString() ?? null),
     latestMessage: latestMsg ? toWorkspaceMessage(latestMsg) : null,
     latestDraft: latestDraft
       ? {
@@ -205,6 +217,8 @@ export async function fetchConversationAction(
       id: conversation.id,
       customerId: conversation.customerId,
       customerIdentifier: conversation.customer.platformBuyerId,
+      customerDisplayName: conversation.customer.displayName ?? null,
+      customerAvatarUrl: conversation.customer.avatarUrl ?? null,
       vipTierCode: conversation.customer.vipTier.code,
       vipTierName: conversation.customer.vipTier.name,
       intent: conversation.intent

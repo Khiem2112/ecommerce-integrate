@@ -1,8 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedSessionContextService } from '@/services/authentication/authSessionService';
 import { buildFullContext } from '@/services/rag';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    const session = await getAuthenticatedSessionContextService();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 },
+      );
+    }
+
+    const organizationId = session.activeOrganization?.organizationId;
+    if (organizationId == null) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden' },
+        { status: 403 },
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const rawId = searchParams.get('conversationId');
 
@@ -21,7 +38,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const context = await buildFullContext(conversationId);
+    const context = await buildFullContext(conversationId, organizationId);
     if (!context) {
       return NextResponse.json(
         { success: false, error: `Conversation ${conversationId} not found` },

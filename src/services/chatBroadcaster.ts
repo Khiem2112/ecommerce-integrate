@@ -6,11 +6,10 @@ type ClientListener = (event: ChatStreamEvent) => void;
 
 type ListenerRegistration = {
   id: string;
-  orgId?: number;
+  orgId: number;
   callback: ClientListener;
 };
 
-const CHAT_EVENTS_CHANNEL = 'chat:events';
 const ORG_CHAT_CHANNEL_PATTERN = 'org:*:chat';
 
 class ChatBroadcasterManager {
@@ -33,14 +32,7 @@ class ChatBroadcasterManager {
 
     this.subscriptionPromise = (async () => {
       try {
-        await redisSubscriber.subscribe(CHAT_EVENTS_CHANNEL);
         await redisSubscriber.psubscribe(ORG_CHAT_CHANNEL_PATTERN);
-
-        redisSubscriber.on('message', (channel: string, message: string) => {
-          if (channel === CHAT_EVENTS_CHANNEL) {
-            this.handleIncomingRawMessage(message);
-          }
-        });
 
         redisSubscriber.on('pmessage', (_pattern: string, channel: string, message: string) => {
           const orgIdMatch = channel.match(/^org:(\d+):chat$/);
@@ -75,20 +67,22 @@ class ChatBroadcasterManager {
   }
 
   private dispatchToListeners(event: ChatStreamEvent, eventOrgId?: number): void {
+    if (eventOrgId === undefined || !Number.isInteger(eventOrgId) || eventOrgId <= 0) {
+      return;
+    }
+
     for (const registration of this.listeners.values()) {
-      if (
-        registration.orgId === undefined ||
-        eventOrgId === undefined ||
-        registration.orgId === eventOrgId
-      ) {
-        try {
-          registration.callback(event);
-        } catch (listenerError) {
-          appLogger.error('Error invoking chat event stream listener callback', {
-            listenerId: registration.id,
-            error: listenerError instanceof Error ? listenerError.message : String(listenerError),
-          });
-        }
+      if (registration.orgId === undefined || registration.orgId !== eventOrgId) {
+        continue;
+      }
+
+      try {
+        registration.callback(event);
+      } catch (listenerError) {
+        appLogger.error('Error invoking chat event stream listener callback', {
+          listenerId: registration.id,
+          error: listenerError instanceof Error ? listenerError.message : String(listenerError),
+        });
       }
     }
   }
@@ -97,11 +91,19 @@ class ChatBroadcasterManager {
     event: ChatStreamEvent,
     orgId?: number,
   ): Promise<void> {
+    if (orgId === undefined || !Number.isInteger(orgId) || orgId <= 0) {
+      appLogger.warn('Rejected unscoped chat event publish without valid organizationId', {
+        eventType: event.type,
+        orgId,
+      });
+      return;
+    }
+
     const serializedPayload = JSON.stringify(event);
     let publishedToRedis = false;
 
     try {
-      const targetChannel = orgId !== undefined ? `org:${orgId}:chat` : CHAT_EVENTS_CHANNEL;
+      const targetChannel = `org:${orgId}:chat`;
       const count = await redis.publish(targetChannel, serializedPayload);
       publishedToRedis = typeof count === 'number';
     } catch (redisError) {
@@ -120,6 +122,13 @@ class ChatBroadcasterManager {
     callback: ClientListener,
     orgId?: number,
   ): () => void {
+    if (orgId === undefined || !Number.isInteger(orgId) || orgId <= 0) {
+      appLogger.warn('Rejected chat stream client subscription without valid organizationId', {
+        orgId,
+      });
+      return (): void => {};
+    }
+
     const listenerId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
     this.listeners.set(listenerId, {

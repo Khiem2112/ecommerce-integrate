@@ -12,7 +12,7 @@ import {
   resolveSessionAction,
   markConversationReadAction,
 } from '@/actions/agentSessionActions';
-import { resolveChatActionErrorMessage } from '@/utils';
+import { getSafeDisplayUrl, resolveChatActionErrorMessage } from '@/utils';
 import type {
   ConversationDetail,
   MultiDraftRagDraft,
@@ -73,6 +73,7 @@ export function ChatPanel({
   const localReadAttemptRef = useRef<string | null>(null);
   const [isPendingAction, startTransition] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
   useEffect(() => {
@@ -225,6 +226,13 @@ export function ChatPanel({
       ? draft.groundedFactsUsed
       : [];
 
+  const displayName = conversation.customerDisplayName?.trim() || conversation.customerIdentifier;
+  const initial = conversation.customerDisplayName?.trim()
+    ? conversation.customerDisplayName.trim().slice(0, 2).toUpperCase()
+    : conversation.customerIdentifier.slice(-2).toUpperCase();
+  const safeAvatarUrl = getSafeDisplayUrl(conversation.customerAvatarUrl);
+  const hasSafeAvatarUrl = safeAvatarUrl !== null && failedAvatarUrl !== safeAvatarUrl;
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
       <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-hairline-strong bg-surface-lifted px-4 md:px-6">
@@ -248,14 +256,31 @@ export function ChatPanel({
             </svg>
           }
         />
-        <div className="grid size-8.5 place-items-center rounded-full bg-foreground text-xs font-bold text-background">
-          {conversation.customerIdentifier.slice(-2).toUpperCase()}
-        </div>
+        {hasSafeAvatarUrl && safeAvatarUrl ? (
+          // Marketplace CDN avatar domains vary dynamically per shop and buyer
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={safeAvatarUrl}
+            alt={displayName}
+            onError={() => setFailedAvatarUrl(safeAvatarUrl)}
+            className="size-8.5 shrink-0 rounded-full border border-hairline object-cover"
+          />
+        ) : (
+          <div className="grid size-8.5 shrink-0 place-items-center rounded-full bg-foreground text-xs font-bold text-background">
+            {initial}
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h2 className="truncate text-base font-semibold tracking-tight text-foreground">
-              {conversation.customerIdentifier}
+              {displayName}
             </h2>
+            {conversation.customerDisplayName?.trim() &&
+              conversation.customerDisplayName.trim() !== conversation.customerIdentifier && (
+                <span className="hidden truncate text-xs text-muted sm:inline">
+                  ({conversation.customerIdentifier})
+                </span>
+              )}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1">
             <Badge

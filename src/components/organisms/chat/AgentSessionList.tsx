@@ -1,15 +1,16 @@
 'use client';
 
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState, type ReactElement } from 'react';
 import { useTranslations } from 'next-intl';
 import { Badge, Input } from '@/components/atoms';
 import { ConversationRow } from '@/components/molecules';
 import { ErrorBanner } from '@/components/molecules/ErrorBanner';
 import { useConversations } from '@/hooks/useConversations';
 import { cn } from '@/lib/cn';
+import { classifyConversationTab, type SessionTabKey } from '@/utils';
 import type { ConversationSummary } from '@/types';
 
-type SessionTabKey = 'escalated' | 'human' | 'bot';
+export { classifyConversationTab };
 
 export type AgentSessionListProps = {
   readonly selectedConversationId: number | null;
@@ -19,7 +20,7 @@ export type AgentSessionListProps = {
 export function AgentSessionList({
   selectedConversationId,
   onSelectConversation,
-}: AgentSessionListProps) {
+}: AgentSessionListProps): ReactElement {
   const t = useTranslations('workspace.agentSession');
   const tWorkspace = useTranslations('workspace');
   const [activeTab, setActiveTab] = useState<SessionTabKey>('escalated');
@@ -34,15 +35,12 @@ export function AgentSessionList({
     let bot = 0;
 
     for (const c of conversations) {
-      if (
-        c.status.code === 'escalated' ||
-        c.priority === 'urgent' ||
-        c.humanApprovalRequired
-      ) {
+      const tab = classifyConversationTab(c);
+      if (tab === 'escalated') {
         escalated++;
-      } else if (c.status.code === 'in_progress') {
+      } else if (tab === 'human') {
         human++;
-      } else {
+      } else if (tab === 'bot') {
         bot++;
       }
     }
@@ -57,6 +55,7 @@ export function AgentSessionList({
       const matchesSearch =
         !query ||
         c.customerIdentifier.toLowerCase().includes(query) ||
+        (c.customerDisplayName && c.customerDisplayName.toLowerCase().includes(query)) ||
         (c.intent?.name && c.intent.name.toLowerCase().includes(query)) ||
         (c.latestMessage?.text && c.latestMessage.text.toLowerCase().includes(query));
 
@@ -64,17 +63,7 @@ export function AgentSessionList({
         return false;
       }
 
-      if (activeTab === 'escalated') {
-        return (
-          c.status.code === 'escalated' ||
-          c.priority === 'urgent' ||
-          c.humanApprovalRequired
-        );
-      }
-      if (activeTab === 'human') {
-        return c.status.code === 'in_progress';
-      }
-      return c.status.code === 'open' || c.status.code === 'awaiting_reply';
+      return classifyConversationTab(c) === activeTab;
     });
   }, [conversations, activeTab, deferredSearch]);
 
@@ -224,7 +213,7 @@ export function AgentSessionList({
   );
 }
 
-function SessionListSkeleton() {
+function SessionListSkeleton(): ReactElement {
   return (
     <div className="divide-y divide-hairline">
       {Array.from({ length: 5 }, (_, index) => (
