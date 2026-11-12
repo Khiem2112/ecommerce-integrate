@@ -133,6 +133,10 @@ export type {
   LlmProviderName,
   LlmProviderConfig,
   PromptLogOptions,
+  RagResponseMode,
+  GenerateGroundedOptions,
+  PromptBuildOptions,
+  LlmGenerationOptions,
 } from './rag';
 
 // AI Draft Prisma-derived relation types & domain DTOs

@@ -8,11 +8,12 @@ import { GoogleGenAI } from '@google/genai';
 import OpenAI from 'openai';
 import type {
   RawMultiDraftResponse,
+  LlmGenerationOptions,
   LlmProviderConfig,
   LlmProviderName,
   PromptLogOptions,
 } from '@/types';
-import { parseAndValidateResponse } from '@/utils/rag/parseUtils';
+import { parseAndValidateResponse } from '@/utils/rag';
 import { logLlmPrompt, estimateTokens } from '@/lib/logger';
 
 export { logLlmPrompt, estimateTokens };
@@ -86,10 +87,12 @@ export async function callGemini(
   config: LlmProviderConfig,
   systemPrompt: string,
   userPrompt: string,
+  options?: LlmGenerationOptions,
 ): Promise<string> {
+  const timeoutMs = options?.timeoutMs ?? CLIENT_TIMEOUT_MS;
   const ai = new GoogleGenAI({
     apiKey: config.apiKey,
-    httpOptions: { timeout: CLIENT_TIMEOUT_MS },
+    httpOptions: { timeout: timeoutMs },
   });
 
   const response = await ai.models.generateContent({
@@ -99,6 +102,9 @@ export async function callGemini(
       systemInstruction: systemPrompt,
       temperature: config.temperature,
       responseMimeType: 'application/json',
+      ...(options?.maxOutputTokens !== undefined
+        ? { maxOutputTokens: options.maxOutputTokens }
+        : {}),
     },
   });
 
@@ -114,10 +120,12 @@ export async function callOpenAICompatible(
   config: LlmProviderConfig,
   systemPrompt: string,
   userPrompt: string,
+  options?: LlmGenerationOptions,
 ): Promise<string> {
+  const timeoutMs = options?.timeoutMs ?? CLIENT_TIMEOUT_MS;
   const client = new OpenAI({
     apiKey: config.apiKey,
-    timeout: CLIENT_TIMEOUT_MS,
+    timeout: timeoutMs,
     ...(config.baseUrl ? { baseURL: config.baseUrl } : {}),
   });
 
@@ -130,9 +138,10 @@ export async function callOpenAICompatible(
       ],
       temperature: config.temperature,
       response_format: { type: 'json_object' },
+      ...(options?.maxOutputTokens !== undefined ? { max_tokens: options.maxOutputTokens } : {}),
     },
     {
-      signal: AbortSignal.timeout(CLIENT_TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
       maxRetries: 0,
     },
   );
@@ -149,11 +158,12 @@ export async function callProvider(
   config: LlmProviderConfig,
   systemPrompt: string,
   userPrompt: string,
+  options?: LlmGenerationOptions,
 ): Promise<string> {
   if (config.name === 'gemini') {
-    return callGemini(config, systemPrompt, userPrompt);
+    return callGemini(config, systemPrompt, userPrompt, options);
   }
-  return callOpenAICompatible(config, systemPrompt, userPrompt);
+  return callOpenAICompatible(config, systemPrompt, userPrompt, options);
 }
 
 /**
@@ -164,13 +174,14 @@ export async function callWithRetry(
   systemPrompt: string,
   userPrompt: string,
   logOptions?: PromptLogOptions,
+  generationOptions?: LlmGenerationOptions,
 ): Promise<string> {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < config.maxRetries; attempt++) {
     try {
       logLlmPrompt(config, systemPrompt, userPrompt, attempt + 1, logOptions);
-      return await callProvider(config, systemPrompt, userPrompt);
+      return await callProvider(config, systemPrompt, userPrompt, generationOptions);
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       console.warn(
@@ -198,6 +209,7 @@ export async function generateResponse(
   userPrompt: string,
   allowedStrategyCodes?: readonly string[],
   customProviders?: readonly LlmProviderConfig[],
+  options?: LlmGenerationOptions,
 ): Promise<RawMultiDraftResponse> {
   const providers = customProviders ?? getAvailableProviders();
 
@@ -212,13 +224,19 @@ export async function generateResponse(
   for (const provider of providers) {
     try {
       console.log(`[LLM] Trying provider: ${provider.name} (${provider.model})`);
-      const rawText = await callWithRetry(provider, systemPrompt, userPrompt);
+      const rawText = await callWithRetry(
+        provider,
+        systemPrompt,
+        userPrompt,
+        undefined,
+        options,
+      );
       const parsed = parseAndValidateResponse(rawText, provider.name, allowedStrategyCodes);
-      console.log(`[LLM] ✅ Success with ${provider.name}`);
+      console.log(`[LLM] Success with ${provider.name}`);
       return parsed;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      console.warn(`[LLM] ❌ Provider ${provider.name} exhausted: ${lastError.message}`);
+      console.warn(`[LLM] Provider ${provider.name} exhausted: ${lastError.message}`);
     }
   }
 

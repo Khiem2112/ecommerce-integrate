@@ -154,6 +154,26 @@ type PromptLogOptions = {
   readonly overwrite?: boolean;
 };
 
+/** Supported RAG output cardinality modes */
+type RagResponseMode = 'copilot_multi' | 'fast_single';
+
+/** Options controlling grounded RAG generation */
+type GenerateGroundedOptions = {
+  readonly mode?: RagResponseMode;
+  readonly maxOutputTokens?: number;
+  readonly organizationId?: number;
+};
+
+/** Options controlling tier prompt assembly */
+type PromptBuildOptions = Readonly<Pick<GenerateGroundedOptions, 'mode'>>;
+
+/** Options forwarded to LLM provider SDK calls */
+type LlmGenerationOptions = {
+  readonly maxOutputTokens?: number;
+  readonly timeoutMs?: number;
+  readonly tier?: 'simple' | 'standard' | 'complex';
+};
+
 export type {
   TurnContext,
   CustomerDossier,
@@ -175,4 +195,8 @@ export type {
   LlmProviderName,
   LlmProviderConfig,
   PromptLogOptions,
+  RagResponseMode,
+  GenerateGroundedOptions,
+  PromptBuildOptions,
+  LlmGenerationOptions,
 };

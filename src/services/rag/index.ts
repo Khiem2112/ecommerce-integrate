@@ -21,7 +21,21 @@ import {
   buildSystemPrompt,
   buildUserPrompt,
 } from '@/utils/rag';
-import type { FullCustomerContext, MultiDraftGroundingResult, MultiDraftResponse } from '@/types';
+import type {
+  FullCustomerContext,
+  GenerateGroundedOptions,
+  MultiDraftGroundingResult,
+  MultiDraftResponse,
+  RagResponseMode,
+} from '@/types';
+
+const DEFAULT_TIER_OUTPUT_TOKENS: Record<'simple' | 'standard' | 'complex', number> = {
+  simple: 500,
+  standard: 900,
+  complex: 1400,
+};
+
+const FAST_SINGLE_OUTPUT_TOKEN_CAP = 500;
 
 export type GenerateGroundedResponseResult = {
   readonly context: FullCustomerContext;
@@ -35,13 +49,34 @@ export type GenerateGroundedResponseResult = {
 };
 
 /**
- * Generate a grounded, personalized customer-care multi-draft response for a conversation.
- * Routes simple/standard/complex queries to appropriate prompts, strategies, and LLM tiers.
+ * Generate a grounded, personalized customer-care response for a conversation.
+ * Accepts either legacy `(conversationId, organizationId)` or `(conversationId, options)`
+ * and forwards tier-optimized output token budgets and response mode to the LLM service.
  */
 export async function generateGroundedResponse(
   conversationId: number,
+  options?: GenerateGroundedOptions,
+): Promise<GenerateGroundedResponseResult>;
+export async function generateGroundedResponse(
+  conversationId: number,
   organizationId?: number,
+  options?: GenerateGroundedOptions,
+): Promise<GenerateGroundedResponseResult>;
+export async function generateGroundedResponse(
+  conversationId: number,
+  organizationIdOrOptions?: number | GenerateGroundedOptions,
+  maybeOptions?: GenerateGroundedOptions,
 ): Promise<GenerateGroundedResponseResult> {
+  const resolvedOptions: GenerateGroundedOptions =
+    typeof organizationIdOrOptions === 'object' && organizationIdOrOptions !== null
+      ? organizationIdOrOptions
+      : (maybeOptions ?? {});
+  const organizationId =
+    typeof organizationIdOrOptions === 'number'
+      ? organizationIdOrOptions
+      : resolvedOptions.organizationId;
+  const mode: RagResponseMode = resolvedOptions.mode ?? 'copilot_multi';
+
   // Build 3-Layer Context
   const context =
     organizationId !== undefined
@@ -64,7 +99,7 @@ export async function generateGroundedResponse(
   // Resolve Intent Tier dynamically
   const resolved = resolveIntentTier(latestText, context.turn.detectedIntent?.code);
   console.log(
-    `[RAG Orchestrator] Resolved Intent: ${resolved.code} | Tier: ${resolved.tier} (source: ${resolved.source})`,
+    `[RAG Orchestrator] Resolved Intent: ${resolved.code} | Tier: ${resolved.tier} | Mode: ${mode} (source: ${resolved.source})`,
   );
 
   // Load and filter retention strategies for the resolved tier
@@ -75,17 +110,22 @@ export async function generateGroundedResponse(
   // Build Tiered Prompts
   let systemPrompt: string;
   if (resolved.tier === 'simple') {
-    systemPrompt = buildLiteSystemPrompt(context, tierStrategies);
+    systemPrompt = buildLiteSystemPrompt(context, tierStrategies, undefined, { mode });
   } else if (resolved.tier === 'standard') {
-    systemPrompt = buildStandardSystemPrompt(context, tierStrategies);
+    systemPrompt = buildStandardSystemPrompt(context, tierStrategies, undefined, { mode });
   } else {
-    systemPrompt = buildSystemPrompt(context, tierStrategies);
+    systemPrompt = buildSystemPrompt(context, tierStrategies, undefined, { mode });
   }
 
   const userPrompt = buildUserPrompt(latestText);
 
-  // Select provider chain optimized for tier latency
+  // Select provider chain and output token budget optimized for tier and mode
   const tierProviders = getAvailableProvidersForTier(resolved.tier);
+  const defaultBudget =
+    mode === 'fast_single'
+      ? Math.min(DEFAULT_TIER_OUTPUT_TOKENS[resolved.tier], FAST_SINGLE_OUTPUT_TOKEN_CAP)
+      : DEFAULT_TIER_OUTPUT_TOKENS[resolved.tier];
+  const maxOutputTokens = resolvedOptions.maxOutputTokens ?? defaultBudget;
 
   // Generate LLM Output (Multi-Draft / Single-Draft)
   const rawResponse = await generateResponse(
@@ -93,6 +133,7 @@ export async function generateGroundedResponse(
     userPrompt,
     allowedCodes,
     tierProviders,
+    { maxOutputTokens, tier: resolved.tier },
   );
 
   // Validate Grounding & Safety across all strategy drafts

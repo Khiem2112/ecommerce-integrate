@@ -127,6 +127,8 @@ export function getRelevantCategories(intentCode: string | null): readonly strin
       return ['returns', 'shipping'];
     case 'cancellation':
       return ['cancellation', 'returns'];
+    case 'order_modification':
+      return ['cancellation', 'shipping'];
     case 'voucher':
       return ['vouchers', 'shipping'];
     case 'complaint':
@@ -151,4 +153,12 @@ export function getPoliciesByIntent(intentCode: string | null): readonly PolicyR
   return STORE_POLICIES.filter(
     (p) => relevantCategories.includes(p.category) || alwaysInclude.includes(p.category),
   );
+}
+
+/**
+ * Format policy rules into compact single-line entries with canonical [policy:CODE] IDs.
+ */
+export function formatCompactPolicies(policies: readonly PolicyRule[]): string {
+  if (policies.length === 0) return 'None.';
+  return policies.map((p) => `- [policy:${p.code}] ${p.rule}`).join('\n');
 }
