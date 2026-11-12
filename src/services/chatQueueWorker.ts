@@ -66,14 +66,43 @@ async function resolveConnectionIdAsync(
   if (!externalShopId) {
     return undefined;
   }
+
   const connection = await prisma.platformConnection.findFirst({
     where: {
-      externalShopId,
+      OR: [
+        { externalShopId },
+        { shopName: externalShopId },
+        { displayLabel: externalShopId },
+      ],
       isActive: true,
     },
     select: { id: true },
   });
-  return connection?.id;
+
+  if (connection?.id) {
+    return connection.id;
+  }
+
+  // Fallback in non-production environments to the first active Lazada connection
+  if (process.env.NODE_ENV !== 'production') {
+    const fallback = await prisma.platformConnection.findFirst({
+      where: {
+        platformId: 1,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    if (fallback?.id) {
+      appLogger.info('Resolved fallback active Lazada connection in development mode', {
+        fallbackConnectionId: fallback.id,
+        externalShopId,
+      });
+      return fallback.id;
+    }
+  }
+
+  return undefined;
 }
 
 async function handlePushMessage(
@@ -354,14 +383,16 @@ export async function processChatWebhookJob(jobData: ChatWebhookJobData): Promis
   }
 }
 
-let activeWorker: Worker<ChatWebhookJobData> | null = null;
+const globalForWorker = globalThis as unknown as {
+  chatWorker?: Worker<ChatWebhookJobData>;
+};
 
 export function startChatQueueWorker(): Worker<ChatWebhookJobData> {
-  if (activeWorker) {
-    return activeWorker;
+  if (globalForWorker.chatWorker) {
+    return globalForWorker.chatWorker;
   }
 
-  activeWorker = new Worker<ChatWebhookJobData>(
+  const worker = new Worker<ChatWebhookJobData>(
     CHAT_MESSAGE_QUEUE_NAME,
     async (job: Job<ChatWebhookJobData>) => {
       await processChatWebhookJob(job.data);
@@ -372,20 +403,21 @@ export function startChatQueueWorker(): Worker<ChatWebhookJobData> {
     },
   );
 
-  activeWorker.on('completed', (job: Job<ChatWebhookJobData>) => {
+  worker.on('completed', (job: Job<ChatWebhookJobData>) => {
     appLogger.info(`Chat queue job completed: ${job.id}`);
   });
 
-  activeWorker.on('failed', (job: Job<ChatWebhookJobData> | undefined, error: Error) => {
+  worker.on('failed', (job: Job<ChatWebhookJobData> | undefined, error: Error) => {
     appLogger.error(`Chat queue job failed: ${job?.id}`, error);
   });
 
-  return activeWorker;
+  globalForWorker.chatWorker = worker;
+  return worker;
 }
 
 export async function stopChatQueueWorker(): Promise<void> {
-  if (activeWorker) {
-    await activeWorker.close();
-    activeWorker = null;
+  if (globalForWorker.chatWorker) {
+    await globalForWorker.chatWorker.close();
+    globalForWorker.chatWorker = undefined;
   }
 }

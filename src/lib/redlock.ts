@@ -77,15 +77,25 @@ export async function withDistributedLock<T>(
   resource: string,
   ttlMs: number,
   task: () => Promise<T>,
+  retries: number = 5,
+  retryDelayMs: number = 200,
 ): Promise<T | null> {
-  const lockResult = await acquireLock(resource, ttlMs);
-  if (!lockResult.acquired || !lockResult.lock) {
-    return null;
+  let attempts = 0;
+  while (attempts <= retries) {
+    const lockResult = await acquireLock(resource, ttlMs);
+    if (lockResult.acquired && lockResult.lock) {
+      try {
+        return await task();
+      } finally {
+        await releaseLock(lockResult.lock);
+      }
+    }
+
+    attempts += 1;
+    if (attempts <= retries) {
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+    }
   }
 
-  try {
-    return await task();
-  } finally {
-    await releaseLock(lockResult.lock);
-  }
+  return null;
 }
