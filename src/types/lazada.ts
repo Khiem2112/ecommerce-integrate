@@ -176,8 +176,11 @@ export type LazadaImSessionDetailDTO = {
   readonly user_account_id?: string | number;
   readonly title?: string;
   readonly buyer_name?: string;
+  readonly buyerName?: string;
   readonly head_url?: string;
+  readonly headUrl?: string;
   readonly avatar?: string;
+  readonly avatarUrl?: string;
   readonly unread_count?: number;
   readonly last_message_time?: number;
   readonly last_message_id?: string;
@@ -225,5 +228,36 @@ export type LazadaImSessionOpenResponse = {
 export type LazadaImMessageRecallResponse = {
   readonly result?: boolean;
   readonly success?: boolean;
+};
+
+/** Raw webhook message push payload from Lazada IM Open API */
+export type LazadaPushMessagePayload = {
+  readonly session_id: string;
+  readonly message_id: string;
+  readonly content: string;
+  readonly from_account_id: string;
+  readonly from_account_type: number;
+  readonly send_time: number;
+  readonly template_id?: number;
+  readonly to_account_id: string;
+  readonly to_account_type: number;
+  readonly type?: number;
+  readonly site_id?: string;
+  readonly process_msg?: string;
+  readonly auto_reply?: boolean;
+  readonly status?: number;
+};
+
+/** Raw webhook session update push payload from Lazada IM Open API */
+export type LazadaPushSessionUpdatePayload = {
+  readonly sync_type: string;
+  readonly user_account_id: string;
+  readonly user_account_type: number;
+  readonly last_message_id?: string;
+  readonly unread_count?: number;
+  readonly last_message_time?: number;
+  readonly to_position?: number;
+  readonly self_position?: number;
+  readonly session_id?: string;
 };
 

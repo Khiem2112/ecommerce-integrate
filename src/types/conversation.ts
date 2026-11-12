@@ -4,6 +4,10 @@
  */
 
 import type { Prisma, MessageType, PlatformCatalog } from '@prisma/client';
+import type {
+  LazadaPushMessagePayload,
+  LazadaPushSessionUpdatePayload,
+} from './lazada';
 
 /** Message with sender type relation */
 type MessageWithSender = Prisma.MessageGetPayload<{
@@ -86,37 +90,6 @@ type SessionLifecycleStatus =
   | 'RESOLVED'
   | 'CLOSED';
 
-/** Raw webhook message push payload from Lazada IM Open API */
-type LazadaPushMessagePayload = {
-  session_id: string;
-  message_id: string;
-  content: string;
-  from_account_id: string;
-  from_account_type: number;
-  send_time: number;
-  template_id: number;
-  to_account_id: string;
-  to_account_type: number;
-  type: number;
-  site_id: string;
-  process_msg?: string;
-  auto_reply?: boolean;
-  status?: number;
-};
-
-/** Raw webhook session update push payload from Lazada IM Open API */
-type LazadaPushSessionUpdatePayload = {
-  sync_type: string;
-  user_account_id: string;
-  user_account_type: number;
-  last_message_id?: string;
-  unread_count?: number;
-  last_message_time?: number;
-  to_position?: number;
-  self_position?: number;
-  session_id?: string;
-};
-
 /** Actions an operator can trigger on an agent session */
 type AgentSessionActionType =
   | 'takeover'
@@ -131,7 +104,23 @@ type ChatStreamEventMessageReceived = {
   messageId: number;
   platformMessageId: string;
   senderCode: string;
+  messageType?: MessageType;
   text: string | null;
+  mediaUrl?: string | null;
+  referenceId?: string | null;
+  status?: string | null;
+  processMsg?: string | null;
+  timestamp: Date | string;
+};
+
+type ChatStreamEventMessageUpdated = {
+  type: 'chat:message_updated';
+  conversationId: number;
+  messageId: number;
+  platformMessageId: string;
+  status: string;
+  text: string | null;
+  processMsg?: string | null;
   timestamp: Date | string;
 };
 
@@ -168,7 +157,9 @@ type ChatStreamEventSessionUpdated = {
   type: 'chat:session_updated';
   sessionId: string;
   connectionId: number;
+  conversationId?: number;
   unreadCount?: number;
+  lastMessageTime?: Date | string;
 };
 
 type ChatStreamEventSessionResolved = {
@@ -185,6 +176,7 @@ type ChatStreamEventPing = {
 
 type ChatStreamEvent =
   | ChatStreamEventMessageReceived
+  | ChatStreamEventMessageUpdated
   | ChatStreamEventSessionEscalated
   | ChatStreamEventBotReplied
   | ChatStreamEventOperatorTakeover
@@ -206,6 +198,7 @@ export type {
   AgentSessionActionType,
   MessageType,
   ChatStreamEventMessageReceived,
+  ChatStreamEventMessageUpdated,
   ChatStreamEventSessionEscalated,
   ChatStreamEventBotReplied,
   ChatStreamEventOperatorTakeover,

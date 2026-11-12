@@ -88,6 +88,7 @@ export type {
   LazadaPushSessionUpdatePayload,
   AgentSessionActionType,
   ChatStreamEventMessageReceived,
+  ChatStreamEventMessageUpdated,
   ChatStreamEventSessionEscalated,
   ChatStreamEventBotReplied,
   ChatStreamEventOperatorTakeover,

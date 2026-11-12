@@ -507,6 +507,8 @@ model Customer {
   connectionId       Int
   connection         PlatformConnection @relation(fields: [connectionId], references: [id])
   platformBuyerId    String          // Lazada buyer_id, Shopee buyer_user_id, etc.
+  displayName        String?         @db.VarChar(191)
+  avatarUrl          String?         @db.Text
   vipTierId          Int
   vipTier            VipTierCatalog  @relation(fields: [vipTierId], references: [id])
   vipScore           Float    @default(0)   // Computed RFM/LTV score (0–100)
