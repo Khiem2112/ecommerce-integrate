@@ -128,3 +128,102 @@ export type LazadaCategoryAttribute = {
   readonly options?: readonly LazadaCategoryAttributeOption[];
 };
 
+export type LazadaImTemplateId = 1 | 3 | 10006 | 10007 | 10008 | 10010;
+
+export type LazadaImTemplatePayload =
+  | {
+      readonly templateId: 1;
+      readonly txt?: string;
+      readonly translate_txt?: string;
+      readonly translateTxt?: string;
+    }
+  | {
+      readonly templateId: 3;
+      readonly img_url?: string;
+      readonly imgUrl?: string;
+      readonly width?: number;
+      readonly height?: number;
+      readonly osskey?: string;
+    }
+  | {
+      readonly templateId: 10006;
+      readonly item_id?: string | number;
+      readonly itemId?: string | number;
+    }
+  | {
+      readonly templateId: 10007;
+      readonly order_id?: string | number;
+      readonly orderId?: string | number;
+    }
+  | {
+      readonly templateId: 10008;
+      readonly promotion_id?: string | number;
+      readonly promotionId?: string | number;
+    }
+  | {
+      readonly templateId: 10010;
+    };
+
+export type LazadaImSendMessageResponse = {
+  readonly message_id?: string;
+  readonly current_time?: number;
+  readonly template_id?: number;
+};
+
+export type LazadaImSessionDetailDTO = {
+  readonly session_id: string;
+  readonly buyer_id?: string | number;
+  readonly user_account_id?: string | number;
+  readonly title?: string;
+  readonly buyer_name?: string;
+  readonly head_url?: string;
+  readonly avatar?: string;
+  readonly unread_count?: number;
+  readonly last_message_time?: number;
+  readonly last_message_id?: string;
+  readonly tags?: readonly string[];
+  readonly site_id?: string;
+  readonly to_position?: number;
+  readonly self_position?: number;
+};
+
+export type LazadaImSessionListResponse = {
+  readonly session_list?: readonly LazadaImSessionDetailDTO[];
+  readonly has_more?: boolean;
+  readonly next_start_time?: number;
+  readonly last_session_id?: string;
+};
+
+export type LazadaImMessageItemDTO = {
+  readonly message_id: string;
+  readonly session_id?: string;
+  readonly content?: string;
+  readonly from_account_id?: string | number;
+  readonly from_account_type?: number;
+  readonly to_account_id?: string | number;
+  readonly to_account_type?: number;
+  readonly send_time?: number;
+  readonly template_id?: number;
+  readonly type?: number;
+  readonly site_id?: string;
+  readonly process_msg?: string;
+  readonly auto_reply?: boolean;
+  readonly status?: number;
+};
+
+export type LazadaImMessageListResponse = {
+  readonly message_list?: readonly LazadaImMessageItemDTO[];
+  readonly has_more?: boolean;
+  readonly next_start_time?: number;
+  readonly last_message_id?: string;
+};
+
+export type LazadaImSessionOpenResponse = {
+  readonly session_id?: string;
+};
+
+export type LazadaImMessageRecallResponse = {
+  readonly result?: boolean;
+  readonly success?: boolean;
+};
+

@@ -61,6 +61,18 @@ export type LazadaClientConfig = {
   readonly apiScope?: 'business' | 'chat';
 };
 
+function pickNonEmpty(...values: ReadonlyArray<string | undefined>): string | undefined {
+  for (const value of values) {
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed.length > 0) {
+        return trimmed;
+      }
+    }
+  }
+  return undefined;
+}
+
 export class LazadaClient {
   private readonly baseUrl: string;
   private readonly appKey: string;
@@ -73,24 +85,36 @@ export class LazadaClient {
   constructor(config: LazadaClientConfig = {}) {
     this.apiScope = config.apiScope ?? 'business';
 
-    const defaultBaseUrl =
-      process.env.LAZADA_API_BASE_URL ??
-      process.env.LAZADA_API_BASE ??
-      'http://localhost:4000/rest';
+    const resolvedBaseUrl =
+      pickNonEmpty(
+        config.baseUrl,
+        process.env.LAZADA_API_BASE_URL,
+        process.env.LAZADA_API_BASE,
+      ) ?? 'http://localhost:4000/rest';
 
-    const defaultAppKey =
-      process.env.LAZADA_APP_KEY ?? 'mock_app_key_123';
+    // IM/Chat Open API apps may use a dedicated app key/secret before falling back to business credentials
+    const resolvedAppKey =
+      this.apiScope === 'chat'
+        ? pickNonEmpty(
+            config.appKey,
+            process.env.LAZADA_CHAT_APP_KEY,
+            process.env.LAZADA_APP_KEY,
+          )
+        : pickNonEmpty(config.appKey, process.env.LAZADA_APP_KEY);
 
-    const defaultAppSecret =
-      process.env.LAZADA_APP_SECRET ?? 'mock_app_secret_456';
+    const resolvedAppSecret =
+      this.apiScope === 'chat'
+        ? pickNonEmpty(
+            config.appSecret,
+            process.env.LAZADA_CHAT_APP_SECRET,
+            process.env.LAZADA_APP_SECRET,
+          )
+        : pickNonEmpty(config.appSecret, process.env.LAZADA_APP_SECRET);
 
-    const defaultAccessToken =
-      process.env.LAZADA_ACCESS_TOKEN ?? undefined;
-
-    this.baseUrl = (config.baseUrl ?? defaultBaseUrl).replace(/\/+$/, '');
-    this.appKey = config.appKey ?? defaultAppKey;
-    this.appSecret = config.appSecret ?? defaultAppSecret;
-    this.accessToken = config.accessToken ?? defaultAccessToken;
+    this.baseUrl = resolvedBaseUrl.replace(/\/+$/, '');
+    this.appKey = resolvedAppKey ?? 'mock_app_key_123';
+    this.appSecret = resolvedAppSecret ?? 'mock_app_secret_456';
+    this.accessToken = pickNonEmpty(config.accessToken, process.env.LAZADA_ACCESS_TOKEN);
     this.timeoutMs = config.timeoutMs ?? 10000;
     this.maxRetries = config.maxRetries ?? 2;
   }

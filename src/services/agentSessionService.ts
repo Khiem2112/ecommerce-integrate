@@ -67,11 +67,24 @@ export async function takeoverConversationSession(
     },
   });
 
-  if (conversation.platformSessionId) {
-    void markLazadaSessionRead(
-      conversation.connectionId,
-      conversation.platformSessionId,
-    );
+  if (conversation.platformSessionId && typeof tx.message?.findFirst === 'function') {
+    const latestMessage = await tx.message.findFirst({
+      where: {
+        conversationId,
+        isActive: true,
+        platformMessageId: { not: null },
+      },
+      orderBy: { timestamp: 'desc' },
+      select: { platformMessageId: true },
+    });
+
+    if (latestMessage?.platformMessageId) {
+      void markLazadaSessionRead(
+        conversation.connectionId,
+        conversation.platformSessionId,
+        latestMessage.platformMessageId,
+      );
+    }
   }
 
   await chatBroadcaster.publishChatEvent(
