@@ -9,6 +9,7 @@
  * - Return safe, grounded response
  */
 
+import { appLogger } from '@/lib/logger';
 import { ConversationNotFoundError } from '@/services/agentSessionService';
 import { buildFullContext } from './contextBuilder';
 import { getActiveRetentionStrategies } from './strategyCatalog';
@@ -77,11 +78,18 @@ export async function generateGroundedResponse(
       : resolvedOptions.organizationId;
   const mode: RagResponseMode = resolvedOptions.mode ?? 'copilot_multi';
 
-  // Build 3-Layer Context
-  const context =
+  const totalStart = Date.now();
+
+  // Build 3-layer context and load cached active retention strategies concurrently
+  const contextStart = Date.now();
+  const [context, activeStrategies] = await Promise.all([
     organizationId !== undefined
-      ? await buildFullContext(conversationId, organizationId)
-      : await buildFullContext(conversationId);
+      ? buildFullContext(conversationId, organizationId)
+      : buildFullContext(conversationId),
+    getActiveRetentionStrategies(),
+  ]);
+  const contextBuildMs = Date.now() - contextStart;
+
   if (!context) {
     throw new ConversationNotFoundError(
       `Conversation with ID ${conversationId} or associated customer not found.`,
@@ -102,8 +110,6 @@ export async function generateGroundedResponse(
     `[RAG Orchestrator] Resolved Intent: ${resolved.code} | Tier: ${resolved.tier} | Mode: ${mode} (source: ${resolved.source})`,
   );
 
-  // Load and filter retention strategies for the resolved tier
-  const activeStrategies = await getActiveRetentionStrategies();
   const tierStrategies = filterStrategiesForTier(resolved.tier, activeStrategies);
   const allowedCodes = tierStrategies.map((s) => s.code);
 
@@ -128,6 +134,7 @@ export async function generateGroundedResponse(
   const maxOutputTokens = resolvedOptions.maxOutputTokens ?? defaultBudget;
 
   // Generate LLM Output (Multi-Draft / Single-Draft)
+  const llmStart = Date.now();
   const rawResponse = await generateResponse(
     systemPrompt,
     userPrompt,
@@ -135,9 +142,25 @@ export async function generateGroundedResponse(
     tierProviders,
     { maxOutputTokens, tier: resolved.tier },
   );
+  const llmMs = Date.now() - llmStart;
 
   // Validate Grounding & Safety across all strategy drafts
+  const groundingStart = Date.now();
   const grounding = validateMultiDraftGrounding(rawResponse, context, activeStrategies);
+  const groundingMs = Date.now() - groundingStart;
+  const totalMs = Date.now() - totalStart;
+
+  appLogger.info('RAG response generation timings', {
+    conversationId,
+    mode,
+    intentCode: resolved.code,
+    tier: resolved.tier,
+    contextBuildMs,
+    llmMs,
+    groundingMs,
+    totalMs,
+    providerUsed: grounding.sanitizedResponse.providerUsed,
+  });
 
   return {
     context,

@@ -8,20 +8,21 @@
 
 import { prisma } from '@/lib/prisma';
 import {
-  getConversationById,
-  getConversationByIdInternal,
-  getUnresolvedConversations,
+  getConversationForRagContext,
+  getUnresolvedConversationCount,
   getCustomerPastIntents,
   getConversationCount,
+  type ConversationRagSnapshot,
 } from '@/services/conversationService';
 import { getCustomerById, getCustomerEvidences } from '@/services/customerService';
-import { getOrderById } from '@/services/orderService';
+import { getOrderForRagContextService } from '@/services/orderService';
+import { withPlatform } from '@/utils';
 import type {
   TurnContext,
   CustomerDossier,
   EvidenceContext,
   FullCustomerContext,
-  ConversationWithMessages,
+  CustomerWithRelations,
   DbClient,
 } from '@/types';
 
@@ -29,15 +30,15 @@ const MAX_RECENT_MESSAGES = 10;
 const MIN_EVIDENCE_CONFIDENCE = 0.5;
 const HIGH_CONFIDENCE_THRESHOLD = 0.85;
 
-/** Build the turn-level operational context from a pre-loaded conversation snapshot */
+/** Build the turn-level operational context from a bounded conversation snapshot */
 async function buildTurnContext(
-  conversation: ConversationWithMessages,
+  conversation: ConversationRagSnapshot,
   tx: DbClient = prisma,
 ): Promise<TurnContext> {
   const recentMessages = conversation.messages.slice(-MAX_RECENT_MESSAGES);
 
   const linkedOrder = conversation.orderId
-    ? await getOrderById(conversation.orderId, tx)
+    ? await getOrderForRagContextService(conversation.orderId, tx)
     : null;
 
   return {
@@ -46,29 +47,31 @@ async function buildTurnContext(
     linkedOrder,
     detectedIntent: conversation.intent,
     conversationPriority: conversation.priority,
-    messageCount: conversation.messages.length,
+    messageCount: conversation.messageCount,
   };
 }
 
 /** Build the customer behavioral dossier */
 async function buildCustomerDossier(
   customerId: number,
+  preloadedCustomer: CustomerWithRelations | null,
   tx: DbClient = prisma,
 ): Promise<CustomerDossier | null> {
-  const [customer, unresolvedConvs, pastIntents, totalCount] = await Promise.all([
-    getCustomerById(customerId, tx),
-    getUnresolvedConversations(customerId, tx),
-    getCustomerPastIntents(customerId, tx),
-    getConversationCount(customerId, tx),
-  ]);
+  const [customer, unresolvedConversationCount, pastIntents, totalConversationCount] =
+    await Promise.all([
+      preloadedCustomer ? Promise.resolve(preloadedCustomer) : getCustomerById(customerId, tx),
+      getUnresolvedConversationCount(customerId, tx),
+      getCustomerPastIntents(customerId, tx),
+      getConversationCount(customerId, tx),
+    ]);
 
   if (!customer) return null;
 
   return {
     customer,
-    unresolvedConversationCount: unresolvedConvs.length,
+    unresolvedConversationCount,
     pastIntents,
-    totalConversationCount: totalCount,
+    totalConversationCount,
   };
 }
 
@@ -91,7 +94,8 @@ async function buildEvidenceContext(
  * Build the complete 3-layer customer context for a conversation.
  *
  * @param conversationId - The conversation to build context for
- * @param tx - Optional database transaction client
+ * @param organizationIdOrTx - Tenant organization ID or optional database transaction client
+ * @param maybeTx - Optional database transaction client when organizationId is provided
  * @returns FullCustomerContext or null if conversation/customer not found
  */
 export async function buildFullContext(
@@ -104,17 +108,27 @@ export async function buildFullContext(
   const tx: DbClient =
     typeof organizationIdOrTx === 'number' ? (maybeTx ?? prisma) : organizationIdOrTx;
 
-  const conversation =
-    organizationId !== undefined
-      ? await getConversationById(conversationId, organizationId, tx)
-      : await getConversationByIdInternal(conversationId, tx);
+  const conversation = await getConversationForRagContext(
+    conversationId,
+    MAX_RECENT_MESSAGES,
+    tx,
+    organizationId,
+  );
   if (!conversation) return null;
 
+  if (conversation.customer && conversation.customer.isActive === false) {
+    return null;
+  }
+
   const customerId = conversation.customerId;
+  const preloadedCustomer: CustomerWithRelations | null =
+    conversation.customer?.isActive && conversation.customer.connection?.platform
+      ? withPlatform(conversation.customer)
+      : null;
 
   const [turn, dossier, evidence] = await Promise.all([
     buildTurnContext(conversation, tx),
-    buildCustomerDossier(customerId, tx),
+    buildCustomerDossier(customerId, preloadedCustomer, tx),
     buildEvidenceContext(customerId, tx),
   ]);
 

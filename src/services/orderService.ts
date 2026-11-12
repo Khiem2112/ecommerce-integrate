@@ -55,6 +55,25 @@ const ORDER_FULL_INCLUDE = {
   },
 } as const;
 
+/** Lightweight RAG include omitting redundant customer relation re-joins */
+const ORDER_RAG_INCLUDE = {
+  currentStatus: true,
+  connection: {
+    include: {
+      platform: true,
+    },
+  },
+  items: {
+    where: { isActive: true },
+    include: { category: true },
+  },
+  statusHistory: {
+    where: { isActive: true },
+    include: { status: true },
+    orderBy: { changedAt: 'desc' as const },
+  },
+} as const;
+
 
 
 /** Helper to transform Prisma unique constraint / known errors into descriptive domain messages */
@@ -135,6 +154,20 @@ export async function getOrderByIdService(
   const order = await tx.order.findUnique({
     where: { id: orderId },
     include: ORDER_FULL_INCLUDE,
+  });
+  return order ? (withOrderPlatform(order) as unknown as OrderWithHistory) : null;
+}
+
+/**
+ * Fetch a single active order for RAG context without redundant deep customer relation re-joins.
+ */
+export async function getOrderForRagContextService(
+  orderId: number,
+  tx: DbClient = prisma,
+): Promise<OrderWithHistory | null> {
+  const order = await tx.order.findFirst({
+    where: { id: orderId, isActive: true },
+    include: ORDER_RAG_INCLUDE,
   });
   return order ? (withOrderPlatform(order) as unknown as OrderWithHistory) : null;
 }

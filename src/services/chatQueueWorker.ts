@@ -27,6 +27,23 @@ import type {
 } from '@/types';
 
 const SESSION_LOCK_TTL_MS = 25_000;
+export const MIN_CHAT_WORKER_CONCURRENCY = 1;
+export const MAX_CHAT_WORKER_CONCURRENCY = 16;
+
+export function resolveChatWorkerConcurrency(): number {
+  const raw = process.env.CHAT_WORKER_CONCURRENCY?.trim();
+  if (!raw) {
+    return MIN_CHAT_WORKER_CONCURRENCY;
+  }
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed)) {
+    return MIN_CHAT_WORKER_CONCURRENCY;
+  }
+  return Math.min(
+    MAX_CHAT_WORKER_CONCURRENCY,
+    Math.max(MIN_CHAT_WORKER_CONCURRENCY, parsed),
+  );
+}
 const CLAIM_DEBOUNCE_SCRIPT = `
   if redis.call("get", KEYS[1]) == ARGV[1] then
     return redis.call("del", KEYS[1])
@@ -198,8 +215,16 @@ async function verifyBotDebounceToken(
   triggerMessageId: string,
 ): Promise<boolean> {
   const debounceKey = getBotDebounceKey(sessionId);
-  const latestTriggerId = await redis.get(debounceKey);
-  return Boolean(latestTriggerId) && latestTriggerId === triggerMessageId;
+  try {
+    const latestTriggerId = await redis.get(debounceKey);
+    return Boolean(latestTriggerId) && latestTriggerId === triggerMessageId;
+  } catch (error) {
+    appLogger.warn('Failed to verify bot debounce token from Redis', {
+      sessionId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
 }
 
 async function releaseBotDebounceToken(
@@ -207,19 +232,26 @@ async function releaseBotDebounceToken(
   triggerMessageId: string,
 ): Promise<void> {
   const debounceKey = getBotDebounceKey(sessionId);
-  if (typeof redis.eval === 'function') {
-    await redis.eval(
-      CLAIM_DEBOUNCE_SCRIPT,
-      1,
-      debounceKey,
-      triggerMessageId,
-    );
-    return;
-  }
+  try {
+    if (typeof redis.eval === 'function') {
+      await redis.eval(
+        CLAIM_DEBOUNCE_SCRIPT,
+        1,
+        debounceKey,
+        triggerMessageId,
+      );
+      return;
+    }
 
-  const latestTriggerId = await redis.get(debounceKey);
-  if (latestTriggerId === triggerMessageId) {
-    await redis.del(debounceKey);
+    const latestTriggerId = await redis.get(debounceKey);
+    if (latestTriggerId === triggerMessageId) {
+      await redis.del(debounceKey);
+    }
+  } catch (error) {
+    appLogger.warn('Failed to release bot debounce token from Redis', {
+      sessionId,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -312,6 +344,7 @@ export function startChatQueueWorker(): Worker<ChatWebhookJobData>[] {
     return globalForWorker.chatWorkers;
   }
 
+  const concurrency = resolveChatWorkerConcurrency();
   const workers: Worker<ChatWebhookJobData>[] = Array.from(
     { length: CHAT_QUEUE_PARTITION_COUNT },
     (_, partition) => {
@@ -323,7 +356,7 @@ export function startChatQueueWorker(): Worker<ChatWebhookJobData>[] {
         },
         {
           connection: getQueueConnectionOptions(),
-          concurrency: 1,
+          concurrency,
         },
       );
 
@@ -333,6 +366,10 @@ export function startChatQueueWorker(): Worker<ChatWebhookJobData>[] {
 
       worker.on('failed', (job: Job<ChatWebhookJobData> | undefined, error: Error) => {
         appLogger.error(`Chat queue job failed [${queueName}]: ${job?.id}`, error);
+      });
+
+      worker.on('error', (error: Error) => {
+        appLogger.error(`Chat queue worker error [${queueName}]`, error);
       });
 
       return worker;

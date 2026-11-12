@@ -37,7 +37,7 @@ import type {
 } from '@/types';
 
 const CONVERSATION_LOCK_TTL_MS = 25_000;
-const RAG_GENERATION_TIMEOUT_MS = 10_000;
+const RAG_GENERATION_TIMEOUT_MS = 16_000;
 const AUTONOMOUS_ELIGIBLE_STATUS_CODES = new Set(['open', 'awaiting_reply']);
 const NEGATIVE_INTENT_CODES = new Set([
   'complaint',

@@ -3,6 +3,7 @@
  * Supports injected transaction clients for composable transactions initiated by Server Actions.
  */
 
+import type { Prisma, PlatformCatalog } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import type {
   DbClient,
@@ -12,6 +13,35 @@ import type {
   MessageWithSender,
 } from '@/types';
 import { withPlatform, withPlatforms } from '@/utils';
+
+export type ConversationRagSnapshot = Prisma.ConversationGetPayload<{
+  include: {
+    intent: true;
+    assignedAgent: true;
+    status: true;
+    escalationStatus: true;
+    connection: {
+      include: {
+        platform: true;
+      };
+    };
+    customer: {
+      include: {
+        vipTier: true;
+        connection: {
+          include: {
+            platform: true;
+          };
+        };
+      };
+    };
+  };
+}> & {
+  platformId: number;
+  platform: PlatformCatalog;
+  messages: MessageWithSender[];
+  messageCount: number;
+};
 
 export type InboxConversationFilters = {
   readonly statusCode?: string;
@@ -82,6 +112,64 @@ export async function getConversationByIdInternal(
   tx: DbClient = prisma,
 ): Promise<ConversationWithMessages | null> {
   return findActiveConversationSnapshot(id, tx);
+}
+
+/** Fetch bounded conversation header, customer, latest N active messages, and total active message count for RAG context */
+export async function getConversationForRagContext(
+  conversationId: number,
+  messageLimit: number = 10,
+  tx: DbClient = prisma,
+  organizationId?: number,
+): Promise<ConversationRagSnapshot | null> {
+  if (
+    organizationId !== undefined &&
+    (!Number.isInteger(organizationId) || organizationId <= 0)
+  ) {
+    return null;
+  }
+
+  const conv = await tx.conversation.findUnique({
+    where: { id: conversationId },
+    include: {
+      ...CONVERSATION_INCLUDE,
+      customer: {
+        include: {
+          vipTier: true,
+          connection: {
+            include: {
+              platform: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!conv || !conv.isActive || !conv.connection?.isActive) {
+    return null;
+  }
+
+  if (organizationId !== undefined && conv.connection.organizationId !== organizationId) {
+    return null;
+  }
+
+  if (conv.customer && conv.customer.isActive === false) {
+    return null;
+  }
+
+  const boundedLimit = Math.max(1, Math.trunc(messageLimit));
+  const [recentMessages, messageCount] = await Promise.all([
+    getConversationMessages(conversationId, boundedLimit, tx),
+    tx.message.count({
+      where: { conversationId, isActive: true },
+    }),
+  ]);
+
+  return {
+    ...withPlatform(conv),
+    messages: recentMessages,
+    messageCount,
+  };
 }
 
 /** Fetch inbox conversations scoped strictly to an active tenant organization */
@@ -227,6 +315,20 @@ export async function getUnresolvedConversations(
     orderBy: { startedAt: 'desc' },
   });
   return withPlatforms(conversations);
+}
+
+/** Count active unresolved (non-final status) conversations for a customer without loading full rows */
+export async function getUnresolvedConversationCount(
+  customerId: number,
+  tx: DbClient = prisma,
+): Promise<number> {
+  return tx.conversation.count({
+    where: {
+      customerId,
+      isActive: true,
+      status: { isFinal: false },
+    },
+  });
 }
 
 /** Fetch the most recent N messages for a conversation (chronological) */

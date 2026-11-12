@@ -5,6 +5,21 @@ import {
 } from '@/forms/ragForm';
 
 /**
+ * Parse a positive integer environment variable with safe fallback on invalid or non-positive values.
+ */
+export function parsePositiveIntEnv(
+  rawValue: string | undefined,
+  fallback: number,
+): number {
+  const trimmed = rawValue?.trim();
+  if (!trimmed) {
+    return fallback;
+  }
+  const parsed = Number(trimmed);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/**
  * Parse raw LLM output string as JSON and validate against the Multi-Draft schema.
  * Pure, stateless validator without any external I/O or network requests.
  */
