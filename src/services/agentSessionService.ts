@@ -1,6 +1,12 @@
 import { prisma } from '@/lib/prisma';
-import { redis } from '@/lib/redis';
+import { cancelPendingBotTurn } from '@/lib/queue';
 import { appLogger } from '@/lib/logger';
+import {
+  computeMonotonicLastMessageTime,
+  isLazadaPlatformConnection,
+  parseNumericOrderId,
+  summarizeOutboundTurnWindow,
+} from '@/utils';
 import { chatBroadcaster } from './chatBroadcaster';
 import { resolveEscalation } from './escalationService';
 import {
@@ -110,33 +116,14 @@ async function runInTransaction<T>(fn: (db: DbClient) => Promise<T>): Promise<T>
   return fn(prisma);
 }
 
-function computeMonotonicLastMessageTime(
-  incomingTime: Date,
-  existingTime?: Date | null,
-): Date {
-  if (!existingTime) {
-    return incomingTime;
-  }
-  return existingTime.getTime() > incomingTime.getTime() ? existingTime : incomingTime;
-}
-
-function parseNumericOrderId(platformOrderId: string | null | undefined): string | number {
-  const trimmed = platformOrderId?.trim() ?? '';
-  if (!/^[1-9]\d*$/.test(trimmed)) {
+function requireNumericOrderId(platformOrderId: string | null | undefined): string | number {
+  const parsed = parseNumericOrderId(platformOrderId);
+  if (parsed === null) {
     throw new OutboundDeliveryError(
       'Cannot open Lazada IM session: linked order has an invalid platform order ID.',
     );
   }
-
-  const parsed = Number(trimmed);
-  return Number.isSafeInteger(parsed) ? parsed : trimmed;
-}
-
-function isLazadaPlatformConnection(
-  connection: { readonly platform?: { readonly code?: string | null } | null } | null | undefined,
-): boolean {
-  const platformCode = connection?.platform?.code;
-  return !platformCode || platformCode === 'lazada';
+  return parsed;
 }
 
 function isAuthorizedConversation<
@@ -271,6 +258,18 @@ export async function takeoverConversationSession(
       lastReadMessageId,
     };
   });
+
+  if (txResult.platformSessionId) {
+    try {
+      await cancelPendingBotTurn(txResult.platformSessionId);
+    } catch (cancelError) {
+      appLogger.warn('Failed to cancel pending bot turn during operator takeover', {
+        conversationId,
+        sessionId: txResult.platformSessionId,
+        error: cancelError instanceof Error ? cancelError.message : String(cancelError),
+      });
+    }
+  }
 
   if (txResult.platformSessionId && txResult.lastReadMessageId && txResult.isLazada) {
     const readResult = await markLazadaSessionRead(
@@ -444,23 +443,9 @@ export async function sendOperatorMessage(
           })
         : [];
 
-    let latestBuyerMessageTime: Date | null = null;
-    let consecutiveOutboundReplies = 0;
-
-    for (const msg of recentMessages ?? []) {
-      const senderCode = msg.senderType?.code;
-      if (senderCode === 'buyer') {
-        latestBuyerMessageTime = msg.timestamp;
-        break;
-      }
-      if (
-        senderCode !== 'system' &&
-        msg.status !== 'FAILED' &&
-        msg.status !== 'RECALLED'
-      ) {
-        consecutiveOutboundReplies += 1;
-      }
-    }
+    const turnWindow = summarizeOutboundTurnWindow(recentMessages ?? []);
+    let latestBuyerMessageTime = turnWindow.latestBuyerMessageTime;
+    const consecutiveOutboundReplies = turnWindow.consecutiveOutboundReplies;
 
     if (
       !latestBuyerMessageTime &&
@@ -559,7 +544,7 @@ export async function sendOperatorMessage(
   let activeSessionId = conversation.platformSessionId?.trim() || '';
 
   if (requiresSessionOpen && isLazada) {
-    const validOrderId = parseNumericOrderId(latestOrder?.platformOrderId);
+    const validOrderId = requireNumericOrderId(latestOrder?.platformOrderId);
     const openResult = await openLazadaImSession(conversation.connectionId, validOrderId);
     if (!openResult.success) {
       throw new OutboundDeliveryError(
@@ -606,12 +591,12 @@ export async function sendOperatorMessage(
 
   if (activeSessionId) {
     try {
-      await redis.del(`session:${activeSessionId}:debounce`);
-    } catch (redisError) {
-      appLogger.warn('Failed to clear bot debounce key before operator send', {
+      await cancelPendingBotTurn(activeSessionId);
+    } catch (cancelError) {
+      appLogger.warn('Failed to cancel pending bot turn before operator send', {
         conversationId: conversation.id,
         sessionId: activeSessionId,
-        error: redisError instanceof Error ? redisError.message : String(redisError),
+        error: cancelError instanceof Error ? cancelError.message : String(cancelError),
       });
     }
   }

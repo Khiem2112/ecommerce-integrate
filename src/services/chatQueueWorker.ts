@@ -3,12 +3,17 @@ import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
 import { withDistributedLock } from '@/lib/redlock';
 import { appLogger } from '@/lib/logger';
+import { computeMonotonicLastMessageTime } from '@/utils';
 import { chatBroadcaster } from './chatBroadcaster';
+import { processAgentConversationTurn } from './agentSessionManager';
 import { getLazadaImSession } from './connectors/lazada/lazadaImService';
 import {
   CHAT_QUEUE_PARTITION_COUNT,
+  cancelPendingBotTurn,
+  getBotDebounceKey,
   getChatQueuePartitionName,
   getQueueConnectionOptions,
+  scheduleBotConversationTurn,
   type ChatWebhookJobData,
 } from '@/lib/queue';
 import type {
@@ -19,8 +24,13 @@ import type {
   MessageType,
 } from '@/types';
 
-const DEBOUNCE_WINDOW_SECONDS = 3;
 const SESSION_LOCK_TTL_MS = 25_000;
+const CLAIM_DEBOUNCE_SCRIPT = `
+  if redis.call("get", KEYS[1]) == ARGV[1] then
+    return redis.call("del", KEYS[1])
+  end
+  return 0
+`;
 const RECALLED_MESSAGE_TEXT = '[Tin nhắn đã được thu hồi]';
 const ORDER_LINK_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
 const NESTED_RECORD_KEYS = [
@@ -39,7 +49,13 @@ const NESTED_RECORD_KEYS = [
 const CONVERSATION_WORKER_SELECT = {
   id: true,
   isActive: true,
+  humanApprovalRequired: true,
   lastMessageTime: true,
+  status: {
+    select: {
+      code: true,
+    },
+  },
   customer: {
     select: {
       id: true,
@@ -441,24 +457,7 @@ export function parseLazadaMessageContent(
   }
 }
 
-export function computeMonotonicLastMessageTime(
-  incomingTime: Date,
-  existingTime?: Date | string | null,
-): Date {
-  const incomingMs = incomingTime.getTime();
-  const safeIncomingMs = Number.isFinite(incomingMs) ? incomingMs : Date.now();
-  if (!existingTime) {
-    return new Date(safeIncomingMs);
-  }
-  const existingMs =
-    existingTime instanceof Date
-      ? existingTime.getTime()
-      : new Date(existingTime).getTime();
-  if (!Number.isFinite(existingMs)) {
-    return new Date(safeIncomingMs);
-  }
-  return new Date(Math.max(safeIncomingMs, existingMs));
-}
+export { computeMonotonicLastMessageTime };
 
 async function resolveConnectionIdAsync(
   connectionId?: number,
@@ -763,6 +762,8 @@ async function handlePushMessage(
     payload.type !== 2 &&
     payload.template_id !== 2;
 
+  let createdNewConversation = false;
+
   if (!conversation) {
     const buyerIdentifier = String(
       payload.from_account_type === 1
@@ -838,6 +839,7 @@ async function handlePushMessage(
       },
       select: CONVERSATION_WORKER_SELECT,
     });
+    createdNewConversation = true;
 
     appLogger.info('Cold session initialized for conversation', {
       conversationId: conversation.id,
@@ -928,7 +930,6 @@ async function handlePushMessage(
     },
   });
 
-  const debounceKey = `session:${sessionId}:debounce`;
   const isRealBuyerMessage =
     payload.from_account_type === 1 &&
     payload.status !== 1 &&
@@ -944,9 +945,38 @@ async function handlePushMessage(
     payload.template_id !== 2;
 
   if (isRealBuyerMessage) {
-    await redis.set(debounceKey, String(Date.now()), 'EX', DEBOUNCE_WINDOW_SECONDS);
+    const statusCode = createdNewConversation
+      ? 'open'
+      : (conversation.status?.code ?? null);
+    const humanApprovalRequired = createdNewConversation
+      ? false
+      : Boolean(conversation.humanApprovalRequired);
+    const isEligibleForBot =
+      !humanApprovalRequired &&
+      (statusCode === 'open' || statusCode === 'awaiting_reply');
+
+    if (isEligibleForBot) {
+      try {
+        await scheduleBotConversationTurn(
+          connectionId,
+          conversation.id,
+          sessionId,
+          messageId,
+        );
+      } catch (scheduleError) {
+        appLogger.warn('Failed to schedule autonomous bot turn after buyer message', {
+          conversationId: conversation.id,
+          sessionId,
+          messageId,
+          error:
+            scheduleError instanceof Error
+              ? scheduleError.message
+              : String(scheduleError),
+        });
+      }
+    }
   } else if (isRealOperatorReply) {
-    await redis.del(debounceKey);
+    await cancelPendingBotTurn(sessionId);
 
     const inProgressStatus = await prisma.conversationStatus.findFirst({
       where: { code: 'in_progress', isActive: true },
@@ -1066,13 +1096,69 @@ async function handlePushSessionUpdate(
   await chatBroadcaster.publishChatEvent(updateEvent, orgId);
 }
 
+async function verifyBotDebounceToken(
+  sessionId: string,
+  triggerMessageId: string,
+): Promise<boolean> {
+  const debounceKey = getBotDebounceKey(sessionId);
+  const latestTriggerId = await redis.get(debounceKey);
+  return Boolean(latestTriggerId) && latestTriggerId === triggerMessageId;
+}
+
+async function releaseBotDebounceToken(
+  sessionId: string,
+  triggerMessageId: string,
+): Promise<void> {
+  const debounceKey = getBotDebounceKey(sessionId);
+  if (typeof redis.eval === 'function') {
+    await redis.eval(
+      CLAIM_DEBOUNCE_SCRIPT,
+      1,
+      debounceKey,
+      triggerMessageId,
+    );
+    return;
+  }
+
+  const latestTriggerId = await redis.get(debounceKey);
+  if (latestTriggerId === triggerMessageId) {
+    await redis.del(debounceKey);
+  }
+}
+
 export async function processChatWebhookJob(jobData: ChatWebhookJobData): Promise<void> {
-  const sessionId = String(
-    'session_id' in jobData.payload ? jobData.payload.session_id : '',
-  );
+  const sessionId =
+    jobData.eventType === 'bot_turn'
+      ? String(jobData.sessionId ?? '')
+      : String('session_id' in jobData.payload ? jobData.payload.session_id : '');
 
   if (!sessionId) {
     throw new Error('Cannot process chat job without session_id');
+  }
+
+  if (jobData.eventType === 'bot_turn') {
+    const lockAcquired = await withDistributedLock(
+      `session:${sessionId}`,
+      SESSION_LOCK_TTL_MS,
+      async () => {
+        const isCurrentTrigger = await verifyBotDebounceToken(
+          sessionId,
+          jobData.triggerMessageId,
+        );
+        if (!isCurrentTrigger) {
+          return true;
+        }
+
+        await processAgentConversationTurn(jobData.conversationId);
+        await releaseBotDebounceToken(sessionId, jobData.triggerMessageId);
+        return true;
+      },
+    );
+
+    if (!lockAcquired) {
+      throw new Error(`Lock contention for session:${sessionId}, retrying via queue`);
+    }
+    return;
   }
 
   const connectionId = await resolveConnectionIdAsync(

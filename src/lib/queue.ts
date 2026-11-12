@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { Queue, type ConnectionOptions } from 'bullmq';
 import { appLogger } from './logger';
+import { redis } from './redis';
 import type {
   LazadaPushMessagePayload,
   LazadaPushSessionUpdatePayload,
@@ -8,8 +9,9 @@ import type {
 
 export const CHAT_MESSAGE_QUEUE_NAME = 'chat-message-queue';
 export const CHAT_QUEUE_PARTITION_COUNT = 8;
+export const DEFAULT_BOT_DEBOUNCE_MS = 3000;
 
-export type ChatWebhookJobData = {
+export type ChatWebhookEventJobData = {
   eventType: 'push_message' | 'push_session_update';
   connectionId?: number;
   externalShopId?: string;
@@ -17,6 +19,36 @@ export type ChatWebhookJobData = {
   payload: LazadaPushMessagePayload | LazadaPushSessionUpdatePayload;
   receivedAt: number;
 };
+
+export type ChatBotTurnJobData = {
+  eventType: 'bot_turn';
+  connectionId?: number;
+  conversationId: number;
+  sessionId: string;
+  triggerMessageId: string;
+  platform: string;
+  receivedAt: number;
+};
+
+export type ChatWebhookJobData = ChatWebhookEventJobData | ChatBotTurnJobData;
+
+export function getBotDebounceDelayMs(): number {
+  const raw = process.env.BOT_DEBOUNCE_MS;
+  if (!raw) {
+    return DEFAULT_BOT_DEBOUNCE_MS;
+  }
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_BOT_DEBOUNCE_MS;
+  }
+
+  return Math.floor(parsed);
+}
+
+export function getBotDebounceKey(sessionId: string): string {
+  return `session:${sessionId}:debounce`;
+}
 
 const globalForQueue = globalThis as unknown as {
   chatMessageQueues: Map<number, Queue<ChatWebhookJobData>> | undefined;
@@ -137,7 +169,7 @@ function hashJobIdParts(parts: readonly string[]): string {
 
 function buildSessionUpdateJobId(
   sessionId: string,
-  payload: ChatWebhookJobData['payload'],
+  payload: ChatWebhookEventJobData['payload'],
 ): string {
   const updatePayload = payload as Partial<LazadaPushSessionUpdatePayload>;
   const safeSession = sanitizeJobIdSegment(sessionId);
@@ -175,12 +207,32 @@ function buildSessionUpdateJobId(
   return `session_${safeSession}_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 }
 
+function buildBotTurnJobId(
+  sessionId: string,
+  triggerMessageId: string,
+): string {
+  const safeSession = sanitizeJobIdSegment(sessionId);
+  const safeMessage = sanitizeJobIdSegment(triggerMessageId);
+  const hash = hashJobIdParts([sessionId, triggerMessageId]).slice(0, 12);
+  return `bot-turn_${safeSession}_${safeMessage}_${hash}`;
+}
+
 export async function addChatMessageJob(
   jobData: ChatWebhookJobData,
   sessionId: string,
   messageId?: string,
 ): Promise<string> {
   const queue = getChatMessageQueue(sessionId);
+
+  if (jobData.eventType === 'bot_turn') {
+    const jobId = buildBotTurnJobId(jobData.sessionId, jobData.triggerMessageId);
+    const job = await queue.add('process_bot_turn', jobData, {
+      delay: getBotDebounceDelayMs(),
+      jobId,
+    });
+    return job.id ?? jobId;
+  }
+
   const isRecall =
     'status' in jobData.payload && jobData.payload.status === 1;
 
@@ -201,5 +253,106 @@ export async function addChatMessageJob(
   });
 
   return job.id ?? jobId;
+}
+
+export async function scheduleBotConversationTurn(
+  connectionId: number | undefined,
+  conversationId: number,
+  sessionId: string,
+  triggerMessageId: string,
+  delayMs?: number,
+): Promise<string> {
+  const effectiveDelayMs =
+    typeof delayMs === 'number' && Number.isFinite(delayMs) && delayMs > 0
+      ? Math.floor(delayMs)
+      : getBotDebounceDelayMs();
+  const ttlSeconds = Math.max(Math.ceil(effectiveDelayMs / 1000) + 60, 60);
+  const debounceKey = getBotDebounceKey(sessionId);
+
+  await redis.set(debounceKey, triggerMessageId, 'EX', ttlSeconds);
+
+  const queue = getChatMessageQueue(sessionId);
+  const jobId = buildBotTurnJobId(sessionId, triggerMessageId);
+  const jobData: ChatBotTurnJobData = {
+    eventType: 'bot_turn',
+    connectionId,
+    conversationId,
+    sessionId,
+    triggerMessageId,
+    platform: 'lazada',
+    receivedAt: Date.now(),
+  };
+
+  const job = await queue.add('process_bot_turn', jobData, {
+    delay: effectiveDelayMs,
+    jobId,
+  });
+
+  return job.id ?? jobId;
+}
+
+export async function cancelPendingBotTurn(sessionId: string): Promise<void> {
+  if (!sessionId) {
+    return;
+  }
+
+  await redis.del(getBotDebounceKey(sessionId));
+
+  // Guard BullMQ queue lookup when running under minimal Redis mocks in unrelated unit tests
+  const hasRedisSet =
+    typeof (redis as unknown as Record<string, unknown>).set === 'function';
+  if (!hasRedisSet) {
+    return;
+  }
+
+  try {
+    const queue = getChatMessageQueue(sessionId);
+    const pendingJobs: Array<{
+      id?: string;
+      data?: Partial<ChatWebhookJobData>;
+      remove?: () => Promise<void>;
+    }> = [];
+
+    if (typeof queue.getDelayed === 'function') {
+      const delayed = await queue.getDelayed();
+      if (Array.isArray(delayed)) {
+        pendingJobs.push(...delayed);
+      }
+    }
+
+    if (typeof queue.getWaiting === 'function') {
+      const waiting = await queue.getWaiting();
+      if (Array.isArray(waiting)) {
+        pendingJobs.push(...waiting);
+      }
+    }
+
+    for (const job of pendingJobs) {
+      if (
+        job?.data?.eventType === 'bot_turn' &&
+        job.data.sessionId === sessionId &&
+        typeof job.remove === 'function'
+      ) {
+        try {
+          await job.remove();
+        } catch (removeError) {
+          appLogger.warn('Failed to remove pending bot_turn job', {
+            sessionId,
+            jobId: job.id,
+            error:
+              removeError instanceof Error
+                ? removeError.message
+                : String(removeError),
+          });
+        }
+      }
+    }
+  } catch (queueError) {
+    appLogger.warn('Failed to clean up pending bot_turn queue jobs', {
+      sessionId,
+      error:
+        queueError instanceof Error ? queueError.message : String(queueError),
+    });
+  }
 }
 

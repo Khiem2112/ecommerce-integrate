@@ -349,6 +349,19 @@ const NEGATIVE_COMPLAINT_PATTERNS = [
   /gian\s*lận/i,
   /hết\s*hạn/i,
   /hết\s*date/i,
+  /\bbroken\b/i,
+  /\bdamaged\b/i,
+  /\bdefective\b/i,
+  /\bscam\b/i,
+  /\bfake\b/i,
+  /\bfraud\b/i,
+  /\brefund\s+now\b/i,
+  /\bcomplaint\b/i,
+  /\bterrible\b/i,
+  /\bworst\b/i,
+  /\bwrong\s+item\b/i,
+  /\bnot\s+received\b/i,
+  /\bnever\s+arrived\b/i,
 ];
 
 export function evaluateAutonomousGrounding(
