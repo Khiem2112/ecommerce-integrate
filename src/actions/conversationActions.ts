@@ -12,6 +12,7 @@ import {
   sendOperatorMessage,
   classifyOutboundSessionError,
 } from '@/services/agentSessionService';
+import { triggerManualLazadaChatHistorySyncService } from '@/services/connectors';
 import {
   inboxFiltersSchema,
   sendMessageSchema,
@@ -23,6 +24,7 @@ import type {
   ConversationSummary,
   InboxFilters,
   SaveAiResponseInput,
+  SyncLazadaChatHistoryResult,
   WorkspaceMessage,
 } from '@/types';
 
@@ -110,7 +112,12 @@ function toConversationSummary(
 }
 
 async function resolveAuthorizedActor(): Promise<
-  | { readonly ok: true; readonly userId: number; readonly organizationId: number }
+  | {
+      readonly ok: true;
+      readonly userId: number;
+      readonly organizationId: number;
+      readonly roleCode: string | null;
+    }
   | { readonly ok: false; readonly response: ActionResponse<never> }
 > {
   const session = await getAuthenticatedSessionContextService();
@@ -126,7 +133,12 @@ async function resolveAuthorizedActor(): Promise<
       },
     };
   }
-  return { ok: true, userId, organizationId };
+  return {
+    ok: true,
+    userId,
+    organizationId,
+    roleCode: session?.user?.role ?? null,
+  };
 }
 
 /** Retrieve the agent inbox list in a browser-safe format. */
@@ -316,6 +328,50 @@ export async function saveAiResponseAction(
       success: false,
       code: mapped.code,
       error: mapped.message,
+    };
+  }
+}
+
+/** Trigger manual Lazada chat history recovery sync with per-shop Redis cooldown protection. */
+export async function syncShopChatHistoryAction(
+  connectionId: number,
+): Promise<ActionResponse<SyncLazadaChatHistoryResult>> {
+  try {
+    const auth = await resolveAuthorizedActor();
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    if (!Number.isInteger(connectionId) || connectionId <= 0) {
+      return {
+        success: false,
+        code: 'INVALID_INPUT',
+        error: 'A valid shop connection ID is required.',
+      };
+    }
+
+    const result = await triggerManualLazadaChatHistorySyncService({
+      connectionId,
+      organizationId: auth.organizationId,
+      actorUserId: auth.userId,
+      actorRoleCode: auth.roleCode,
+    });
+
+    if (result.success) {
+      revalidatePath('/conversations');
+      revalidatePath('/workspace');
+    }
+
+    return result;
+  } catch (error) {
+    appLogger.error('Error in syncShopChatHistoryAction', error);
+    return {
+      success: false,
+      code: 'SYSTEM_ERROR',
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Unable to synchronize shop chat history.',
     };
   }
 }

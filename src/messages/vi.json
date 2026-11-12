@@ -1271,6 +1271,10 @@
       "unauthorized": "Vui lòng đăng nhập để gửi tin nhắn.",
       "conversationNotFound": "Không tìm thấy cuộc hội thoại.",
       "invalidInput": "Dữ liệu không hợp lệ. Vui lòng kiểm tra tin nhắn và thử lại.",
+      "syncCooldown": "Đồng bộ lịch sử chat đang trong thời gian chờ. Vui lòng đợi 5 phút giữa các lần đồng bộ thủ công cho gian hàng này.",
+      "syncPermissionDenied": "Bạn không có quyền thực hiện đồng bộ lịch sử chat cho gian hàng này.",
+      "syncConnectionNotFound": "Không tìm thấy kết nối gian hàng Lazada đang hoạt động trong tổ chức hiện tại.",
+      "syncFailed": "Không thể đồng bộ lịch sử chat từ Lazada. Vui lòng thử lại.",
       "genericSendError": "Không thể gửi tin nhắn. Vui lòng thử lại."
     },
     "sender": {

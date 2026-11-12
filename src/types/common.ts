@@ -4,9 +4,12 @@ import type { prisma } from '@/lib/prisma';
 export type ActionErrorCode =
   | 'INVALID_INPUT'
   | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'CONNECTION_NOT_FOUND'
   | 'CONVERSATION_NOT_FOUND'
   | 'SESSION_EXPIRED'
   | 'ANTI_SPAM_QUOTA_EXCEEDED'
+  | 'SYNC_COOLDOWN_ACTIVE'
   | 'PLATFORM_SEND_FAILED'
   | 'DRAFT_VALIDATION_FAILED'
   | 'SYSTEM_ERROR';

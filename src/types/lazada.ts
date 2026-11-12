@@ -261,3 +261,20 @@ export type LazadaPushSessionUpdatePayload = {
   readonly session_id?: string;
 };
 
+/** Options for bounding Lazada chat history backfill pagination */
+export type SyncLazadaChatHistoryOptions = {
+  readonly startTime?: number;
+  readonly maxSessions?: number;
+  readonly maxPagesPerSession?: number;
+  readonly pageSize?: number;
+};
+
+/** Structured summary returned after a Lazada chat history sync run */
+export type SyncLazadaChatHistoryResult = {
+  readonly connectionId: number;
+  readonly organizationId: number;
+  readonly sessionsSynced: number;
+  readonly messagesSynced: number;
+  readonly lastSyncedAt: string;
+};
+

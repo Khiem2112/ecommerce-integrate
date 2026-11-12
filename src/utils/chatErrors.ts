@@ -11,6 +11,10 @@ export type ChatErrorKey =
   | 'unauthorized'
   | 'conversationNotFound'
   | 'invalidInput'
+  | 'syncCooldown'
+  | 'syncPermissionDenied'
+  | 'syncConnectionNotFound'
+  | 'syncFailed'
   | 'genericSendError';
 
 export type ChatErrorTranslator = (key: ChatErrorKey) => string;
@@ -47,6 +51,12 @@ export function resolveChatActionErrorMessage(
       return tErrors(resolveDraftValidationErrorKey(rawError));
     case 'UNAUTHORIZED':
       return tErrors('unauthorized');
+    case 'FORBIDDEN':
+      return tErrors('syncPermissionDenied');
+    case 'CONNECTION_NOT_FOUND':
+      return tErrors('syncConnectionNotFound');
+    case 'SYNC_COOLDOWN_ACTIVE':
+      return tErrors('syncCooldown');
     case 'CONVERSATION_NOT_FOUND':
       return tErrors('conversationNotFound');
     case 'INVALID_INPUT':

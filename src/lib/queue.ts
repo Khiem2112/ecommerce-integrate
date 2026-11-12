@@ -10,6 +10,7 @@ import type {
 export const CHAT_MESSAGE_QUEUE_NAME = 'chat-message-queue';
 export const CHAT_QUEUE_PARTITION_COUNT = 8;
 export const DEFAULT_BOT_DEBOUNCE_MS = 3000;
+export const DEFAULT_LAZADA_INITIAL_CHAT_SYNC_DELAY_MS = 900_000;
 
 export type ChatWebhookEventJobData = {
   eventType: 'push_message' | 'push_session_update';
@@ -30,7 +31,17 @@ export type ChatBotTurnJobData = {
   receivedAt: number;
 };
 
-export type ChatWebhookJobData = ChatWebhookEventJobData | ChatBotTurnJobData;
+export type ChatInitialSyncJobData = {
+  eventType: 'initial_chat_sync';
+  connectionId: number;
+  platform: 'lazada';
+  requestedAt: number;
+};
+
+export type ChatWebhookJobData =
+  | ChatWebhookEventJobData
+  | ChatBotTurnJobData
+  | ChatInitialSyncJobData;
 
 export function getBotDebounceDelayMs(): number {
   const raw = process.env.BOT_DEBOUNCE_MS;
@@ -41,6 +52,20 @@ export function getBotDebounceDelayMs(): number {
   const parsed = Number(raw);
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return DEFAULT_BOT_DEBOUNCE_MS;
+  }
+
+  return Math.floor(parsed);
+}
+
+export function getInitialChatSyncDelayMs(): number {
+  const raw = process.env.LAZADA_INITIAL_CHAT_SYNC_DELAY_MS;
+  if (!raw) {
+    return DEFAULT_LAZADA_INITIAL_CHAT_SYNC_DELAY_MS;
+  }
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return DEFAULT_LAZADA_INITIAL_CHAT_SYNC_DELAY_MS;
   }
 
   return Math.floor(parsed);
@@ -217,11 +242,19 @@ function buildBotTurnJobId(
   return `bot-turn_${safeSession}_${safeMessage}_${hash}`;
 }
 
+export function buildInitialChatSyncJobId(connectionId: number): string {
+  return `chat-initial-sync_${connectionId}`;
+}
+
 export async function addChatMessageJob(
   jobData: ChatWebhookJobData,
   sessionId: string,
   messageId?: string,
 ): Promise<string> {
+  if (jobData.eventType === 'initial_chat_sync') {
+    return scheduleInitialChatHistorySync(jobData.connectionId);
+  }
+
   const queue = getChatMessageQueue(sessionId);
 
   if (jobData.eventType === 'bot_turn') {
@@ -284,6 +317,40 @@ export async function scheduleBotConversationTurn(
   };
 
   const job = await queue.add('process_bot_turn', jobData, {
+    delay: effectiveDelayMs,
+    jobId,
+  });
+
+  return job.id ?? jobId;
+}
+
+/**
+ * Schedules a single delayed one-time Lazada chat history backfill job after OAuth completion.
+ * Uses a colon-free deterministic jobId so BullMQ 6.7.2 validates and deduplicates per connection.
+ */
+export async function scheduleInitialChatHistorySync(
+  connectionId: number,
+  delayMs?: number,
+): Promise<string> {
+  if (!Number.isInteger(connectionId) || connectionId <= 0) {
+    throw new Error('connectionId must be a positive integer to schedule initial chat sync');
+  }
+
+  const effectiveDelayMs =
+    typeof delayMs === 'number' && Number.isFinite(delayMs) && delayMs >= 0
+      ? Math.floor(delayMs)
+      : getInitialChatSyncDelayMs();
+
+  const jobId = buildInitialChatSyncJobId(connectionId);
+  const queue = getChatMessageQueue(jobId);
+  const jobData: ChatInitialSyncJobData = {
+    eventType: 'initial_chat_sync',
+    connectionId,
+    platform: 'lazada',
+    requestedAt: Date.now(),
+  };
+
+  const job = await queue.add('process_initial_chat_sync', jobData, {
     delay: effectiveDelayMs,
     jobId,
   });

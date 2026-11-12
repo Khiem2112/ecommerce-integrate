@@ -11,3 +11,4 @@ export * from './mockSeedService';
 export * from './lazada/lazadaSigner';
 export * from './lazada/lazadaClient';
 export * from './lazada/lazadaConnector';
+export * from './lazada/lazadaChatSyncService';

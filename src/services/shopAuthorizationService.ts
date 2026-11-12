@@ -15,6 +15,8 @@ import type {
   ShopConnectionDetail,
 } from '@/types';
 import { prisma } from '@/lib/prisma';
+import { appLogger } from '@/lib/logger';
+import { scheduleInitialChatHistorySync } from '@/lib/queue';
 import {
   canActorManageConnections,
   type ShopConnectionActor,
@@ -58,6 +60,9 @@ export type CompleteAuthorizationResult = {
   readonly connectionId?: number;
   readonly status: 'completed' | 'failed' | 'cancelled';
   readonly error?: string;
+  readonly externalShopId?: string;
+  readonly shopName?: string;
+  readonly tokenExpiresAt?: string | null;
 };
 
 function hashNonce(nonce: string): string {
@@ -375,6 +380,8 @@ export async function completeShopAuthorizationService(
 
   // Atomically persist identity, state, and audit log
   let resolvedConnectionId = 0;
+  let finalShopName = '';
+  let finalTokenExpiresAt: string | null = null;
 
   const runTrx = async (fn: (trx: Prisma.TransactionClient) => Promise<void>): Promise<void> => {
     if ('$transaction' in tx && typeof (tx as { $transaction?: unknown }).$transaction === 'function') {
@@ -400,6 +407,10 @@ export async function completeShopAuthorizationService(
       isSandbox && shopName && !shopName.startsWith('[Sandbox]')
         ? `[Sandbox] ${shopName}`
         : shopName;
+    finalShopName = resolvedShopName || existing?.shopName || shopName || '';
+    finalTokenExpiresAt = expiryMetadata.tokenExpiresAt
+      ? expiryMetadata.tokenExpiresAt.toISOString()
+      : null;
     const integrationsPayload = {
       ...tokenData,
       ...(isSandbox ? { isSandbox: true } : {}),
@@ -493,11 +504,29 @@ export async function completeShopAuthorizationService(
     );
   });
 
+  if (attempt.platform.code === 'lazada' && resolvedConnectionId > 0) {
+    try {
+      await scheduleInitialChatHistorySync(resolvedConnectionId);
+    } catch (scheduleError) {
+      appLogger.warn('Failed to schedule delayed Lazada initial chat history sync', {
+        connectionId: resolvedConnectionId,
+        attemptId: attempt.id,
+        error:
+          scheduleError instanceof Error
+            ? scheduleError.message
+            : String(scheduleError),
+      });
+    }
+  }
+
   return {
     success: true,
     attemptId: attempt.id,
     connectionId: resolvedConnectionId,
     status: 'completed',
+    externalShopId,
+    shopName: finalShopName,
+    tokenExpiresAt: finalTokenExpiresAt,
   };
 }
 

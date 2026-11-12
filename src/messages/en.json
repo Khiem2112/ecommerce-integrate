@@ -1271,6 +1271,10 @@
       "unauthorized": "Authentication required to send messages.",
       "conversationNotFound": "Conversation not found.",
       "invalidInput": "Invalid input data. Please check your message and try again.",
+      "syncCooldown": "Manual chat history sync is on cooldown. Please wait 5 minutes between sync requests for this shop.",
+      "syncPermissionDenied": "You do not have permission to synchronize chat history for this shop.",
+      "syncConnectionNotFound": "Active Lazada shop connection was not found in the current workspace.",
+      "syncFailed": "Unable to synchronize chat history from Lazada. Please try again.",
       "genericSendError": "Unable to send message. Please try again."
     },
     "sender": {

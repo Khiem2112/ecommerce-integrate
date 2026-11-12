@@ -183,6 +183,8 @@ export type {
   LazadaImMessageListResponse,
   LazadaImSessionOpenResponse,
   LazadaImMessageRecallResponse,
+  SyncLazadaChatHistoryOptions,
+  SyncLazadaChatHistoryResult,
   SeedKey,
   SeedProfile,
 } from './lazada';
