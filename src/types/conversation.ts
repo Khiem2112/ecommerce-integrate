@@ -112,6 +112,8 @@ type LazadaPushSessionUpdatePayload = {
   last_message_id?: string;
   unread_count?: number;
   last_message_time?: number;
+  to_position?: number;
+  self_position?: number;
   session_id?: string;
 };
 

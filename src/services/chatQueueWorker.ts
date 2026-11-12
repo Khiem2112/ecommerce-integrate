@@ -1,11 +1,13 @@
-import { Worker, type Job, type ConnectionOptions } from 'bullmq';
+import { Worker, type Job } from 'bullmq';
 import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
 import { withDistributedLock } from '@/lib/redlock';
 import { appLogger } from '@/lib/logger';
 import { chatBroadcaster } from './chatBroadcaster';
 import {
-  CHAT_MESSAGE_QUEUE_NAME,
+  CHAT_QUEUE_PARTITION_COUNT,
+  getChatQueuePartitionName,
+  getQueueConnectionOptions,
   type ChatWebhookJobData,
 } from '@/lib/queue';
 import type {
@@ -15,31 +17,6 @@ import type {
 } from '@/types';
 
 const DEBOUNCE_WINDOW_SECONDS = 3;
-
-function getQueueConnectionOptions(): ConnectionOptions {
-  const redisUrl = process.env.REDIS_URL;
-  if (redisUrl) {
-    try {
-      const url = new URL(redisUrl);
-      return {
-        host: url.hostname,
-        port: Number(url.port) || 6379,
-        password: url.password || undefined,
-        username: url.username || undefined,
-        maxRetriesPerRequest: null,
-      };
-    } catch {
-      // Fallback if URL parsing is non-standard
-    }
-  }
-
-  return {
-    host: process.env.REDIS_HOST || '127.0.0.1',
-    port: Number(process.env.REDIS_PORT || 6379),
-    password: process.env.REDIS_PASSWORD || undefined,
-    maxRetriesPerRequest: null,
-  };
-}
 
 function parseMessageText(content: string): string {
   try {
@@ -69,12 +46,12 @@ async function resolveConnectionIdAsync(
 
   const connection = await prisma.platformConnection.findFirst({
     where: {
-      OR: [
-        { externalShopId },
-        { shopName: externalShopId },
-        { displayLabel: externalShopId },
-      ],
+      externalShopId,
       isActive: true,
+      platform: {
+        code: 'lazada',
+        isActive: true,
+      },
     },
     select: { id: true },
   });
@@ -83,21 +60,27 @@ async function resolveConnectionIdAsync(
     return connection.id;
   }
 
-  // Fallback in non-production environments to the first active Lazada connection
-  if (process.env.NODE_ENV !== 'production') {
+  // Fallback only when webhook signature verification skip is explicitly enabled for local sandbox testing
+  if (process.env.LAZADA_WEBHOOK_SKIP_SIGNATURE_VERIFY === 'true') {
     const fallback = await prisma.platformConnection.findFirst({
       where: {
-        platformId: 1,
         isActive: true,
+        platform: {
+          code: 'lazada',
+          isActive: true,
+        },
       },
       select: { id: true },
     });
 
     if (fallback?.id) {
-      appLogger.info('Resolved fallback active Lazada connection in development mode', {
-        fallbackConnectionId: fallback.id,
-        externalShopId,
-      });
+      appLogger.warn(
+        'Resolved fallback active Lazada connection via LAZADA_WEBHOOK_SKIP_SIGNATURE_VERIFY',
+        {
+          fallbackConnectionId: fallback.id,
+          externalShopId,
+        },
+      );
       return fallback.id;
     }
   }
@@ -384,40 +367,52 @@ export async function processChatWebhookJob(jobData: ChatWebhookJobData): Promis
 }
 
 const globalForWorker = globalThis as unknown as {
-  chatWorker?: Worker<ChatWebhookJobData>;
+  chatWorkers?: Worker<ChatWebhookJobData>[];
 };
 
-export function startChatQueueWorker(): Worker<ChatWebhookJobData> {
-  if (globalForWorker.chatWorker) {
-    return globalForWorker.chatWorker;
+export function startChatQueueWorker(): Worker<ChatWebhookJobData>[] {
+  if (globalForWorker.chatWorkers && globalForWorker.chatWorkers.length > 0) {
+    return globalForWorker.chatWorkers;
   }
 
-  const worker = new Worker<ChatWebhookJobData>(
-    CHAT_MESSAGE_QUEUE_NAME,
-    async (job: Job<ChatWebhookJobData>) => {
-      await processChatWebhookJob(job.data);
-    },
-    {
-      connection: getQueueConnectionOptions(),
-      concurrency: 5,
+  const workers: Worker<ChatWebhookJobData>[] = Array.from(
+    { length: CHAT_QUEUE_PARTITION_COUNT },
+    (_, partition) => {
+      const queueName = getChatQueuePartitionName(partition);
+      const worker = new Worker<ChatWebhookJobData>(
+        queueName,
+        async (job: Job<ChatWebhookJobData>) => {
+          await processChatWebhookJob(job.data);
+        },
+        {
+          connection: getQueueConnectionOptions(),
+          concurrency: 1,
+        },
+      );
+
+      worker.on('completed', (job: Job<ChatWebhookJobData>) => {
+        appLogger.info(`Chat queue job completed [${queueName}]: ${job.id}`);
+      });
+
+      worker.on('failed', (job: Job<ChatWebhookJobData> | undefined, error: Error) => {
+        appLogger.error(`Chat queue job failed [${queueName}]: ${job?.id}`, error);
+      });
+
+      return worker;
     },
   );
 
-  worker.on('completed', (job: Job<ChatWebhookJobData>) => {
-    appLogger.info(`Chat queue job completed: ${job.id}`);
-  });
-
-  worker.on('failed', (job: Job<ChatWebhookJobData> | undefined, error: Error) => {
-    appLogger.error(`Chat queue job failed: ${job?.id}`, error);
-  });
-
-  globalForWorker.chatWorker = worker;
-  return worker;
+  globalForWorker.chatWorkers = workers;
+  return workers;
 }
 
 export async function stopChatQueueWorker(): Promise<void> {
-  if (globalForWorker.chatWorker) {
-    await globalForWorker.chatWorker.close();
-    globalForWorker.chatWorker = undefined;
+  if (globalForWorker.chatWorkers && globalForWorker.chatWorkers.length > 0) {
+    const workersToClose = globalForWorker.chatWorkers;
+    try {
+      await Promise.all(workersToClose.map((worker) => worker.close()));
+    } finally {
+      globalForWorker.chatWorkers = undefined;
+    }
   }
 }

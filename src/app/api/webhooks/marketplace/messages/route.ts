@@ -14,56 +14,99 @@ type WebhookResponse = {
   jobId?: string;
 };
 
+function shouldSkipWebhookSignatureVerify(): boolean {
+  return process.env.LAZADA_WEBHOOK_SKIP_SIGNATURE_VERIFY === 'true';
+}
+
+function timingSafeHexEqual(expectedHex: string, providedHex: string): boolean {
+  const normalizedExpected = expectedHex.trim().toLowerCase();
+  const normalizedProvided = providedHex.trim().toLowerCase();
+
+  if (
+    normalizedExpected.length === 0 ||
+    normalizedExpected.length !== normalizedProvided.length ||
+    normalizedExpected.length % 2 !== 0 ||
+    !/^[0-9a-f]+$/.test(normalizedExpected) ||
+    !/^[0-9a-f]+$/.test(normalizedProvided)
+  ) {
+    return false;
+  }
+
+  const expectedBuffer = Buffer.from(normalizedExpected, 'hex');
+  const providedBuffer = Buffer.from(normalizedProvided, 'hex');
+
+  if (expectedBuffer.length === 0 || expectedBuffer.length !== providedBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(expectedBuffer, providedBuffer);
+}
+
+function timingSafeSignatureEqual(expected: string, provided: string): boolean {
+  const normalizedExpected = expected.trim().replace(/[a-f]/g, (char) => char.toUpperCase());
+  const normalizedProvided = provided.trim().replace(/[a-f]/g, (char) => char.toUpperCase());
+
+  const expectedBuffer = Buffer.from(normalizedExpected, 'utf8');
+  const providedBuffer = Buffer.from(normalizedProvided, 'utf8');
+
+  if (expectedBuffer.length === 0 || expectedBuffer.length !== providedBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(expectedBuffer, providedBuffer);
+}
+
 function verifyLazadaWebhookSignature(
   request: NextRequest,
   rawText: string,
 ): boolean {
-  const appSecret = process.env.LAZADA_APP_SECRET;
-  if (!appSecret) {
-    return true;
-  }
+  const appKey = process.env.LAZADA_CHAT_APP_KEY || process.env.LAZADA_APP_KEY;
+  const appSecret = process.env.LAZADA_CHAT_APP_SECRET || process.env.LAZADA_APP_SECRET;
 
-  // Check Authorization header for Lazada Push Mechanism HMAC-SHA256
   const authHeader =
     request.headers.get('authorization') ||
     request.headers.get('Authorization') ||
     request.headers.get('x-lazada-signature');
 
-  const appKey = process.env.LAZADA_APP_KEY;
-
-  if (authHeader && appKey) {
-    const baseString = appKey + rawText;
-    const computed = crypto
-      .createHmac('sha256', appSecret)
-      .update(baseString, 'utf8')
-      .digest('hex');
-
-    if (computed.toLowerCase() === authHeader.toLowerCase()) {
-      return true;
-    }
-  }
-
-  // Fallback to query string signature for standard open platform calls
   const searchParams = request.nextUrl.searchParams;
   const sign = searchParams.get('sign');
-  if (sign) {
-    const params: Record<string, string> = {};
-    searchParams.forEach((value, key) => {
-      params[key] = value;
-    });
-    const calculated = calculateLazadaSignature(
-      request.nextUrl.pathname,
-      params,
-      appSecret,
-    );
-    if (calculated.toUpperCase() === sign.toUpperCase()) {
-      return true;
+
+  if (appSecret) {
+    // Check Authorization header for Lazada Push Mechanism HMAC-SHA256
+    if (authHeader && appKey) {
+      const baseString = appKey + rawText;
+      const computed = crypto
+        .createHmac('sha256', appSecret)
+        .update(baseString, 'utf8')
+        .digest('hex');
+
+      if (timingSafeHexEqual(computed, authHeader)) {
+        return true;
+      }
+    }
+
+    // Fallback to query string signature for standard open platform calls
+    if (sign) {
+      const params: Record<string, string> = {};
+      searchParams.forEach((value, key) => {
+        params[key] = value;
+      });
+      const calculated = calculateLazadaSignature(
+        request.nextUrl.pathname,
+        params,
+        appSecret,
+      );
+      if (timingSafeSignatureEqual(calculated, sign)) {
+        return true;
+      }
     }
   }
 
-  // Permit webhook through in non-production environments to avoid blocking sandbox integration
-  if (process.env.NODE_ENV !== 'production') {
-    appLogger.info('Permitting webhook in development/sandbox mode despite signature mismatch', {
+  if (shouldSkipWebhookSignatureVerify()) {
+    appLogger.warn('Skipping Lazada webhook signature verification via LAZADA_WEBHOOK_SKIP_SIGNATURE_VERIFY', {
+      path: request.nextUrl.pathname,
+      hasAppSecret: Boolean(appSecret),
+      hasAppKey: Boolean(appKey),
       hasAuthHeader: Boolean(authHeader),
       hasQuerySign: Boolean(sign),
     });
@@ -77,30 +120,36 @@ function extractSellerShopId(
   body: Record<string, unknown>,
   sessionId: string,
 ): string | undefined {
-  if (body.seller_id) {
+  if (
+    body.seller_id !== undefined &&
+    body.seller_id !== null &&
+    String(body.seller_id) !== ''
+  ) {
     return String(body.seller_id);
   }
-  const eventData = (body.data && typeof body.data === 'object' ? body.data : body) as Record<string, unknown>;
-  if (eventData.seller_id) {
+  const eventData = (
+    body.data && typeof body.data === 'object' && !Array.isArray(body.data)
+      ? body.data
+      : body
+  ) as Record<string, unknown>;
+  if (
+    eventData.seller_id !== undefined &&
+    eventData.seller_id !== null &&
+    String(eventData.seller_id) !== ''
+  ) {
     return String(eventData.seller_id);
   }
-  if (eventData.from_account_type === 2 && eventData.from_account_id) {
+  if (Number(eventData.from_account_type) === 2 && eventData.from_account_id) {
     return String(eventData.from_account_id);
   }
-  if (eventData.to_account_id && eventData.to_account_type === 2) {
+  if (Number(eventData.to_account_type) === 2 && eventData.to_account_id) {
     return String(eventData.to_account_id);
   }
-  if (eventData.to_account_id) {
-    return String(eventData.to_account_id);
-  }
-  if (eventData.user_account_id && eventData.user_account_type === 2) {
+  if (Number(eventData.user_account_type) === 2 && eventData.user_account_id) {
     return String(eventData.user_account_id);
   }
   if (sessionId && sessionId.includes('_')) {
-    const parts = sessionId.split('_');
-    if (parts[0]) {
-      return parts[0];
-    }
+    return sessionId.split('_')[0] || undefined;
   }
   return undefined;
 }
@@ -119,12 +168,40 @@ export async function POST(request: NextRequest): Promise<NextResponse<WebhookRe
   const startTime = Date.now();
   const url = new URL(request.url);
 
-  let body: Record<string, unknown> = {};
   let rawText = '';
   try {
     rawText = await request.text();
+  } catch (error) {
+    appLogger.error('Failed to read webhook request body:', error);
+    return NextResponse.json(
+      { success: false, message: 'Invalid JSON payload' },
+      { status: 400 },
+    );
+  }
+
+  // Verify webhook signature before parsing or handling probe payloads
+  const isSignatureValid = verifyLazadaWebhookSignature(request, rawText);
+  if (!isSignatureValid) {
+    appLogger.warn('Marketplace webhook rejected due to invalid signature', {
+      path: url.pathname,
+    });
+    return NextResponse.json(
+      { success: false, message: 'Invalid webhook signature' },
+      { status: 401 },
+    );
+  }
+
+  let body: Record<string, unknown> = {};
+  try {
     if (rawText && rawText.trim().length > 0) {
-      body = JSON.parse(rawText) as Record<string, unknown>;
+      const parsed: unknown = JSON.parse(rawText);
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        return NextResponse.json(
+          { success: false, message: 'Invalid JSON payload' },
+          { status: 400 },
+        );
+      }
+      body = parsed as Record<string, unknown>;
     }
   } catch (error) {
     appLogger.error('Failed to parse webhook JSON payload:', error);
@@ -134,16 +211,29 @@ export async function POST(request: NextRequest): Promise<NextResponse<WebhookRe
     );
   }
 
-  const requestedConnectionId = url.searchParams.get('connectionId') || url.searchParams.get('connection_id');
+  // Only allow query-string connectionId override when signature verification skip is explicitly enabled
+  const skipSignatureVerify = shouldSkipWebhookSignatureVerify();
+  const requestedConnectionId = skipSignatureVerify
+    ? url.searchParams.get('connectionId') || url.searchParams.get('connection_id')
+    : null;
   const parsedConnectionId = requestedConnectionId ? Number(requestedConnectionId) : undefined;
-  const connectionId = parsedConnectionId && !Number.isNaN(parsedConnectionId) ? parsedConnectionId : undefined;
+  const connectionId =
+    parsedConnectionId !== undefined &&
+    Number.isInteger(parsedConnectionId) &&
+    parsedConnectionId > 0
+      ? parsedConnectionId
+      : undefined;
 
-  const eventData = (body.data && typeof body.data === 'object' ? body.data : body) as Record<string, unknown>;
+  const eventData = (
+    body.data && typeof body.data === 'object' && !Array.isArray(body.data)
+      ? body.data
+      : body
+  ) as Record<string, unknown>;
   const rawSessionId = eventData.session_id ?? body.session_id;
   const sessionId = rawSessionId ? String(rawSessionId) : '';
   const messageId = eventData.message_id ? String(eventData.message_id) : (body.message_id ? String(body.message_id) : undefined);
 
-  // Handle Lazada console probe / verify ping without session_id
+  // Handle authenticated Lazada console probe / verify ping without session_id
   if (!sessionId) {
     appLogger.info('Lazada webhook probe or verification ping received', {
       searchParams: Object.fromEntries(url.searchParams.entries()),
@@ -152,17 +242,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<WebhookRe
     return NextResponse.json(
       { success: true, message: 'Webhook endpoint verified' },
       { status: 200 },
-    );
-  }
-
-  const isSignatureValid = verifyLazadaWebhookSignature(request, rawText);
-  if (!isSignatureValid) {
-    appLogger.warn('Marketplace webhook rejected due to invalid signature', {
-      path: url.pathname,
-    });
-    return NextResponse.json(
-      { success: false, message: 'Invalid webhook signature' },
-      { status: 401 },
     );
   }
 

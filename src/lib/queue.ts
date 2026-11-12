@@ -1,5 +1,5 @@
+import crypto from 'node:crypto';
 import { Queue, type ConnectionOptions } from 'bullmq';
-import { getRedisClient } from './redis';
 import { appLogger } from './logger';
 import type {
   LazadaPushMessagePayload,
@@ -7,6 +7,7 @@ import type {
 } from '@/types';
 
 export const CHAT_MESSAGE_QUEUE_NAME = 'chat-message-queue';
+export const CHAT_QUEUE_PARTITION_COUNT = 8;
 
 export type ChatWebhookJobData = {
   eventType: 'push_message' | 'push_session_update';
@@ -18,10 +19,10 @@ export type ChatWebhookJobData = {
 };
 
 const globalForQueue = globalThis as unknown as {
-  chatMessageQueue: Queue<ChatWebhookJobData> | undefined;
+  chatMessageQueues: Map<number, Queue<ChatWebhookJobData>> | undefined;
 };
 
-function getQueueConnectionOptions(): ConnectionOptions {
+export function getQueueConnectionOptions(): ConnectionOptions {
   const redisUrl = process.env.REDIS_URL;
   if (redisUrl) {
     try {
@@ -46,12 +47,52 @@ function getQueueConnectionOptions(): ConnectionOptions {
   };
 }
 
-export function getChatMessageQueue(): Queue<ChatWebhookJobData> {
-  if (globalForQueue.chatMessageQueue) {
-    return globalForQueue.chatMessageQueue;
+export function getChatQueuePartitionName(partitionIndex: number): string {
+  return `${CHAT_MESSAGE_QUEUE_NAME}-p${partitionIndex}`;
+}
+
+export function getSessionPartitionIndex(
+  sessionId: string,
+  partitionCount: number = CHAT_QUEUE_PARTITION_COUNT,
+): number {
+  const safePartitionCount =
+    Number.isInteger(partitionCount) && partitionCount > 0
+      ? partitionCount
+      : CHAT_QUEUE_PARTITION_COUNT;
+
+  if (!sessionId) {
+    return 0;
   }
 
-  const queue = new Queue<ChatWebhookJobData>(CHAT_MESSAGE_QUEUE_NAME, {
+  const digest = crypto.createHash('sha256').update(sessionId, 'utf8').digest();
+  return digest.readUInt32BE(0) % safePartitionCount;
+}
+
+function getQueuePartitionMap(): Map<number, Queue<ChatWebhookJobData>> {
+  if (!globalForQueue.chatMessageQueues) {
+    globalForQueue.chatMessageQueues = new Map<number, Queue<ChatWebhookJobData>>();
+  }
+  return globalForQueue.chatMessageQueues;
+}
+
+export function getChatMessageQueueForPartition(
+  partitionIndex: number,
+): Queue<ChatWebhookJobData> {
+  const normalizedPartition =
+    Number.isInteger(partitionIndex) &&
+    partitionIndex >= 0 &&
+    partitionIndex < CHAT_QUEUE_PARTITION_COUNT
+      ? partitionIndex
+      : 0;
+
+  const queueMap = getQueuePartitionMap();
+  const existingQueue = queueMap.get(normalizedPartition);
+  if (existingQueue) {
+    return existingQueue;
+  }
+
+  const queueName = getChatQueuePartitionName(normalizedPartition);
+  const queue = new Queue<ChatWebhookJobData>(queueName, {
     connection: getQueueConnectionOptions(),
     defaultJobOptions: {
       attempts: 3,
@@ -65,14 +106,73 @@ export function getChatMessageQueue(): Queue<ChatWebhookJobData> {
   });
 
   queue.on('error', (error: Error) => {
-    appLogger.error('Chat message queue connection error:', error);
+    appLogger.error(`Chat message queue (${queueName}) connection error:`, error);
   });
 
-  if (process.env.NODE_ENV !== 'production') {
-    globalForQueue.chatMessageQueue = queue;
+  queueMap.set(normalizedPartition, queue);
+  return queue;
+}
+
+export function getChatMessageQueue(
+  sessionId?: string,
+): Queue<ChatWebhookJobData> {
+  const partitionIndex = sessionId
+    ? getSessionPartitionIndex(sessionId)
+    : 0;
+  return getChatMessageQueueForPartition(partitionIndex);
+}
+
+function sanitizeJobIdSegment(segment: string): string {
+  const cleaned = segment.replace(/[^a-zA-Z0-9_-]/g, '_');
+  return cleaned.length > 0 ? cleaned : 'empty';
+}
+
+function hashJobIdParts(parts: readonly string[]): string {
+  return crypto
+    .createHash('sha256')
+    .update(JSON.stringify(parts), 'utf8')
+    .digest('hex')
+    .slice(0, 16);
+}
+
+function buildSessionUpdateJobId(
+  sessionId: string,
+  payload: ChatWebhookJobData['payload'],
+): string {
+  const updatePayload = payload as Partial<LazadaPushSessionUpdatePayload>;
+  const safeSession = sanitizeJobIdSegment(sessionId);
+
+  const cursorParts = [
+    typeof updatePayload.last_message_id === 'string' &&
+    updatePayload.last_message_id.length > 0
+      ? `lm=${updatePayload.last_message_id}`
+      : null,
+    updatePayload.to_position !== undefined && updatePayload.to_position !== null
+      ? `tp=${updatePayload.to_position}`
+      : null,
+    updatePayload.self_position !== undefined && updatePayload.self_position !== null
+      ? `sp=${updatePayload.self_position}`
+      : null,
+    updatePayload.last_message_time !== undefined &&
+    updatePayload.last_message_time !== null
+      ? `lt=${updatePayload.last_message_time}`
+      : null,
+  ].filter((part): part is string => part !== null);
+
+  // Deduplicate only when a cursor or timestamp is present so standalone unread_count oscillations are preserved
+  if (cursorParts.length > 0) {
+    const fingerprintParts = [
+      ...cursorParts,
+      updatePayload.unread_count !== undefined && updatePayload.unread_count !== null
+        ? `uc=${updatePayload.unread_count}`
+        : null,
+    ].filter((part): part is string => part !== null);
+
+    const hash = hashJobIdParts([sessionId, ...fingerprintParts]);
+    return `session_${safeSession}_${hash}`;
   }
 
-  return queue;
+  return `session_${safeSession}_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 }
 
 export async function addChatMessageJob(
@@ -80,17 +180,20 @@ export async function addChatMessageJob(
   sessionId: string,
   messageId?: string,
 ): Promise<string> {
-  const queue = getChatMessageQueue();
+  const queue = getChatMessageQueue(sessionId);
   const isRecall =
     'status' in jobData.payload && jobData.payload.status === 1;
 
   let jobId: string;
   if (messageId) {
+    const safeSession = sanitizeJobIdSegment(sessionId);
+    const safeMessage = sanitizeJobIdSegment(messageId);
+    const collisionHash = hashJobIdParts([sessionId, messageId]).slice(0, 12);
     jobId = isRecall
-      ? `msg:${sessionId}:${messageId}:recall`
-      : `msg:${sessionId}:${messageId}`;
+      ? `msg_${safeSession}_${safeMessage}_${collisionHash}_recall`
+      : `msg_${safeSession}_${safeMessage}_${collisionHash}`;
   } else {
-    jobId = `session:${sessionId}:${Date.now()}`;
+    jobId = buildSessionUpdateJobId(sessionId, jobData.payload);
   }
 
   const job = await queue.add('process_chat_event', jobData, {
