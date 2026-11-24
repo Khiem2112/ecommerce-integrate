@@ -124,9 +124,13 @@ When executing complex specifications (such as documents in `docs/<feature-name>
    - Select validation proportionately. Do not run TypeScript, lint, i18n, build, or the full test suite merely because a review gate exists.
 3. **Review Gating & Blocker Policy**:
    - Critical and High findings supported by the selected authoritative sources are blockers. The parent agent fixes them and performs a proportionate re-check before advancing.
-4. **Independent Review**:
-   - Use an in-agent checkpoint by default.
-   - When delegation is already authorized by the user, task, or orchestration instructions, the parent may spawn a read-only reviewer without an additional approval prompt. The parent remains responsible for fixes.
+4. **Independent Review & Multi-Agent Delegation**:
+   - Use an in-agent checkpoint by default for simple tasks.
+   - For multi-phase plans or bounded task sets, use the Multi-Agent Orchestration architecture defined in `.agents/skills/task-runner/SKILL.md`:
+     - Implementation is delegated to `task-implementer` (`.agents/agents/task-implementer.md`) with explicit boundaries.
+     - Review is delegated to `task-reviewer` (`.agents/agents/task-reviewer.md`) in read-only sandbox mode.
+     - Automated verification is delegated to `task-tester` (`.agents/agents/task-tester.md`).
+     - The parent agent remains responsible for task decomposition, conflict resolution, and final git commits.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
