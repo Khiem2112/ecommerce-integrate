@@ -168,6 +168,73 @@ export const shopConnectionStartAuthorizationSchema =
   getShopConnectionStartAuthorizationSchema();
 
 // ============================================================
+// Step 1 Validation Schema & Factory (Stepper Flow)
+// ============================================================
+
+export type ShopConnectionStep1Messages = ShopConnectionStartAuthorizationMessages;
+
+export type ShopConnectionStep1Values = {
+  readonly platformCode: SupportedShopPlatformCode;
+  readonly organizationId: number;
+  readonly connectionId?: number;
+  readonly shopDomain?: string;
+  readonly environment?: ShopEnvironment;
+  readonly authMethod?: ShopAuthMethod;
+  readonly sandboxAccessToken?: string;
+  readonly sandboxShopName?: string;
+};
+
+export function getShopConnectionStep1Schema(
+  messages?: ShopConnectionStep1Messages,
+): z.ZodType<ShopConnectionStep1Values, ShopConnectionStep1Values> {
+  return z
+    .object({
+      platformCode: z.enum(SUPPORTED_SHOP_PLATFORM_CODES, {
+        message: messages?.invalidPlatform,
+      }),
+      organizationId: z.number().int().positive(messages?.organizationRequired),
+      connectionId: z.number().int().positive().optional(),
+      shopDomain: z.string().trim().optional(),
+      environment: z.enum(SHOP_ENVIRONMENTS).optional(),
+      authMethod: z.enum(SHOP_AUTH_METHODS).optional(),
+      sandboxAccessToken: z.string().trim().optional(),
+      sandboxShopName: z.string().trim().max(100).optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (data.platformCode === 'shopify') {
+        if (!data.shopDomain || data.shopDomain.trim() === '') {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: messages?.invalidShopDomain,
+            path: ['shopDomain'],
+          });
+        } else if (
+          !/^[a-zA-Z0-9][a-zA-Z0-9-]*(\.myshopify\.com)?$/.test(data.shopDomain)
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: messages?.invalidShopDomain,
+            path: ['shopDomain'],
+          });
+        }
+      } else if (data.environment === 'sandbox' && data.authMethod === 'manual_token') {
+        if (
+          data.platformCode === 'lazada' &&
+          (!data.sandboxAccessToken || data.sandboxAccessToken.trim() === '')
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: messages?.sandboxTokenRequired,
+            path: ['sandboxAccessToken'],
+          });
+        }
+      }
+    });
+}
+
+export const shopConnectionStep1Schema = getShopConnectionStep1Schema();
+
+// ============================================================
 // Disconnect Schema & Factory
 // ============================================================
 

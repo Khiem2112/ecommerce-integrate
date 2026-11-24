@@ -1,12 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ShopOAuthCallbackMessage } from '@/types';
 
 export type UseOAuthPopupOptions = {
   readonly defaultWidth?: number;
   readonly defaultHeight?: number;
   readonly windowName?: string;
   readonly onPopupClosed?: () => void;
+  readonly onOAuthMessage?: (message: ShopOAuthCallbackMessage) => void;
 };
 
 export type UseOAuthPopupReturn = {
@@ -37,15 +39,21 @@ export function useOAuthPopup({
   defaultHeight = DEFAULT_POPUP_HEIGHT,
   windowName = DEFAULT_WINDOW_NAME,
   onPopupClosed,
+  onOAuthMessage,
 }: UseOAuthPopupOptions = {}): UseOAuthPopupReturn {
   const [isOpen, setIsOpen] = useState(false);
   const popupRef = useRef<Window | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const onPopupClosedRef = useRef(onPopupClosed);
+  const onOAuthMessageRef = useRef(onOAuthMessage);
 
   useEffect(() => {
     onPopupClosedRef.current = onPopupClosed;
   }, [onPopupClosed]);
+
+  useEffect(() => {
+    onOAuthMessageRef.current = onOAuthMessage;
+  }, [onOAuthMessage]);
 
   const clearMonitor = useCallback(() => {
     if (timerRef.current) {
@@ -147,6 +155,28 @@ export function useOAuthPopup({
     },
     [openPopup],
   );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data as ShopOAuthCallbackMessage | undefined;
+      if (
+        data &&
+        typeof data === 'object' &&
+        (data.type === 'OMNICART_SHOP_AUTH_SUCCESS' ||
+          data.type === 'OMNICART_SHOP_AUTH_ERROR')
+      ) {
+        onOAuthMessageRef.current?.(data);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
 
   useEffect(() => {
     return () => {

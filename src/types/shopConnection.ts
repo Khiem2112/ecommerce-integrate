@@ -260,3 +260,44 @@ export type ManageableOrganizationOption = {
   readonly displayName: string;
   readonly slug: string;
 };
+
+/**
+ * Các bước trong luồng Stepper Modal kết nối gian hàng
+ */
+export type ShopConnectionStepperStep = 1 | 2;
+
+/**
+ * Trạng thái xác thực nội bộ của Bước 2
+ */
+export type ShopConnectionAuthState =
+  | 'idle'
+  | 'authenticating'
+  | 'verified'
+  | 'error';
+
+/**
+ * Dữ liệu nhận diện shop nhận được từ sàn sau khi ủy quyền thành công
+ */
+export type ShopVerifiedIdentity = {
+  readonly connectionId: number;
+  readonly platformCode: SupportedShopPlatformCode;
+  readonly platformName: string;
+  readonly externalShopId: string;
+  readonly shopName: string;
+  readonly tokenExpiresAt: string | null;
+  readonly refreshTokenExpiresAt: string | null;
+};
+
+/**
+ * Payload thông điệp gửi từ OAuth Callback popup về cửa sổ mẹ
+ */
+export type ShopOAuthCallbackMessage = {
+  readonly type: 'OMNICART_SHOP_AUTH_SUCCESS' | 'OMNICART_SHOP_AUTH_ERROR';
+  readonly connectionId?: number;
+  readonly attemptId?: number;
+  readonly platformCode?: string;
+  readonly externalShopId?: string;
+  readonly shopName?: string;
+  readonly tokenExpiresAt?: string | null;
+  readonly error?: string;
+};

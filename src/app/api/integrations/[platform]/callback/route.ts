@@ -84,7 +84,65 @@ async function handleCallback(
     redirectUrl.searchParams.set('error', result.error);
   }
 
-  return NextResponse.redirect(redirectUrl);
+  const payload = result.success
+    ? {
+        type: 'OMNICART_SHOP_AUTH_SUCCESS',
+        connectionId: result.connectionId,
+        attemptId: result.attemptId,
+        platformCode: platform,
+        externalShopId: result.externalShopId ?? '',
+        shopName: result.shopName ?? '',
+        tokenExpiresAt: result.tokenExpiresAt ?? '',
+      }
+    : {
+        type: 'OMNICART_SHOP_AUTH_ERROR',
+        attemptId: result.attemptId,
+        platformCode: platform,
+        error: result.error ?? 'Authorization failed',
+      };
+
+  const html = `<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <title>${result.success ? 'Xác thực thành công' : 'Xác thực thất bại'}</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f3f0ee; color: #141413; text-align: center; }
+      .card { background: white; padding: 24px 32px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); max-width: 400px; }
+      h3 { margin-top: 0; color: #141413; }
+      p { margin-bottom: 0; color: #696969; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h3>${result.success ? 'Xác thực thành công' : 'Xác thực thất bại'}</h3>
+      <p>${result.success ? 'Đang hoàn tất và đóng cửa sổ...' : (result.error ?? 'Không thể kết nối. Đang đóng cửa sổ...')}</p>
+    </div>
+    <script>
+      (function() {
+        var payload = ${JSON.stringify(payload)};
+        var redirectUrl = ${JSON.stringify(redirectUrl.toString())};
+        if (window.opener && !window.opener.closed) {
+          try {
+            window.opener.postMessage(payload, window.location.origin);
+          } catch (e) {
+            console.error('Failed to postMessage to opener:', e);
+          }
+          setTimeout(function() { window.close(); }, ${result.success ? 250 : 1500});
+        } else {
+          window.location.href = redirectUrl;
+        }
+      })();
+    </script>
+  </body>
+</html>`;
+
+  return new NextResponse(html, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+    },
+  });
 }
 
 export async function GET(

@@ -85,5 +85,13 @@ export {
   ShopifySelectionCard,
   type ShopifySelectionCardProps,
 } from './ShopifySelectionCard';
+export {
+  ShopConnectionStepperIndicator,
+  type ShopConnectionStepperIndicatorProps,
+} from './ShopConnectionStepperIndicator';
+export {
+  ShopConnectionVerifiedCard,
+  type ShopConnectionVerifiedCardProps,
+} from './ShopConnectionVerifiedCard';
 export * from './ShopConnectionActionDialogs';
 export * from './ShopConnectionActionForms';
