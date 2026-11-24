@@ -1,0 +1,48 @@
+# 1. Build outputs & Cache
+.next/
+dist/
+build/
+out/
+.turbo/
+*.tsbuildinfo
+
+# 2. Package managers & lockfiles
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# 3. Static assets & Media (ảnh, icon, font không có logic hàm)
+public/
+*.svg
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.webp
+*.mp4
+*.pdf
+
+# 4. Code tự động sinh (RẤT QUAN TRỌNG)
+# Tránh để Graphify parse thư mục node_modules/@prisma/client vì nó cực kỳ lớn và thừa thãi
+src/generated/
+prisma/generated/
+# Chỉ giữ lại schema.prisma để graphify parse data model
+
+# 5. Localization dictionaries (hàng nghìn dòng JSON dịch thuật không mang tính logic)
+src/messages/
+*.json
+
+# 6. Test & Coverage (nếu bạn chỉ muốn AI tập trung vào production code)
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+coverage/
+
+# 7. Agent configs & IDE metadata
+.agents/
+.gemini/
+.vscode/
+.git/
+*.log

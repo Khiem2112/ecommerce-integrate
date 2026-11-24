@@ -1,0 +1,80 @@
+meta {
+  name: Lazada Simulate Buyer Message
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/webhooks/marketplace/messages
+  body: json
+  auth: none
+}
+
+params:query {
+  sign: {{sign}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "message_type": 2,
+    "seller_id": "ngo_gia_phat_111",
+    "data": {
+      "session_id": "ngo_gia_phat_111_2_buyer_test_01_1_99",
+      "message_id": "{{messageId}}",
+      "content": "{\"txt\":\"Ê shop kia, xử lý mẹ gì lâu v?\"}",
+      "from_account_id": "buyer_test_01",
+      "from_account_type": 1,
+      "to_account_id": "ngo_gia_phat_111",
+      "to_account_type": 2,
+      "send_time": {{sendTime}},
+      "template_id": 1,
+      "site_id": "VN",
+      "status": 0
+    }
+  }
+}
+
+vars:pre-request {
+  baseUrl: https://yetta-newsworthy-climacterically.ngrok-free.dev
+}
+
+script:pre-request {
+  const currentTimestamp = Date.now();
+  const generatedMessageId = `msg_${Math.floor(Math.random() * 1000000000)}`;
+  
+  bru.setVar("messageId", generatedMessageId);
+  bru.setVar("sendTime", currentTimestamp);
+  
+  const payload = req.getBody();
+  if (payload && payload.data) {
+    payload.data.message_id = generatedMessageId;
+    payload.data.send_time = currentTimestamp;
+    req.setBody(payload);
+  }
+  
+  const appSecret = bru.getEnvVar("LAZADA_APP_SECRET") || bru.getVar("LAZADA_APP_SECRET") || "";
+  
+  const apiPath = "/api/webhooks/marketplace/messages";
+  let sign = "";
+  
+  if (appSecret) {
+    try {
+      const crypto = require("crypto");
+      sign = crypto
+        .createHmac("sha256", appSecret)
+        .update(apiPath)
+        .digest("hex")
+        .toUpperCase();
+    } catch (error) {
+      if (typeof CryptoJS !== "undefined") {
+        sign = CryptoJS.HmacSHA256(apiPath, appSecret).toString(CryptoJS.enc.Hex).toUpperCase();
+      }
+    }
+  }
+  
+  bru.setVar("sign", sign);
+}
