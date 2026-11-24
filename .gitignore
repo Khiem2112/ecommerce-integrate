@@ -26,3 +26,13 @@ scripts/
 tsconfig.tsbuildinfo
 docs/
 scratch/
+graphify-out/
+.vscode/
+antigravity-gateway/
+backups/
+references/
+prototype/
+ngrok.yml
+scratch_test*.html
+claude-model-routing-story.html
+public/hp_logo_120x120.png
