@@ -14,10 +14,10 @@ import {
   type ParsedLazadaMessageContent,
 } from './chatIngestionService';
 import {
-  CHAT_QUEUE_PARTITION_COUNT,
   getBotDebounceKey,
   getChatQueuePartitionName,
   getQueueConnectionOptions,
+  resolveChatQueuePartitionCount,
   type ChatWebhookJobData,
 } from '@/lib/queue';
 import type {
@@ -361,9 +361,10 @@ export function startChatQueueWorker(): Worker<ChatWebhookJobData>[] {
     return globalForWorker.chatWorkers;
   }
 
+  const partitionCount = resolveChatQueuePartitionCount();
   const concurrency = resolveChatWorkerConcurrency();
   const workers: Worker<ChatWebhookJobData>[] = Array.from(
-    { length: CHAT_QUEUE_PARTITION_COUNT },
+    { length: partitionCount },
     (_, partition) => {
       const queueName = getChatQueuePartitionName(partition);
       const worker = new Worker<ChatWebhookJobData>(

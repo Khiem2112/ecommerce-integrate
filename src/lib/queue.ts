@@ -9,9 +9,43 @@ import type {
 
 export const CHAT_MESSAGE_QUEUE_NAME = 'chat-message-queue';
 export const CHAT_QUEUE_PARTITION_COUNT = 8;
+export const MIN_CHAT_QUEUE_PARTITION_COUNT = 1;
+export const MAX_CHAT_QUEUE_PARTITION_COUNT = CHAT_QUEUE_PARTITION_COUNT;
+export const DEFAULT_SQS_CHAT_QUEUE_PARTITION_COUNT = 2;
 export const DEFAULT_BOT_DEBOUNCE_MS = 3000;
 export const DEFAULT_LAZADA_INITIAL_CHAT_SYNC_DELAY_MS = 900_000;
 export const LAZADA_RECONCILE_DEDUP_WINDOW_MS = 300_000;
+
+function isDirectLazadaSqsIngestionActive(): boolean {
+  const queueUrl = process.env.LAZADA_SQS_QUEUE_URL?.trim();
+  if (!queueUrl) {
+    return false;
+  }
+  return process.env.ENABLE_LAZADA_SQS_CONSUMER?.trim().toLowerCase() !== 'false';
+}
+
+/**
+ * Resolves the active BullMQ partition count bounded to [1, 8].
+ * Uses a lean default of 2 when AWS SQS FIFO direct ingestion is enabled so Redis
+ * only maintains workers for delayed bot/sync jobs, and 8 in direct HTTP webhook mode.
+ */
+export function resolveChatQueuePartitionCount(): number {
+  const defaultPartitionCount = isDirectLazadaSqsIngestionActive()
+    ? DEFAULT_SQS_CHAT_QUEUE_PARTITION_COUNT
+    : CHAT_QUEUE_PARTITION_COUNT;
+
+  const raw = process.env.CHAT_QUEUE_PARTITION_COUNT?.trim();
+  if (!raw) {
+    return defaultPartitionCount;
+  }
+
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed < MIN_CHAT_QUEUE_PARTITION_COUNT) {
+    return defaultPartitionCount;
+  }
+
+  return Math.min(MAX_CHAT_QUEUE_PARTITION_COUNT, parsed);
+}
 
 export type ChatReconcileSyncMode = 'incremental' | 'full';
 
@@ -136,12 +170,15 @@ export function getChatQueuePartitionName(partitionIndex: number): string {
 
 export function getSessionPartitionIndex(
   sessionId: string,
-  partitionCount: number = CHAT_QUEUE_PARTITION_COUNT,
+  partitionCount?: number,
 ): number {
+  const activePartitionCount = resolveChatQueuePartitionCount();
   const safePartitionCount =
-    Number.isInteger(partitionCount) && partitionCount > 0
+    typeof partitionCount === 'number' &&
+    Number.isInteger(partitionCount) &&
+    partitionCount > 0
       ? partitionCount
-      : CHAT_QUEUE_PARTITION_COUNT;
+      : activePartitionCount;
 
   if (!sessionId) {
     return 0;
@@ -160,11 +197,20 @@ function getQueuePartitionMap(): Map<number, Queue<ChatWebhookJobData>> {
 
 export function getChatMessageQueueForPartition(
   partitionIndex: number,
+  partitionCount?: number,
 ): Queue<ChatWebhookJobData> {
+  const activePartitionCount =
+    typeof partitionCount === 'number' &&
+    Number.isInteger(partitionCount) &&
+    partitionCount >= MIN_CHAT_QUEUE_PARTITION_COUNT &&
+    partitionCount <= MAX_CHAT_QUEUE_PARTITION_COUNT
+      ? partitionCount
+      : resolveChatQueuePartitionCount();
+
   const normalizedPartition =
     Number.isInteger(partitionIndex) &&
     partitionIndex >= 0 &&
-    partitionIndex < CHAT_QUEUE_PARTITION_COUNT
+    partitionIndex < activePartitionCount
       ? partitionIndex
       : 0;
 
@@ -199,10 +245,11 @@ export function getChatMessageQueueForPartition(
 export function getChatMessageQueue(
   sessionId?: string,
 ): Queue<ChatWebhookJobData> {
+  const partitionCount = resolveChatQueuePartitionCount();
   const partitionIndex = sessionId
-    ? getSessionPartitionIndex(sessionId)
+    ? getSessionPartitionIndex(sessionId, partitionCount)
     : 0;
-  return getChatMessageQueueForPartition(partitionIndex);
+  return getChatMessageQueueForPartition(partitionIndex, partitionCount);
 }
 
 function sanitizeJobIdSegment(segment: string): string {
