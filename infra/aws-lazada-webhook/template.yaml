@@ -35,11 +35,11 @@ Parameters:
     Description: Optional pathname override used when validating query-string sign parameter
   SqsVisibilityTimeoutSeconds:
     Type: Number
-    Default: 60
+    Default: 90
     MinValue: 10
     MaxValue: 43200
     Description: Visibility timeout in seconds while OmniCart backend consumer
-      enqueues to BullMQ
+      processes direct DB ingestion and cold-session Lazada API hydration
   SqsMessageRetentionSeconds:
     Type: Number
     Default: 1209600

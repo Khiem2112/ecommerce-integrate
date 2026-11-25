@@ -4,7 +4,7 @@ Ha tang tiep nhan Lazada IM Webhook theo kien truc 4 lop:
 1. AWS API Gateway (HTTP API, region `ap-southeast-1`)
 2. AWS Lambda (Node.js 20, xac thuc chu ky HMAC-SHA256 giong `verifyLazadaWebhookSignature`, bo qua probe ping khong co `session_id`)
 3. AWS SQS FIFO (`*.fifo`) voi `MessageGroupId = session_id`, `MessageDeduplicationId = message_id` (hoac SHA-256 payload) kem SQS DLQ (`maxReceiveCount = 5`)
-4. OmniCart Backend SQS Consumer (`@aws-sdk/client-sqs` Long Polling) day vao BullMQ 8 partitions qua `addChatMessageJob`
+4. OmniCart Backend SQS Consumer (`@aws-sdk/client-sqs` Long Polling) xu ly truc tiep vao MySQL DB qua `processChatWebhookJob` (chi xoa message SQS sau khi ghi DB thanh cong; BullMQ chi dung cho delayed `bot_turn` va `initial_chat_sync` jobs)
 
 ## Trien Khai Bang AWS SAM CLI
 
@@ -31,4 +31,4 @@ Sau khi deploy thanh cong, SAM tra ve cac gia tri trong `Outputs`:
 
 ## Kiem Tra Va Xu Ly Su Co DLQ
 
-Neu OmniCart backend hoac Redis gap su co khien consumer khong enqueue duoc vao BullMQ qua 5 lan (`maxReceiveCount = 5`), tin nhan tu dong duoc chuyen sang `SqsDlqUrl`. Sau khi khac phuc su co backend, su dung tinh nang **Start DLQ redrive** tren AWS SQS Console de day nguoc tin nhan tu DLQ tro lai hang doi chinh theo dung thu tu FIFO.
+Neu OmniCart backend, MySQL hoac Redis lock gap su co khien consumer khong xu ly thanh cong qua 5 lan (`maxReceiveCount = 5`), tin nhan tu dong duoc chuyen sang `SqsDlqUrl`. Sau khi khac phuc su co backend, su dung tinh nang **Start DLQ redrive** tren AWS SQS Console de day nguoc tin nhan tu DLQ tro lai hang doi chinh theo dung thu tu FIFO.

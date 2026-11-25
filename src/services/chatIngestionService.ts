@@ -13,6 +13,10 @@ import type {
 } from '@/types';
 
 export const RECALLED_MESSAGE_TEXT = '[Tin nhắn đã được thu hồi]';
+export const DEFAULT_BOT_AUTOREPLY_MAX_MESSAGE_AGE_MS = 300_000;
+export const MIN_BOT_AUTOREPLY_MAX_MESSAGE_AGE_MS = 1_000;
+export const MAX_BOT_AUTOREPLY_MAX_MESSAGE_AGE_MS = 86_400_000;
+const EPOCH_MILLISECONDS_THRESHOLD = 1_000_000_000_000;
 const ORDER_LINK_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
 const NESTED_RECORD_KEYS = [
   'data',
@@ -710,6 +714,44 @@ export async function findRecentActiveOrderIdForCustomer(
   return recentOrder?.id ?? null;
 }
 
+export function getBotAutoReplyMaxMessageAgeMs(): number {
+  const rawValue = process.env.BOT_AUTOREPLY_MAX_MESSAGE_AGE_MS?.trim();
+  if (!rawValue) {
+    return DEFAULT_BOT_AUTOREPLY_MAX_MESSAGE_AGE_MS;
+  }
+
+  const parsed = Number(rawValue);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_BOT_AUTOREPLY_MAX_MESSAGE_AGE_MS;
+  }
+
+  return Math.min(
+    MAX_BOT_AUTOREPLY_MAX_MESSAGE_AGE_MS,
+    Math.max(MIN_BOT_AUTOREPLY_MAX_MESSAGE_AGE_MS, Math.floor(parsed)),
+  );
+}
+
+/**
+ * Normalizes a positive epoch timestamp into milliseconds, converting 10-digit
+ * epoch-second payloads so second-precision timestamps are not treated as 1970.
+ */
+export function normalizeEpochTimestampMs(
+  rawTimestamp: number | undefined,
+  fallbackMs: number = Date.now(),
+): number {
+  if (
+    typeof rawTimestamp !== 'number' ||
+    !Number.isFinite(rawTimestamp) ||
+    rawTimestamp <= 0
+  ) {
+    return fallbackMs;
+  }
+
+  return rawTimestamp < EPOCH_MILLISECONDS_THRESHOLD
+    ? rawTimestamp * 1000
+    : rawTimestamp;
+}
+
 /**
  * Idempotently ingests a Lazada message into Customer, Conversation, and Message tables.
  * In 'historical_sync' mode, suppresses live SSE takeover/message spam, bot turns, and per-message unread accumulation.
@@ -731,12 +773,7 @@ export async function ingestLazadaMessage(
   const messageId = payload.message_id;
   const sessionId = payload.session_id;
 
-  const incomingTimestampMs =
-    typeof payload.send_time === 'number' &&
-    Number.isFinite(payload.send_time) &&
-    payload.send_time > 0
-      ? payload.send_time
-      : Date.now();
+  const incomingTimestampMs = normalizeEpochTimestampMs(payload.send_time);
   const incomingTime = new Date(incomingTimestampMs);
 
   const existingMessage = await prisma.message.findUnique({
@@ -1030,23 +1067,39 @@ export async function ingestLazadaMessage(
         (statusCode === 'open' || statusCode === 'awaiting_reply');
 
       if (isEligibleForBot) {
-        try {
-          await scheduleBotConversationTurn(
-            connectionId,
-            conversation.id,
-            sessionId,
-            messageId,
+        const maxMessageAgeMs = getBotAutoReplyMaxMessageAgeMs();
+        const messageAgeMs = Date.now() - incomingTime.getTime();
+        if (messageAgeMs > maxMessageAgeMs) {
+          appLogger.info(
+            'Skipping autonomous bot turn for stale backlogged buyer message',
+            {
+              conversationId: conversation.id,
+              sessionId,
+              messageId,
+              messageAgeMs,
+              maxMessageAgeMs,
+              incomingTime: incomingTime.toISOString(),
+            },
           );
-        } catch (scheduleError) {
-          appLogger.warn('Failed to schedule autonomous bot turn after buyer message', {
-            conversationId: conversation.id,
-            sessionId,
-            messageId,
-            error:
-              scheduleError instanceof Error
-                ? scheduleError.message
-                : String(scheduleError),
-          });
+        } else {
+          try {
+            await scheduleBotConversationTurn(
+              connectionId,
+              conversation.id,
+              sessionId,
+              messageId,
+            );
+          } catch (scheduleError) {
+            appLogger.warn('Failed to schedule autonomous bot turn after buyer message', {
+              conversationId: conversation.id,
+              sessionId,
+              messageId,
+              error:
+                scheduleError instanceof Error
+                  ? scheduleError.message
+                  : String(scheduleError),
+            });
+          }
         }
       }
     } else if (isRealOperatorReply) {

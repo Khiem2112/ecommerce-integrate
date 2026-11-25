@@ -4,8 +4,9 @@ import {
   SQSClient,
   type Message as SqsMessage,
 } from '@aws-sdk/client-sqs';
-import { addChatMessageJob, type ChatWebhookEventJobData } from '@/lib/queue';
+import type { ChatWebhookEventJobData } from '@/lib/queue';
 import { appLogger } from '@/lib/logger';
+import { processChatWebhookJob } from '@/services/chatQueueWorker';
 import { parseLazadaWebhookBody } from '@/utils';
 import type {
   LazadaPushMessagePayload,
@@ -14,7 +15,7 @@ import type {
 
 export const DEFAULT_LAZADA_SQS_REGION = 'ap-southeast-1';
 export const DEFAULT_LAZADA_SQS_WAIT_TIME_SECONDS = 20;
-export const DEFAULT_LAZADA_SQS_MAX_MESSAGES = 10;
+export const DEFAULT_LAZADA_SQS_MAX_MESSAGES = 5;
 export const DEFAULT_LAZADA_SQS_ERROR_BACKOFF_MS = 3000;
 
 export type LazadaSqsConsumerConfig = {
@@ -28,7 +29,7 @@ export type LazadaSqsConsumerConfig = {
 
 export type LazadaSqsBatchSummary = {
   readonly receivedCount: number;
-  readonly enqueuedCount: number;
+  readonly processedCount: number;
   readonly deletedCount: number;
   readonly failedCount: number;
 };
@@ -136,7 +137,7 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Parses an SQS message body into a BullMQ job payload. Supports both the Lambda
+ * Parses an SQS message body into a chat webhook job payload. Supports both the Lambda
  * ingress envelope and raw Lazada webhook JSON. Returns null for probe pings.
  */
 export function parseSqsMessageBodyToJob(
@@ -231,7 +232,7 @@ async function deleteSqsMessage(
     );
     return true;
   } catch (deleteError) {
-    appLogger.warn('Failed to delete enqueued SQS message; BullMQ idempotency will deduplicate redelivery', {
+    appLogger.warn('Failed to delete processed SQS message; database idempotency will deduplicate redelivery', {
       sqsMessageId,
       error:
         deleteError instanceof Error ? deleteError.message : String(deleteError),
@@ -241,8 +242,8 @@ async function deleteSqsMessage(
 }
 
 /**
- * Processes an ordered SQS FIFO batch sequentially, halting remaining records for any
- * MessageGroupId/session_id that fails enqueueing so intra-session FIFO order is preserved.
+ * Processes an ordered SQS FIFO batch sequentially via direct database ingestion,
+ * halting remaining records for any MessageGroupId/session_id that fails so intra-session FIFO order is preserved.
  */
 export async function processLazadaSqsBatch(
   client: SqsClientLike,
@@ -250,7 +251,7 @@ export async function processLazadaSqsBatch(
   messages: readonly SqsMessage[],
 ): Promise<LazadaSqsBatchSummary> {
   const failedSessionGroups = new Set<string>();
-  let enqueuedCount = 0;
+  let processedCount = 0;
   let deletedCount = 0;
   let failedCount = 0;
 
@@ -298,16 +299,16 @@ export async function processLazadaSqsBatch(
     const effectiveGroupKey = sqsGroupId || parsedJob.sessionId;
     if (failedSessionGroups.has(effectiveGroupKey)) {
       failedCount += 1;
+      appLogger.warn('Skipping SQS FIFO message after earlier failure in the same session group', {
+        sqsMessageId: message.MessageId,
+        sessionGroupKey: effectiveGroupKey,
+      });
       continue;
     }
 
     try {
-      const bullJobId = await addChatMessageJob(
-        parsedJob.jobData,
-        parsedJob.sessionId,
-        parsedJob.messageId,
-      );
-      enqueuedCount += 1;
+      await processChatWebhookJob(parsedJob.jobData);
+      processedCount += 1;
 
       const deleted = await deleteSqsMessage(
         client,
@@ -319,30 +320,31 @@ export async function processLazadaSqsBatch(
         deletedCount += 1;
       }
 
-      appLogger.info('Bridged Lazada SQS message to BullMQ partition', {
+      appLogger.info('Processed Lazada SQS message directly into database', {
         sqsMessageId: message.MessageId,
-        bullJobId,
+        eventType: parsedJob.jobData.eventType,
         sessionId: parsedJob.sessionId,
         messageId: parsedJob.messageId,
       });
-    } catch (enqueueError) {
+    } catch (processError) {
       failedCount += 1;
       failedSessionGroups.add(effectiveGroupKey);
-      appLogger.error('Failed to enqueue SQS message into BullMQ; retaining message in SQS for retry', {
+      appLogger.error('Failed to process Lazada SQS message directly; retaining message in SQS for retry', {
         sqsMessageId: message.MessageId,
+        eventType: parsedJob.jobData.eventType,
         sessionId: parsedJob.sessionId,
         messageId: parsedJob.messageId,
         error:
-          enqueueError instanceof Error
-            ? enqueueError.message
-            : String(enqueueError),
+          processError instanceof Error
+            ? processError.message
+            : String(processError),
       });
     }
   }
 
   return {
     receivedCount: messages.length,
-    enqueuedCount,
+    processedCount,
     deletedCount,
     failedCount,
   };
@@ -374,7 +376,7 @@ export async function pollLazadaSqsOnce(
   if (messages.length === 0) {
     return {
       receivedCount: 0,
-      enqueuedCount: 0,
+      processedCount: 0,
       deletedCount: 0,
       failedCount: 0,
     };
