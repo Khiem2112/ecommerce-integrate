@@ -267,6 +267,8 @@ export type SyncLazadaChatHistoryOptions = {
   readonly maxSessions?: number;
   readonly maxPagesPerSession?: number;
   readonly pageSize?: number;
+  readonly mode?: 'full' | 'incremental';
+  readonly overlapMs?: number;
 };
 
 /** Structured summary returned after a Lazada chat history sync run */
@@ -274,6 +276,7 @@ export type SyncLazadaChatHistoryResult = {
   readonly connectionId: number;
   readonly organizationId: number;
   readonly sessionsSynced: number;
+  readonly sessionsSkippedUnchanged?: number;
   readonly messagesSynced: number;
   readonly lastSyncedAt: string;
 };

@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
 import { withDistributedLock } from '@/lib/redlock';
@@ -30,11 +31,29 @@ import type {
 export const LAZADA_CHAT_PAGE_SIZE = 20;
 export const LAZADA_MAX_SYNC_SESSIONS = 3000;
 export const LAZADA_DEFAULT_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
+export const LAZADA_INCREMENTAL_SYNC_OVERLAP_MS = 10 * 60 * 1000;
+export const LAZADA_SESSION_MESSAGE_OVERLAP_MS = 5 * 60 * 1000;
 export const LAZADA_MAX_SESSION_PAGES = 200;
 export const LAZADA_MAX_MESSAGE_PAGES_PER_SESSION = 100;
 export const CHAT_HISTORY_SYNC_COOLDOWN_SECONDS = 300;
 const CHAT_HISTORY_SYNC_FAILURE_BACKOFF_SECONDS = 30;
 const SESSION_LOCK_TTL_MS = 25_000;
+
+const EXISTING_CONVERSATION_PREFETCH_SELECT = {
+  id: true,
+  isActive: true,
+  unreadCount: true,
+  lastMessageTime: true,
+  customer: {
+    select: {
+      displayName: true,
+    },
+  },
+} satisfies Prisma.ConversationSelect;
+
+type PreFetchedConversationSnapshot = Prisma.ConversationGetPayload<{
+  select: typeof EXISTING_CONVERSATION_PREFETCH_SELECT;
+}>;
 
 export function getChatHistorySyncCooldownKey(connectionId: number): string {
   return `cooldown:chat-history-sync:${connectionId}`;
@@ -65,6 +84,108 @@ function normalizeUnreadCount(rawUnreadCount: unknown): number | undefined {
     return Math.max(0, Math.trunc(rawUnreadCount));
   }
   return undefined;
+}
+
+function resolveIncrementalOverlapMs(overlapMs?: number): number {
+  if (
+    typeof overlapMs === 'number' &&
+    Number.isFinite(overlapMs) &&
+    overlapMs >= 0
+  ) {
+    return Math.floor(overlapMs);
+  }
+  return LAZADA_INCREMENTAL_SYNC_OVERLAP_MS;
+}
+
+/**
+ * Resolves the session-list start timestamp for a connection sync run.
+ * Incremental runs derive the watermark from the newest active conversation minus overlap
+ * when no explicit startTime is provided; full runs retain the default 30-day lookback.
+ */
+async function resolveSyncStartTime(
+  connectionId: number,
+  options: SyncLazadaChatHistoryOptions,
+): Promise<number> {
+  if (
+    typeof options.startTime === 'number' &&
+    Number.isFinite(options.startTime) &&
+    options.startTime >= 0
+  ) {
+    return Math.floor(options.startTime);
+  }
+
+  if (options.mode === 'incremental') {
+    const effectiveOverlapMs = resolveIncrementalOverlapMs(options.overlapMs);
+    const watermarkAggregate = await prisma.conversation.aggregate({
+      where: {
+        connectionId,
+        isActive: true,
+      },
+      _max: {
+        lastMessageTime: true,
+      },
+    });
+    const maxLastMessageTime = watermarkAggregate?._max?.lastMessageTime;
+    const maxLastMessageTimeMs =
+      maxLastMessageTime instanceof Date ? maxLastMessageTime.getTime() : NaN;
+    if (Number.isFinite(maxLastMessageTimeMs)) {
+      return Math.max(0, maxLastMessageTimeMs - effectiveOverlapMs);
+    }
+  }
+
+  return Math.max(0, Date.now() - LAZADA_DEFAULT_LOOKBACK_MS);
+}
+
+/**
+ * Evaluates whether an existing active conversation can safely skip per-session message
+ * pagination during incremental reconciliation without missing new activity or buyer hydration.
+ */
+function isSessionUnchangedForIncrementalSync(
+  existingConversation: PreFetchedConversationSnapshot | null,
+  sessionLastMessageTime: number | undefined,
+  resolvedUnreadCount: number | undefined,
+): boolean {
+  if (
+    !existingConversation ||
+    !existingConversation.isActive ||
+    !(existingConversation.lastMessageTime instanceof Date)
+  ) {
+    return false;
+  }
+
+  const existingLastMessageTimeMs =
+    existingConversation.lastMessageTime.getTime();
+  if (!Number.isFinite(existingLastMessageTimeMs)) {
+    return false;
+  }
+
+  if (
+    typeof sessionLastMessageTime !== 'number' ||
+    !Number.isFinite(sessionLastMessageTime) ||
+    sessionLastMessageTime <= 0
+  ) {
+    return false;
+  }
+
+  if (sessionLastMessageTime > existingLastMessageTimeMs) {
+    return false;
+  }
+
+  const hasCustomerDisplayName = Boolean(
+    existingConversation.customer?.displayName?.trim(),
+  );
+  if (!hasCustomerDisplayName) {
+    return false;
+  }
+
+  if (
+    resolvedUnreadCount !== undefined &&
+    resolvedUnreadCount > existingConversation.unreadCount
+  ) {
+    return false;
+  }
+
+  return true;
 }
 
 function toPushMessagePayload(
@@ -353,12 +474,8 @@ export async function syncLazadaChatHistoryForConnection(
     options.maxPagesPerSession > 0
       ? Math.floor(options.maxPagesPerSession)
       : LAZADA_MAX_MESSAGE_PAGES_PER_SESSION;
-  const startTime =
-    typeof options.startTime === 'number' &&
-    Number.isFinite(options.startTime) &&
-    options.startTime >= 0
-      ? Math.floor(options.startTime)
-      : Math.max(0, Date.now() - LAZADA_DEFAULT_LOOKBACK_MS);
+  const isIncrementalMode = options.mode === 'incremental';
+  const startTime = await resolveSyncStartTime(connectionId, options);
 
   const sessions = await fetchPaginatedLazadaSessions(
     connectionId,
@@ -368,6 +485,7 @@ export async function syncLazadaChatHistoryForConnection(
   );
 
   let sessionsSynced = 0;
+  let sessionsSkippedUnchanged = 0;
   let messagesSynced = 0;
   let lastSyncedSessionId: string | undefined;
   let inProgressStatusIdCache: number | null = null;
@@ -381,16 +499,7 @@ export async function syncLazadaChatHistoryForConnection(
             platformSessionId: session.session_id,
           },
         },
-        select: {
-          id: true,
-          isActive: true,
-          lastMessageTime: true,
-          customer: {
-            select: {
-              displayName: true,
-            },
-          },
-        },
+        select: EXISTING_CONVERSATION_PREFETCH_SELECT,
       });
 
       if (existingConversationPreFetch && !existingConversationPreFetch.isActive) {
@@ -407,7 +516,7 @@ export async function syncLazadaChatHistoryForConnection(
         session.buyerName,
       ]);
       const customerNeedsName =
-        !existingConversationPreFetch?.customer?.displayName;
+        !existingConversationPreFetch?.customer?.displayName?.trim();
 
       if (!summaryDisplayName && customerNeedsName) {
         try {
@@ -436,10 +545,39 @@ export async function syncLazadaChatHistoryForConnection(
         }
       }
 
+      const resolvedUnreadCount = normalizeUnreadCount(
+        effectiveSessionDetail.unread_count ?? session.unread_count,
+      );
+
+      // Skip N+1 message list calls during incremental reconciliation when session metadata
+      // confirms no newer activity, no unread increase, and an already-hydrated buyer profile.
+      if (
+        isIncrementalMode &&
+        isSessionUnchangedForIncrementalSync(
+          existingConversationPreFetch,
+          session.last_message_time,
+          resolvedUnreadCount,
+        )
+      ) {
+        sessionsSkippedUnchanged += 1;
+        continue;
+      }
+
+      const messageStartTime =
+        isIncrementalMode &&
+        existingConversationPreFetch?.lastMessageTime instanceof Date &&
+        Number.isFinite(existingConversationPreFetch.lastMessageTime.getTime())
+          ? Math.max(
+              startTime,
+              existingConversationPreFetch.lastMessageTime.getTime() -
+                LAZADA_SESSION_MESSAGE_OVERLAP_MS,
+            )
+          : startTime;
+
       const messagePageResult = await fetchPaginatedSessionMessages(
         connectionId,
         session.session_id,
-        startTime,
+        messageStartTime,
         pageSize,
         maxPagesPerSession,
       );
@@ -447,10 +585,6 @@ export async function syncLazadaChatHistoryForConnection(
       if (!messagePageResult.ok) {
         continue;
       }
-
-      const resolvedUnreadCount = normalizeUnreadCount(
-        effectiveSessionDetail.unread_count ?? session.unread_count,
-      );
       const sessionFallbackTime =
         typeof effectiveSessionDetail.last_message_time === 'number' &&
         Number.isFinite(effectiveSessionDetail.last_message_time) &&
@@ -702,7 +836,9 @@ export async function syncLazadaChatHistoryForConnection(
   appLogger.info('Completed Lazada chat history sync for connection', {
     connectionId,
     organizationId: connection.organizationId,
+    mode: isIncrementalMode ? 'incremental' : 'full',
     sessionsSynced,
+    sessionsSkippedUnchanged,
     messagesSynced,
   });
 
@@ -710,6 +846,7 @@ export async function syncLazadaChatHistoryForConnection(
     connectionId,
     organizationId: connection.organizationId,
     sessionsSynced,
+    sessionsSkippedUnchanged,
     messagesSynced,
     lastSyncedAt: lastSyncedAtDate.toISOString(),
   };
