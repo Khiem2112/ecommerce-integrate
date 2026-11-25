@@ -11,6 +11,21 @@ export const CHAT_MESSAGE_QUEUE_NAME = 'chat-message-queue';
 export const CHAT_QUEUE_PARTITION_COUNT = 8;
 export const DEFAULT_BOT_DEBOUNCE_MS = 3000;
 export const DEFAULT_LAZADA_INITIAL_CHAT_SYNC_DELAY_MS = 900_000;
+export const LAZADA_RECONCILE_DEDUP_WINDOW_MS = 300_000;
+
+export type ChatReconcileSyncMode = 'incremental' | 'full';
+
+export type ChatReconcileSyncReason =
+  | 'startup_downtime'
+  | 'sqs_retention_exceeded'
+  | 'periodic';
+
+export type ScheduleLazadaChatReconciliationOptions = {
+  syncMode: ChatReconcileSyncMode;
+  reason: ChatReconcileSyncReason;
+  sinceTimestampMs?: number;
+  delayMs?: number;
+};
 
 export type ChatWebhookEventJobData = {
   eventType: 'push_message' | 'push_session_update';
@@ -38,10 +53,21 @@ export type ChatInitialSyncJobData = {
   requestedAt: number;
 };
 
+export type ChatReconcileSyncJobData = {
+  eventType: 'reconcile_chat_sync';
+  connectionId: number;
+  platform: 'lazada';
+  syncMode: ChatReconcileSyncMode;
+  reason: ChatReconcileSyncReason;
+  sinceTimestampMs?: number;
+  requestedAt: number;
+};
+
 export type ChatWebhookJobData =
   | ChatWebhookEventJobData
   | ChatBotTurnJobData
-  | ChatInitialSyncJobData;
+  | ChatInitialSyncJobData
+  | ChatReconcileSyncJobData;
 
 export function getBotDebounceDelayMs(): number {
   const raw = process.env.BOT_DEBOUNCE_MS;
@@ -246,6 +272,22 @@ export function buildInitialChatSyncJobId(connectionId: number): string {
   return `chat-initial-sync_${connectionId}`;
 }
 
+export function buildLazadaChatReconcileJobId(
+  connectionId: number,
+  syncMode: ChatReconcileSyncMode,
+  reason: ChatReconcileSyncReason,
+  bucketTimestampMs: number = Date.now(),
+): string {
+  const safeTimestamp =
+    Number.isFinite(bucketTimestampMs) && bucketTimestampMs >= 0
+      ? bucketTimestampMs
+      : Date.now();
+  const dedupBucket = Math.floor(safeTimestamp / LAZADA_RECONCILE_DEDUP_WINDOW_MS);
+  const safeMode = sanitizeJobIdSegment(syncMode);
+  const safeReason = sanitizeJobIdSegment(reason);
+  return `chat-reconcile_${connectionId}_${safeMode}_${safeReason}_${dedupBucket}`;
+}
+
 export async function addChatMessageJob(
   jobData: ChatWebhookJobData,
   sessionId: string,
@@ -253,6 +295,14 @@ export async function addChatMessageJob(
 ): Promise<string> {
   if (jobData.eventType === 'initial_chat_sync') {
     return scheduleInitialChatHistorySync(jobData.connectionId);
+  }
+
+  if (jobData.eventType === 'reconcile_chat_sync') {
+    return scheduleLazadaChatReconciliation(jobData.connectionId, {
+      syncMode: jobData.syncMode,
+      reason: jobData.reason,
+      sinceTimestampMs: jobData.sinceTimestampMs,
+    });
   }
 
   const queue = getChatMessageQueue(sessionId);
@@ -353,6 +403,63 @@ export async function scheduleInitialChatHistorySync(
   const job = await queue.add('process_initial_chat_sync', jobData, {
     delay: effectiveDelayMs,
     jobId,
+  });
+
+  return job.id ?? jobId;
+}
+
+/**
+ * Schedules a Lazada chat history reconciliation job with a colon-free deterministic
+ * deduplication window jobId so rapid restarts cannot trigger duplicate sync storms.
+ */
+export async function scheduleLazadaChatReconciliation(
+  connectionId: number,
+  options: ScheduleLazadaChatReconciliationOptions,
+): Promise<string> {
+  if (!Number.isInteger(connectionId) || connectionId <= 0) {
+    throw new Error(
+      'connectionId must be a positive integer to schedule Lazada chat reconciliation',
+    );
+  }
+
+  const nowMs = Date.now();
+  const jobId = buildLazadaChatReconcileJobId(
+    connectionId,
+    options.syncMode,
+    options.reason,
+    nowMs,
+  );
+  const queue = getChatMessageQueue(`chat-reconcile_${connectionId}`);
+
+  const normalizedSinceTimestampMs =
+    typeof options.sinceTimestampMs === 'number' &&
+    Number.isFinite(options.sinceTimestampMs) &&
+    options.sinceTimestampMs >= 0
+      ? Math.floor(options.sinceTimestampMs)
+      : undefined;
+
+  const jobData: ChatReconcileSyncJobData = {
+    eventType: 'reconcile_chat_sync',
+    connectionId,
+    platform: 'lazada',
+    syncMode: options.syncMode,
+    reason: options.reason,
+    ...(normalizedSinceTimestampMs !== undefined
+      ? { sinceTimestampMs: normalizedSinceTimestampMs }
+      : {}),
+    requestedAt: nowMs,
+  };
+
+  const normalizedDelayMs =
+    typeof options.delayMs === 'number' &&
+    Number.isFinite(options.delayMs) &&
+    options.delayMs > 0
+      ? Math.floor(options.delayMs)
+      : undefined;
+
+  const job = await queue.add('process_reconcile_chat_sync', jobData, {
+    jobId,
+    ...(normalizedDelayMs !== undefined ? { delay: normalizedDelayMs } : {}),
   });
 
   return job.id ?? jobId;

@@ -15,6 +15,24 @@ function shouldSkipWebhookSignatureVerify(): boolean {
   return process.env.LAZADA_WEBHOOK_SKIP_SIGNATURE_VERIFY === 'true';
 }
 
+function isDirectLazadaWebhookRouteEnabled(): boolean {
+  return (
+    process.env.ENABLE_DIRECT_LAZADA_WEBHOOK_ROUTE?.trim().toLowerCase() !==
+    'false'
+  );
+}
+
+function createDirectIngressDisabledResponse(): NextResponse<WebhookResponse> {
+  return NextResponse.json(
+    {
+      success: false,
+      message:
+        'Direct Lazada webhook route is disabled; webhooks must arrive via the AWS SQS ingress gateway',
+    },
+    { status: 410 },
+  );
+}
+
 function timingSafeHexEqual(expectedHex: string, providedHex: string): boolean {
   const normalizedExpected = expectedHex.trim().toLowerCase();
   const normalizedProvided = providedHex.trim().toLowerCase();
@@ -114,6 +132,11 @@ function verifyLazadaWebhookSignature(
 }
 
 export async function GET(): Promise<NextResponse<WebhookResponse>> {
+  if (!isDirectLazadaWebhookRouteEnabled()) {
+    appLogger.warn('Rejected GET health probe on disabled direct Lazada webhook route');
+    return createDirectIngressDisabledResponse();
+  }
+
   return NextResponse.json(
     {
       success: true,
@@ -124,6 +147,13 @@ export async function GET(): Promise<NextResponse<WebhookResponse>> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse<WebhookResponse>> {
+  if (!isDirectLazadaWebhookRouteEnabled()) {
+    appLogger.warn('Rejected direct Lazada webhook POST because AWS SQS single-ingress guard is active', {
+      path: request.nextUrl.pathname,
+    });
+    return createDirectIngressDisabledResponse();
+  }
+
   const startTime = Date.now();
   const url = new URL(request.url);
 

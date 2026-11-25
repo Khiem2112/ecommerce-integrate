@@ -24,6 +24,7 @@ import type {
   ChatStreamEvent,
   LazadaPushMessagePayload,
   LazadaPushSessionUpdatePayload,
+  SyncLazadaChatHistoryOptions,
 } from '@/types';
 
 const SESSION_LOCK_TTL_MS = 25_000;
@@ -261,6 +262,22 @@ export async function processChatWebhookJob(jobData: ChatWebhookJobData): Promis
       throw new Error('Cannot process initial_chat_sync job without valid connectionId');
     }
     await syncLazadaChatHistoryForConnection(jobData.connectionId);
+    return;
+  }
+
+  if (jobData.eventType === 'reconcile_chat_sync') {
+    if (!Number.isInteger(jobData.connectionId) || jobData.connectionId <= 0) {
+      throw new Error('Cannot process reconcile_chat_sync job without valid connectionId');
+    }
+    const syncOptions: SyncLazadaChatHistoryOptions = {
+      mode: jobData.syncMode,
+      ...(typeof jobData.sinceTimestampMs === 'number' &&
+      Number.isFinite(jobData.sinceTimestampMs) &&
+      jobData.sinceTimestampMs >= 0
+        ? { startTime: Math.floor(jobData.sinceTimestampMs) }
+        : {}),
+    };
+    await syncLazadaChatHistoryForConnection(jobData.connectionId, syncOptions);
     return;
   }
 
