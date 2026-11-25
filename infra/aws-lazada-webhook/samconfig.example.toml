@@ -1,0 +1,29 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "lazada-message"
+resolve_s3 = true
+s3_prefix = "omnicart-lazada-webhook"
+region = "ap-southeast-1"
+confirm_changeset = false
+capabilities = [ "CAPABILITY_IAM", "CAPABILITY_NAMED_IAM" ]
+
+  [default.deploy.parameters.parameter_overrides]
+  LazadaAppKey = ""
+  LazadaAppSecret = ""
+  LazadaChatAppKey = ""
+  LazadaChatAppSecret = ""
+  SkipSignatureVerify = "false"
+  SqsVisibilityTimeoutSeconds = "60"
+  SqsMessageRetentionSeconds = "1209600"
+  DlqMaxReceiveCount = "5"
+
+[default.build.parameters]
+template_file = "............\\template.yaml"
+cached = true
+parallel = true
+use_container = true
+
+[default.global.parameters]
+region = "ap-southeast-1"
+stack_name = "lazada-message"

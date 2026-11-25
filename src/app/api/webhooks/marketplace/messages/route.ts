@@ -3,10 +3,7 @@ import crypto from 'node:crypto';
 import { addChatMessageJob, type ChatWebhookJobData } from '@/lib/queue';
 import { appLogger } from '@/lib/logger';
 import { calculateLazadaSignature } from '@/services/connectors/lazada/lazadaSigner';
-import type {
-  LazadaPushMessagePayload,
-  LazadaPushSessionUpdatePayload,
-} from '@/types';
+import { parseLazadaWebhookBody } from '@/utils';
 
 type WebhookResponse = {
   success: boolean;
@@ -116,44 +113,6 @@ function verifyLazadaWebhookSignature(
   return false;
 }
 
-function extractSellerShopId(
-  body: Record<string, unknown>,
-  sessionId: string,
-): string | undefined {
-  if (
-    body.seller_id !== undefined &&
-    body.seller_id !== null &&
-    String(body.seller_id) !== ''
-  ) {
-    return String(body.seller_id);
-  }
-  const eventData = (
-    body.data && typeof body.data === 'object' && !Array.isArray(body.data)
-      ? body.data
-      : body
-  ) as Record<string, unknown>;
-  if (
-    eventData.seller_id !== undefined &&
-    eventData.seller_id !== null &&
-    String(eventData.seller_id) !== ''
-  ) {
-    return String(eventData.seller_id);
-  }
-  if (Number(eventData.from_account_type) === 2 && eventData.from_account_id) {
-    return String(eventData.from_account_id);
-  }
-  if (Number(eventData.to_account_type) === 2 && eventData.to_account_id) {
-    return String(eventData.to_account_id);
-  }
-  if (Number(eventData.user_account_type) === 2 && eventData.user_account_id) {
-    return String(eventData.user_account_id);
-  }
-  if (sessionId && sessionId.includes('_')) {
-    return sessionId.split('_')[0] || undefined;
-  }
-  return undefined;
-}
-
 export async function GET(): Promise<NextResponse<WebhookResponse>> {
   return NextResponse.json(
     {
@@ -224,17 +183,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<WebhookRe
       ? parsedConnectionId
       : undefined;
 
-  const eventData = (
-    body.data && typeof body.data === 'object' && !Array.isArray(body.data)
-      ? body.data
-      : body
-  ) as Record<string, unknown>;
-  const rawSessionId = eventData.session_id ?? body.session_id;
-  const sessionId = rawSessionId ? String(rawSessionId) : '';
-  const messageId = eventData.message_id ? String(eventData.message_id) : (body.message_id ? String(body.message_id) : undefined);
+  const parsedEvent = parseLazadaWebhookBody(body);
 
   // Handle authenticated Lazada console probe / verify ping without session_id
-  if (!sessionId) {
+  if (!parsedEvent) {
     appLogger.info('Lazada webhook probe or verification ping received', {
       searchParams: Object.fromEntries(url.searchParams.entries()),
       body,
@@ -245,19 +197,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<WebhookRe
     );
   }
 
-  const externalShopId = extractSellerShopId(body, sessionId);
-  const isMessageEvent = Boolean(messageId && (eventData.content !== undefined || body.content !== undefined));
-  const eventType = isMessageEvent ? 'push_message' : 'push_session_update';
-  const eventPayload = eventData.session_id ? eventData : body;
+  const { sessionId, messageId, externalShopId, eventType, payload } = parsedEvent;
 
   const jobData: ChatWebhookJobData = {
     eventType,
     connectionId,
     externalShopId,
     platform: 'lazada',
-    payload: isMessageEvent
-      ? (eventPayload as unknown as LazadaPushMessagePayload)
-      : (eventPayload as unknown as LazadaPushSessionUpdatePayload),
+    payload,
     receivedAt: startTime,
   };
 

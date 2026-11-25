@@ -3,8 +3,14 @@ export async function register(): Promise<void> {
     process.env.NEXT_RUNTIME === 'nodejs' &&
     process.env.ENABLE_IN_APP_WORKERS?.trim().toLowerCase() !== 'false'
   ) {
-    const { startChatQueueWorker } = await import('@/services/chatQueueWorker');
+    const [{ startChatQueueWorker }, { startLazadaSqsConsumer }] =
+      await Promise.all([
+        import('@/services/chatQueueWorker'),
+        import('@/services/lazadaSqsConsumer'),
+      ]);
     startChatQueueWorker();
+    startLazadaSqsConsumer();
   }
 }
+
 

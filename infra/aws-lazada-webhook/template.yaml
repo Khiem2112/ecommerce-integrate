@@ -1,0 +1,171 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: OmniCart Lazada IM Webhook Ingress Gateway (HTTP API + Lambda + SQS FIFO + DLQ)
+
+Parameters:
+  LazadaAppKey:
+    Type: String
+    NoEcho: true
+    Description: Primary Lazada Open Platform App Key
+  LazadaAppSecret:
+    Type: String
+    NoEcho: true
+    Description: Primary Lazada Open Platform App Secret
+  LazadaChatAppKey:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: Optional Lazada IM/Chat App Key (falls back to LazadaAppKey when empty)
+  LazadaChatAppSecret:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: Optional Lazada IM/Chat App Secret (falls back to LazadaAppSecret
+      when empty)
+  SkipSignatureVerify:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: Set to true only for sandbox testing without valid Lazada HMAC signatures
+  WebhookSignPathOverride:
+    Type: String
+    Default: ''
+    Description: Optional pathname override used when validating query-string sign parameter
+  SqsVisibilityTimeoutSeconds:
+    Type: Number
+    Default: 60
+    MinValue: 10
+    MaxValue: 43200
+    Description: Visibility timeout in seconds while OmniCart backend consumer
+      enqueues to BullMQ
+  SqsMessageRetentionSeconds:
+    Type: Number
+    Default: 1209600
+    MinValue: 60
+    MaxValue: 1209600
+    Description: Message retention period in seconds (default 14 days maximum)
+  DlqMaxReceiveCount:
+    Type: Number
+    Default: 5
+    MinValue: 1
+    MaxValue: 100
+    Description: Number of failed delivery attempts before moving a message to the FIFO DLQ
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Architectures:
+      - arm64
+    Timeout: 10
+    MemorySize: 256
+
+Resources:
+  LazadaWebhookDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub ${AWS::StackName}-lazada-webhook-dlq.fifo
+      FifoQueue: true
+      ContentBasedDeduplication: false
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  LazadaWebhookQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub ${AWS::StackName}-lazada-webhook.fifo
+      FifoQueue: true
+      ContentBasedDeduplication: false
+      DeduplicationScope: messageGroup
+      FifoThroughputLimit: perMessageGroupId
+      VisibilityTimeout: !Ref SqsVisibilityTimeoutSeconds
+      MessageRetentionPeriod: !Ref SqsMessageRetentionSeconds
+      ReceiveMessageWaitTimeSeconds: 20
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt LazadaWebhookDLQ.Arn
+        maxReceiveCount: !Ref DlqMaxReceiveCount
+
+  LazadaWebhookHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+      Description: HTTP API Gateway ingress for Lazada IM webhooks
+
+  LazadaWebhookReceiverLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}-receiver
+      RetentionInDays: 30
+
+  LazadaWebhookReceiverFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: LazadaWebhookReceiverLogGroup
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-receiver
+      CodeUri: lambda/
+      Handler: index.handler
+      Description: Verifies Lazada HMAC-SHA256 webhook signature and buffers chat
+        events into SQS FIFO
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !Ref LazadaWebhookQueue
+          LAZADA_APP_KEY: !Ref LazadaAppKey
+          LAZADA_APP_SECRET: !Ref LazadaAppSecret
+          LAZADA_CHAT_APP_KEY: !Ref LazadaChatAppKey
+          LAZADA_CHAT_APP_SECRET: !Ref LazadaChatAppSecret
+          LAZADA_WEBHOOK_SKIP_SIGNATURE_VERIFY: !Ref SkipSignatureVerify
+          LAZADA_WEBHOOK_SIGN_PATH: !Ref WebhookSignPathOverride
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt LazadaWebhookQueue.QueueName
+      Events:
+        WebhookPost:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref LazadaWebhookHttpApi
+            Path: /api/webhooks/marketplace/messages
+            Method: POST
+        WebhookGet:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref LazadaWebhookHttpApi
+            Path: /api/webhooks/marketplace/messages
+            Method: GET
+
+  OmniCartSqsConsumerPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub ${AWS::StackName}-consumer-policy
+      Description: Least-privilege policy for OmniCart backend SQS Long Polling consumer
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+              - sqs:ChangeMessageVisibility
+            Resource: !GetAtt LazadaWebhookQueue.Arn
+
+Outputs:
+  WebhookEndpointUrl:
+    Description: Public HTTPS webhook URL to register in Lazada Open Platform Console
+    Value: !Sub https://${LazadaWebhookHttpApi}.execute-api.${AWS::Region}.amazonaws.com/api/webhooks/marketplace/messages
+  SqsQueueUrl:
+    Description: SQS FIFO Queue URL for LAZADA_SQS_QUEUE_URL in OmniCart backend
+    Value: !Ref LazadaWebhookQueue
+  SqsQueueArn:
+    Description: SQS FIFO Queue ARN
+    Value: !GetAtt LazadaWebhookQueue.Arn
+  SqsDlqUrl:
+    Description: SQS FIFO Dead-Letter Queue URL
+    Value: !Ref LazadaWebhookDLQ
+  SqsDlqArn:
+    Description: SQS FIFO Dead-Letter Queue ARN
+    Value: !GetAtt LazadaWebhookDLQ.Arn
+  SqsConsumerPolicyArn:
+    Description: Managed IAM Policy ARN to attach to OmniCart backend IAM role or user
+    Value: !Ref OmniCartSqsConsumerPolicy
